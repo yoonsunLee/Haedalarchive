@@ -187,8 +187,8 @@ function imgUrl(r,thumb){
     return v;
   }
   if(/^drive:/.test(v))return`https://drive.google.com/thumbnail?id=${v.slice(6)}&sz=w${thumb?600:1200}`;
-  const base=v.replace(/\.[a-z]+$/i,'');
-  return thumb?`thumbs/${base}.jpg`:`images/${v}`;
+  const file=v.split('/').pop();
+  return thumb?`thumbs/${file.replace(/\.[a-z]+$/i,'')}.jpg`:`images/${file}`;
 }
 
 /* ---------- 데이터 로드 ---------- */

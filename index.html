@@ -124,6 +124,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </select>
   <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
   <button class="btn" id="btnReload" title="새로고침">↻</button>
+  <button class="btn" id="btnPf">📄 포트폴리오</button>
   <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
   <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
 </div>
@@ -171,6 +172,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <dialog id="dlgDetail">
   <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
   <div class="dlgbody" id="dBody"></div>
+</dialog>
+
+<dialog id="dlgPf">
+  <div class="dlghead"><h2>📄 포트폴리오</h2><button class="btn" id="btnClosePf">✕</button></div>
+  <div class="dlgbody" id="pfBody"></div>
 </dialog>
 
 <dialog id="dlgEdit">
@@ -519,6 +525,48 @@ $('#editForm').onsubmit=async e=>{
   }catch(err){toast('오류: '+err.message)}
   $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
 };
+
+/* ---------- 포트폴리오 (PDF, 드라이브 보관) ---------- */
+async function openPortfolio(){
+  dlgPf.showModal();
+  $('#pfBody').innerHTML='<div class="hint">불러오는 중…</div>';
+  try{
+    const j=await (await fetch(api()+'?action=portfolio&t='+Date.now())).json();
+    if(!j.ok)throw new Error(j.error||'응답 오류');
+    renderPf(j);
+  }catch(e){$('#pfBody').innerHTML='<div class="hint">불러오기 실패: '+esc(e.message)+'</div>'}
+}
+function renderPf(j){
+  $('#pfBody').innerHTML=
+    (j.exists
+      ?`<p style="margin-bottom:4px"><b>${esc(j.name)}</b></p>
+        <p class="hint" style="margin-bottom:12px">업로드: ${esc(j.updated)} · ${esc(j.size)}MB</p>
+        <button class="btn primary" id="pfDown">⬇ 다운로드</button>`
+      :'<p class="hint" style="margin-bottom:12px">아직 업로드된 포트폴리오가 없습니다.</p>')+
+    `<hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+     <p class="hint" style="margin-bottom:6px">새 포트폴리오 업로드 (PDF, 최대 30MB) — 업로드하면 이 창의 다운로드가 최신본으로 바뀝니다</p>
+     <input type="file" id="pfFile" accept="application/pdf,.pdf">`;
+  if(j.exists)$('#pfDown').onclick=()=>window.open('https://drive.google.com/uc?export=download&id='+encodeURIComponent(j.id),'_blank','noopener');
+  $('#pfFile').onchange=()=>uploadPortfolio($('#pfFile').files[0]);
+}
+async function uploadPortfolio(file){
+  if(!file)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  if(!/pdf$/i.test(file.type)&&!/\.pdf$/i.test(file.name)){toast('PDF 파일만 업로드할 수 있습니다');return}
+  if(file.size>30*1048576){toast('30MB 이하 PDF만 업로드할 수 있습니다');return}
+  toast('업로드 중… 파일 크기에 따라 시간이 걸립니다');
+  try{
+    const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'upload_portfolio',token:token(),filename:file.name,data:dataUrl.split(',')[1]})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'업로드 실패');
+    toast('✅ 포트폴리오가 업로드되었습니다');
+    renderPf(j);
+  }catch(e){toast('업로드 오류: '+e.message)}
+}
+$('#btnPf').onclick=openPortfolio;
+$('#btnClosePf').onclick=()=>dlgPf.close();
+dlgPf.addEventListener('click',e=>{if(e.target===dlgPf)dlgPf.close()});
 
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{

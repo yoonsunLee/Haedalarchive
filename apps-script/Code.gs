@@ -15,6 +15,7 @@
 const SHEET_ID = '14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU'; // 신해달 작품 아카이브 DB
 const BACKUP_FOLDER_ID = '1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4';   // 드라이브 '신해달 작품 아카이브' 폴더
 const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';   // 드라이브 images 폴더
+const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
 const TOKEN = 'haedal-2026'; // ★ 반드시 나만 아는 값으로 변경하세요 ★
 
 const KEYS = ['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
@@ -28,9 +29,26 @@ function json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** 조회: GET ?action=list */
+/** 최신 포트폴리오 정보 */
+function portfolioInfo_() {
+  const files = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).getFilesByType(MimeType.PDF);
+  let latest = null;
+  while (files.hasNext()) {
+    const f = files.next();
+    if (!latest || f.getLastUpdated() > latest.getLastUpdated()) latest = f;
+  }
+  if (!latest) return { ok: true, exists: false };
+  return {
+    ok: true, exists: true, id: latest.getId(), name: latest.getName(),
+    size: Math.round(latest.getSize() / 1048576 * 10) / 10,
+    updated: Utilities.formatDate(latest.getLastUpdated(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm')
+  };
+}
+
+/** 조회: GET ?action=list | ?action=portfolio */
 function doGet(e) {
   try {
+    if (e && e.parameter && e.parameter.action === 'portfolio') return json_(portfolioInfo_());
     const sh = sheet_();
     const values = sh.getDataRange().getValues();
     const rows = [];
@@ -86,6 +104,13 @@ function doPost(e) {
       const r = findRow(req.no);
       if (r === -1) return json_({ ok: false, error: '작품번호를 찾을 수 없습니다: ' + req.no });
       sh.deleteRow(r);
+    } else if (req.action === 'upload_portfolio') {
+      // 포트폴리오 PDF를 드라이브 portfolio 폴더에 저장 (버전이 쌓이고 사이트는 최신 파일 제공)
+      const bytes = Utilities.base64Decode(req.data);
+      const blob = Utilities.newBlob(bytes, 'application/pdf', req.filename || ('portfolio_' + Date.now() + '.pdf'));
+      const file = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return json_(portfolioInfo_());
     } else if (req.action === 'upload_image') {
       // 사이트에서 보낸 사진을 드라이브 images 폴더에 저장하고, 표시용 링크 공유를 설정
       const bytes = Utilities.base64Decode(req.data);

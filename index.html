@@ -235,17 +235,15 @@ function uniqueExLines(){
 
 /* ---------- 데이터 로드 ---------- */
 async function load(){
-  if(api()){
-    try{
-      const res=await fetch(api()+'?action=list&t='+Date.now());
-      const j=await res.json();
-      if(j.ok){rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';render();return}
-      throw new Error(j.error||'응답 오류');
-    }catch(e){toast('시트 연결 실패 — 로컬 스냅샷 표시: '+e.message)}
+  try{
+    const res=await fetch(api()+'?action=list&t='+Date.now());
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'응답 오류');
+    rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';
+  }catch(e){
+    rows=[];$('#syncdot').className='';$('#syncdot').title='연결 실패';
+    toast('구글 시트 연결 실패: '+e.message+' — ↻ 버튼으로 다시 시도하세요');
   }
-  const res=await fetch('data.json?t='+Date.now());
-  rows=await res.json();
-  $('#syncdot').className='local';$('#syncdot').title='로컬 스냅샷(data.json)';
   render();
 }
 

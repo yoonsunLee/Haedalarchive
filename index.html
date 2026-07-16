@@ -117,7 +117,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <option value="planned">등록 예정</option>
   </select>
   <select id="sortBy">
-    <option value="state">기본순 (판매상태)</option>
+    <option value="state">기본순 (판매상태·최근등록)</option>
     <option value="no">작품번호순</option>
     <option value="title">작품명순</option>
     <option value="year">연도순</option>
@@ -264,11 +264,11 @@ function filtered(){
   });
   const s=$('#sortBy').value;
   const byNo=(a,b)=>String(a.no).localeCompare(String(b.no));
-  const byNoDesc=(a,b)=>String(b.no).localeCompare(String(a.no)); // 최신작 먼저
+  const byReg=(a,b)=>(b._row||0)-(a._row||0); // 등록순: 최근 등록(시트 아래쪽)이 먼저
   if(s==='no')list.sort(byNo);
   else if(s==='title')list.sort((a,b)=>String(a.title).localeCompare(String(b.title),'ko'));
-  else if(s==='year')list.sort((a,b)=>(b.year||0)-(a.year||0)||byNoDesc(a,b));
-  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byNoDesc(a,b));
+  else if(s==='year')list.sort((a,b)=>(b.year||0)-(a.year||0)||byReg(a,b));
+  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byReg(a,b));
   // 이번 접속에서 등록한 작품은 항상 맨 앞 (stable sort라 나머지 순서 유지)
   list.sort((a,b)=>(isNewRow(b)?1:0)-(isNewRow(a)?1:0));
   return list;

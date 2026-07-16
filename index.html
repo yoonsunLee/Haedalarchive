@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신해달 작품 아카이브</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f7f5f1; --card:#ffffff; --ink:#1e2430; --sub:#6b7280; --line:#e5e1d8;
+  --accent:#1a3c5e; --accent2:#2e6da4; --sold:#b0453a; --avail:#2e7d54; --nfs:#8a6d3b;
+  --shadow:0 1px 3px rgba(30,36,48,.08),0 4px 16px rgba(30,36,48,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#14171d; --card:#1d222b; --ink:#e8e6e1; --sub:#9aa1ad; --line:#2c323d;
+    --accent:#7fb3d9; --accent2:#5a94c4; --shadow:0 1px 3px rgba(0,0,0,.4);}
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif; line-height:1.55}
+header{position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+header h1{font-size:1.05rem; letter-spacing:.02em; margin-right:auto; white-space:nowrap}
+header h1 small{color:var(--sub); font-weight:400; font-size:.78rem; margin-left:6px}
+.tabs{display:flex; gap:4px}
+.tabs button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.86rem}
+.tabs button.on{background:var(--accent); border-color:var(--accent); color:#fff}
+#syncdot{width:8px; height:8px; border-radius:50%; background:#bbb; flex-shrink:0}
+#syncdot.live{background:#3fa96d} #syncdot.local{background:#d9a23c}
+.toolbar{display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; align-items:center}
+.toolbar input[type=search]{flex:1; min-width:160px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.92rem}
+.toolbar select{padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.88rem}
+.btn{padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); cursor:pointer; font-size:.88rem; white-space:nowrap}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn:active{transform:translateY(1px)}
+main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px}
+.stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow)}
+.stat b{display:block; font-size:1.25rem; margin-top:2px}
+.stat span{color:var(--sub); font-size:.78rem}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; box-shadow:var(--shadow); transition:transform .12s}
+.card:hover{transform:translateY(-2px)}
+.card .imgbox{aspect-ratio:1; background:linear-gradient(135deg,#dfe7ee,#c9d6e2); display:flex; align-items:center; justify-content:center; overflow:hidden}
+@media (prefers-color-scheme: dark){.card .imgbox{background:linear-gradient(135deg,#232a35,#1b2029)}}
+.card .imgbox img{width:100%; height:100%; object-fit:cover}
+.card .imgbox .noimg{font-size:2rem; opacity:.4}
+.card .meta{padding:10px 12px 12px}
+.card .no{font-size:.72rem; color:var(--sub); letter-spacing:.04em}
+.card .title{font-size:.92rem; font-weight:600; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.badge{display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:10px; color:#fff}
+.badge.sold{background:var(--sold)} .badge.avail{background:var(--avail)} .badge.nfs{background:var(--nfs)}
+.card .price{font-size:.85rem; margin-top:4px; color:var(--sub)}
+table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); font-size:.85rem}
+.tablewrap{overflow-x:auto; border-radius:12px}
+th,td{padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; white-space:nowrap}
+td.wrap{white-space:normal; min-width:180px; max-width:340px}
+th{background:var(--accent); color:#fff; position:sticky; top:0; font-weight:600}
+tbody tr{cursor:pointer} tbody tr:hover{background:rgba(46,109,164,.07)}
+dialog{border:none; border-radius:16px; padding:0; max-width:720px; width:calc(100% - 32px); background:var(--card); color:var(--ink); box-shadow:0 10px 50px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
+.dlghead{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--line)}
+.dlghead h2{font-size:1rem; margin-right:auto}
+.dlgbody{padding:18px; max-height:72vh; overflow-y:auto}
+.detailimg{width:100%; max-height:380px; object-fit:contain; border-radius:10px; background:#0002; margin-bottom:14px}
+.kv{display:grid; grid-template-columns:96px 1fr; gap:6px 12px; font-size:.9rem}
+.kv dt{color:var(--sub)} .kv dd{white-space:pre-wrap; word-break:break-word}
+form .row{display:grid; grid-template-columns:110px 1fr; gap:8px 12px; align-items:start; margin-bottom:9px}
+form label{color:var(--sub); font-size:.85rem; padding-top:7px}
+form input,form textarea,form select{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:.9rem; font-family:inherit}
+form textarea{resize:vertical; min-height:56px}
+.formfoot{display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line)}
+.settings-box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; max-width:640px; margin:0 auto; box-shadow:var(--shadow)}
+.settings-box h3{margin-bottom:10px; font-size:.98rem}
+.settings-box p{font-size:.85rem; color:var(--sub); margin-bottom:12px}
+.settings-box .row{display:flex; flex-direction:column; gap:4px; margin-bottom:14px}
+.settings-box label{font-size:.83rem; color:var(--sub)}
+.settings-box input{padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink)}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
+#toast.show{opacity:.95}
+.empty{text-align:center; color:var(--sub); padding:60px 0}
+@media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦦 신해달 작품 아카이브<small id="cnt"></small></h1>
+  <div id="syncdot" title="데이터 소스"></div>
+  <nav class="tabs">
+    <button data-v="gallery" class="on">갤러리</button>
+    <button data-v="table">표</button>
+    <button data-v="settings">설정</button>
+  </nav>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
+  <select id="fYear"><option value="">전체 연도</option></select>
+  <select id="fSold">
+    <option value="">전체 상태</option>
+    <option value="sold">판매완료</option>
+    <option value="avail">판매가능</option>
+    <option value="nfs">비매(NFS)</option>
+  </select>
+  <button class="btn" id="btnReload" title="새로고침">↻</button>
+  <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
+  <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
+</div>
+
+<main>
+  <section id="vGallery">
+    <div class="stats" id="stats"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="vTable" hidden>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th>No.</th><th>작품명</th><th>연도</th><th>크기</th><th>판매가</th><th>상태</th><th>실거래가</th><th>판매일</th><th>소장자</th><th>판매경로</th><th class="wrap">비고</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="vSettings" hidden>
+    <div class="settings-box">
+      <h3>⚙️ 구글 시트 연동 설정</h3>
+      <p>Apps Script 웹앱 URL을 등록하면 구글 시트에서 실시간으로 읽고 쓸 수 있습니다.<br>
+      미등록 시 저장소에 포함된 스냅샷(data.json)을 읽기 전용으로 표시합니다.</p>
+      <div class="row">
+        <label>Apps Script 웹앱 URL (…/exec 로 끝나는 주소)</label>
+        <input id="setApi" placeholder="https://script.google.com/macros/s/…/exec">
+      </div>
+      <div class="row">
+        <label>수정 비밀번호 (Apps Script의 TOKEN과 동일하게)</label>
+        <input id="setToken" type="password" placeholder="예: haedal-2026">
+      </div>
+      <button class="btn primary" id="btnSaveSet">저장 후 연결 테스트</button>
+      <p style="margin-top:16px" id="setStatus"></p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>📁 바로가기</h3>
+      <p>
+        <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank">구글 시트 DB 열기</a> ·
+        <a href="https://drive.google.com/drive/folders/1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4" target="_blank">구글 드라이브 폴더 열기</a>
+      </p>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlgDetail">
+  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" onclick="dlgDetail.close()">✕</button></div>
+  <div class="dlgbody" id="dBody"></div>
+</dialog>
+
+<dialog id="dlgEdit">
+  <div class="dlghead"><h2 id="eTitle">작품 수정</h2><button class="btn" onclick="dlgEdit.close()">✕</button></div>
+  <form id="editForm" method="dialog">
+    <div class="dlgbody" id="eBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" onclick="dlgEdit.close()">취소</button>
+      <button type="submit" class="btn primary" id="btnSave">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
+const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간',note:'비고'};
+const TEXTAREA=new Set(['caption','exhibitions','note','title']);
+
+let rows=[], view='gallery', current=null, isNew=false;
+const $=s=>document.querySelector(s);
+const api=()=>localStorage.getItem('haedal_api')||'';
+const token=()=>localStorage.getItem('haedal_token')||'';
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+function fmtWon(v){if(v===''||v==null||isNaN(Number(v)))return v||'';return Number(v).toLocaleString('ko-KR')+'원'}
+function soldState(r){const s=String(r.sold||'').trim();if(s==='●'||s==='O'||s==='o')return'sold';if(s.toUpperCase()==='NFS')return'nfs';return'avail'}
+function soldLabel(st){return st==='sold'?'판매완료':st==='nfs'?'NFS':'판매가능'}
+function imgUrl(r,thumb){
+  let v=String(r.image||'').trim();
+  if(!v)return'';
+  if(/^https?:\/\//.test(v)){
+    const m=v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
+    if(m)return`https://drive.google.com/thumbnail?id=${m[1]}&sz=w${thumb?600:1200}`;
+    return v;
+  }
+  if(/^drive:/.test(v))return`https://drive.google.com/thumbnail?id=${v.slice(6)}&sz=w${thumb?600:1200}`;
+  const base=v.replace(/\.[a-z]+$/i,'');
+  return thumb?`thumbs/${base}.jpg`:`images/${v}`;
+}
+
+/* ---------- 데이터 로드 ---------- */
+async function load(){
+  if(api()){
+    try{
+      const res=await fetch(api()+'?action=list&t='+Date.now());
+      const j=await res.json();
+      if(j.ok){rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';render();return}
+      throw new Error(j.error||'응답 오류');
+    }catch(e){toast('시트 연결 실패 — 로컬 스냅샷 표시: '+e.message)}
+  }
+  const res=await fetch('data.json?t='+Date.now());
+  rows=await res.json();
+  $('#syncdot').className='local';$('#syncdot').title='로컬 스냅샷(data.json) — 설정에서 시트 연동 가능';
+  render();
+}
+
+/* ---------- 렌더 ---------- */
+function filtered(){
+  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value;
+  return rows.filter(r=>{
+    if(fy&&String(r.year)!==fy)return false;
+    if(fs&&soldState(r)!==fs)return false;
+    if(q){const hay=[r.no,r.title,r.owner,r.material,r.note,r.channel,r.caption].join(' ').toLowerCase();if(!hay.includes(q))return false}
+    return true;
+  });
+}
+function render(){
+  const years=[...new Set(rows.map(r=>r.year).filter(Boolean))].sort();
+  const sel=$('#fYear'),cur=sel.value;
+  sel.innerHTML='<option value="">전체 연도</option>'+years.map(y=>`<option${String(y)===cur?' selected':''}>${y}</option>`).join('');
+  const list=filtered();
+  $('#cnt').textContent=` ${list.length}/${rows.length}점`;
+  renderStats();
+  if(view==='gallery')renderGrid(list);
+  if(view==='table')renderTable(list);
+}
+function renderStats(){
+  const sold=rows.filter(r=>soldState(r)==='sold');
+  const revenue=sold.reduce((a,r)=>{const v=Number(r.actual_price)||Number(r.price)||0;return a+v},0);
+  $('#stats').innerHTML=`
+    <div class="stat"><span>전체 작품</span><b>${rows.length}점</b></div>
+    <div class="stat"><span>판매 완료</span><b>${sold.length}점</b></div>
+    <div class="stat"><span>누적 판매액</span><b>${revenue.toLocaleString('ko-KR')}원</b></div>
+    <div class="stat"><span>판매 가능</span><b>${rows.filter(r=>soldState(r)==='avail').length}점</b></div>`;
+}
+function renderGrid(list){
+  $('#grid').innerHTML=list.length?list.map((r,i)=>{
+    const st=soldState(r),u=imgUrl(r,true);
+    return`<div class="card" onclick="openDetail('${r.no}')">
+      <div class="imgbox">${u?`<img src="${u}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'">`:'<div class="noimg">🖼️</div>'}</div>
+      <div class="meta">
+        <div class="no">${r.no}</div>
+        <div class="title">${esc(String(r.title).split('\n')[0])}</div>
+        <span class="badge ${st}">${soldLabel(st)}</span>
+        <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${r.year||''} · ${esc(r.size||'')}</div>
+      </div></div>`;
+  }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
+}
+function renderTable(list){
+  $('#tbody').innerHTML=list.map(r=>{
+    const st=soldState(r);
+    return`<tr onclick="openDetail('${r.no}')">
+      <td>${r.no}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${r.year||''}</td>
+      <td>${esc(r.size||'')}</td><td>${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)}</td>
+      <td><span class="badge ${st}">${soldLabel(st)}</span></td>
+      <td>${fmtWon(r.actual_price)}</td><td>${esc(r.sale_date||'')}</td><td>${esc(r.owner||'')}</td><td>${esc(r.channel||'')}</td><td class="wrap">${esc(r.note||'')}</td></tr>`;
+  }).join('');
+}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+/* ---------- 상세 ---------- */
+window.openDetail=no=>{
+  current=rows.find(r=>String(r.no)===String(no));if(!current)return;
+  $('#dNo').textContent=current.no;
+  const u=imgUrl(current,false);
+  $('#dBody').innerHTML=(u?`<img class="detailimg" src="${u}" onerror="this.remove()">`:'')+
+    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no').map(k=>
+      `<dt>${LABELS[k]}</dt><dd>${['price','actual_price'].includes(k)&&current[k]!=='Artist Archive'?fmtWon(current[k]):esc(current[k])}</dd>`).join('')+'</dl>';
+  dlgDetail.showModal();
+};
+
+/* ---------- 수정/등록 ---------- */
+$('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
+$('#btnAdd').onclick=()=>{
+  const yr=new Date().getFullYear();
+  const nums=rows.map(r=>{const m=String(r.no).match(/HD-(\d{4})-(\d+)/);return m&&m[1]==String(yr)?+m[2]:0});
+  const next=`HD-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
+  openEdit(Object.fromEntries(KEYS.map(k=>[k,k==='no'?next:k==='year'?yr:''])),true);
+};
+function openEdit(r,neu){
+  isNew=neu;
+  $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
+  $('#eBody').innerHTML=KEYS.map(k=>{
+    const v=esc(r[k]);
+    const inp=TEXTAREA.has(k)
+      ?`<textarea name="${k}">${v}</textarea>`
+      :k==='sold'
+      ?`<select name="sold"><option value=""${!r.sold?' selected':''}>판매가능(공란)</option><option value="●"${r.sold==='●'?' selected':''}>● 판매완료</option><option value="NFS"${r.sold==='NFS'?' selected':''}>NFS 비매</option><option value="-"${r.sold==='-'?' selected':''}>-</option></select>`
+      :`<input name="${k}" value="${v}"${k==='no'&&!neu?' readonly':''}>`;
+    const hint=k==='image'?'<div style="font-size:.75rem;color:var(--sub);margin-top:2px">파일명(예: HD-2026-019.png — 저장소 images 폴더 기준) 또는 이미지 URL/드라이브 링크</div>':'';
+    return`<div class="row"><label>${LABELS[k]}</label><div>${inp}${hint}</div></div>`;
+  }).join('');
+  dlgEdit.showModal();
+}
+$('#editForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(!api()){toast('설정 탭에서 Apps Script URL을 먼저 등록하세요');return}
+  const fd=new FormData(e.target);
+  const rec=Object.fromEntries(KEYS.map(k=>[k,fd.get(k)??'']));
+  $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
+  try{
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'add':'update',token:token(),row:rec})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'저장 실패');
+    toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
+    dlgEdit.close();await load();
+  }catch(err){toast('오류: '+err.message)}
+  $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+};
+
+/* ---------- 엑셀 다운로드 ---------- */
+$('#btnXlsx').onclick=()=>{
+  const header=KEYS.map(k=>LABELS[k]);
+  const data=rows.map(r=>KEYS.map(k=>{
+    const v=r[k];
+    return(['price','actual_price','year','discount'].includes(k)&&v!==''&&!isNaN(Number(v)))?Number(v):v;
+  }));
+  const ws=XLSX.utils.aoa_to_sheet([header,...data]);
+  ws['!cols']=KEYS.map(k=>({wch:TEXTAREA.has(k)?46:k==='no'?13:12}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'작품 아카이브');
+  XLSX.writeFile(wb,`신해달_작품아카이브_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('엑셀 파일이 다운로드되었습니다');
+};
+
+/* ---------- 설정 ---------- */
+$('#btnSaveSet').onclick=async()=>{
+  const u=$('#setApi').value.trim(),t=$('#setToken').value;
+  localStorage.setItem('haedal_api',u);localStorage.setItem('haedal_token',t);
+  const st=$('#setStatus');
+  if(!u){st.textContent='URL이 비어 있어 로컬 스냅샷 모드로 동작합니다.';load();return}
+  st.textContent='연결 확인 중…';
+  try{
+    const r=await fetch(u+'?action=list');const j=await r.json();
+    st.textContent=j.ok?`✅ 연결 성공 — 시트에서 ${j.rows.length}점을 불러왔습니다.`:'⚠️ 응답 오류: '+(j.error||'');
+  }catch(e){st.textContent='❌ 연결 실패: '+e.message}
+  load();
+};
+
+/* ---------- 탭/이벤트 ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  view=b.dataset.v;
+  $('#vGallery').hidden=view!=='gallery';
+  $('#vTable').hidden=view!=='table';
+  $('#vSettings').hidden=view!=='settings';
+  document.querySelector('.toolbar').style.display=view==='settings'?'none':'flex';
+  if(view!=='settings')render();
+});
+$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;
+$('#btnReload').onclick=()=>{load();toast('새로고침')};
+$('#setApi').value=api();$('#setToken').value=token();
+load();
+</script>
+</body>
+</html>

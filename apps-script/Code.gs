@@ -14,6 +14,7 @@
 
 const SHEET_ID = '14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU'; // 신해달 작품 아카이브 DB
 const BACKUP_FOLDER_ID = '1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4';   // 드라이브 '신해달 작품 아카이브' 폴더
+const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';   // 드라이브 images 폴더
 const TOKEN = 'haedal-2026'; // ★ 반드시 나만 아는 값으로 변경하세요 ★
 
 const KEYS = ['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
@@ -74,6 +75,13 @@ function doPost(e) {
       const r = findRow(req.no);
       if (r === -1) return json_({ ok: false, error: '작품번호를 찾을 수 없습니다: ' + req.no });
       sh.deleteRow(r);
+    } else if (req.action === 'upload_image') {
+      // 사이트에서 보낸 사진을 드라이브 images 폴더에 저장하고, 표시용 링크 공유를 설정
+      const bytes = Utilities.base64Decode(req.data);
+      const blob = Utilities.newBlob(bytes, req.mimeType || 'image/jpeg', req.filename || ('artwork_' + Date.now() + '.jpg'));
+      const file = DriveApp.getFolderById(IMAGES_FOLDER_ID).createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return json_({ ok: true, id: file.getId() });
     } else {
       return json_({ ok: false, error: '알 수 없는 action: ' + req.action });
     }

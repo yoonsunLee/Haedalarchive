@@ -343,10 +343,12 @@ function openDetail(r){
 }
 
 /* ---------- 수정/등록 폼 ---------- */
-function suggestNo(yr){
+function suggestNo(yr,prefix){
   yr=String(yr||new Date().getFullYear());
-  const nums=rows.map(r=>{const m=String(r.no).match(/^HD-(\d{4})-(\d+)/);return m&&m[1]===yr?+m[2]:0});
-  return `HD-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
+  prefix=prefix||'HD'; // 'HD' 일반 작품, 'HDT' 아트토이
+  const re=new RegExp('^'+prefix+'-(\\d{4})-(\\d+)$');
+  const nums=rows.map(r=>{const m=String(r.no).trim().match(re);return m&&m[1]===yr?+m[2]:0});
+  return `${prefix}-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
 }
 function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
   if(!vals.length)return'';
@@ -367,8 +369,13 @@ function openEdit(r,neu){
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
   const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
   const noLocked=!neu&&!!String(r.no).trim(); // 번호가 이미 있는 기존 작품만 잠금
+  const curPrefix=String(r.no).trim().startsWith('HDT-')?'HDT':'HD';
   $('#eBody').innerHTML=
-    F(LABELS.no,`<input name="no" value="${esc(r.no)}"${noLocked?' readonly':''}>`, neu?'연도를 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'')+
+    F('작품 유형',`<select name="notype"${noLocked?' disabled':''}>
+        <option value="HD"${curPrefix==='HD'?' selected':''}>일반 작품 (HD-)</option>
+        <option value="HDT"${curPrefix==='HDT'?' selected':''}>아트토이 (HDT-)</option>
+      </select>`, noLocked?'':'유형별로 따로 채번됩니다')+
+    F(LABELS.no,`<input name="no" value="${esc(r.no)}"${noLocked?' readonly':''}>`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'')+
     F(LABELS.image,
       `<div class="imgupload">
         ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
@@ -432,19 +439,22 @@ function openEdit(r,neu){
   // 판매여부 변경: 등록 예정 ↔ 번호 부여 규칙
   const soldSel=document.querySelector('#eBody [name=sold]');
   const noEl=document.querySelector('#eBody [name=no]');
+  const typeSel=document.querySelector('#eBody [name=notype]');
   soldSel.onchange=()=>{
     if(soldSel.value==='등록 예정'){
       if(!noLocked){noEl.value='';toast('등록 예정 작품은 번호가 부여되지 않습니다')}
     }else if(!noEl.value.trim()){
-      noEl.value=suggestNo($('#fYearIn').value);
+      noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
       toast('작품번호 부여: '+noEl.value);
     }
   };
   if(neu&&soldState(r)==='planned')noEl.value='';
-  // 연도 변경 시 자동 채번 (번호가 잠기지 않았고 등록 예정이 아닐 때)
-  $('#fYearIn').oninput=()=>{
-    if(!noLocked&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value);
+  // 연도·유형 변경 시 자동 채번 (번호가 잠기지 않았고 등록 예정이 아닐 때)
+  const resuggest=()=>{
+    if(!noLocked&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
   };
+  $('#fYearIn').oninput=resuggest;
+  typeSel.onchange=resuggest;
   // 이미지 업로드
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
@@ -495,7 +505,8 @@ $('#editForm').onsubmit=async e=>{
   const planned=rec.sold==='등록 예정';
   if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
   if(!rec.title.trim()){toast('작품명을 입력하세요');return}
-  if(rec.no.trim()&&!/^HD-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD-YYYY-NNN 형식이 아닙니다');
+  delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
+  if(rec.no.trim()&&!/^HDT?-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)-YYYY-NNN 형식이 아닙니다');
   if(!isNew&&current&&current._row)rec._row=current._row; // 번호 없는 행 수정용 위치 정보
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{

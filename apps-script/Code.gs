@@ -35,13 +35,14 @@ function doGet(e) {
     const values = sh.getDataRange().getValues();
     const rows = [];
     for (let i = 1; i < values.length; i++) {
-      if (!values[i][0]) continue;
+      if (values[i].join('') === '') continue; // 완전히 빈 행만 제외 (번호 없는 등록 예정 작품은 포함)
       const r = {};
       KEYS.forEach((k, j) => {
         let v = values[i][j];
         if (v instanceof Date) v = Utilities.formatDate(v, 'Asia/Seoul', 'yyyy.MM.dd');
         r[k] = v === null || v === undefined ? '' : v;
       });
+      r._row = i + 1; // 번호 없는 행을 수정할 때 위치 식별용
       rows.push(r);
     }
     return json_({ ok: true, rows: rows });
@@ -65,11 +66,21 @@ function doPost(e) {
     };
 
     if (req.action === 'add') {
-      if (findRow(req.row.no) !== -1) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + req.row.no });
+      const no = String(req.row.no || '').trim();
+      if (no && findRow(no) !== -1) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + no });
       sh.appendRow(KEYS.map(k => req.row[k] === undefined ? '' : req.row[k]));
     } else if (req.action === 'update') {
-      const r = findRow(req.row.no);
-      if (r === -1) return json_({ ok: false, error: '작품번호를 찾을 수 없습니다: ' + req.row.no });
+      const no = String(req.row.no || '').trim();
+      let r = no ? findRow(no) : -1;
+      if (r === -1 && req.row._row) { // 번호가 없거나 방금 부여된 행은 위치로 찾음
+        const idx = parseInt(req.row._row, 10);
+        if (idx >= 2 && idx <= values.length) r = idx;
+      }
+      if (r === -1) return json_({ ok: false, error: '수정할 행을 찾을 수 없습니다: ' + (no || '(번호 없음)') });
+      if (no) { // 번호 중복 방지 (다른 행이 같은 번호를 쓰는 경우)
+        const dup = findRow(no);
+        if (dup !== -1 && dup !== r) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + no });
+      }
       sh.getRange(r, 1, 1, KEYS.length).setValues([KEYS.map(k => req.row[k] === undefined ? '' : req.row[k])]);
     } else if (req.action === 'delete') {
       const r = findRow(req.no);

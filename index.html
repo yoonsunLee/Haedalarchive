@@ -51,6 +51,8 @@ main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
 .grid.small .badge{font-size:.6rem; padding:1px 6px}
 .badge{display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:10px; color:#fff}
 .badge.sold{background:var(--sold)} .badge.avail{background:var(--avail)} .badge.nfs{background:var(--nfs)} .badge.planned{background:var(--planned)}
+.badge.new{background:#d94f70; margin-left:4px; animation:newpulse 1.6s ease-in-out infinite}
+@keyframes newpulse{50%{opacity:.55}}
 .card .price{font-size:.85rem; margin-top:4px; color:var(--sub)}
 table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); font-size:.85rem}
 .tablewrap{overflow-x:auto; border-radius:12px}
@@ -189,7 +191,11 @@ const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간·전시명',note:'비고'};
 
-let rows=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
+const rowKey=r=>String(r.no||'').trim()||String(r.title||'').trim();
+const isNewRow=r=>newKeys.includes(rowKey(r));
+function markNew(r){newKeys.push(rowKey(r));sessionStorage.setItem('haedal_new',JSON.stringify(newKeys))}
 const $=s=>document.querySelector(s);
 const api=()=>localStorage.getItem('haedal_api')||DEFAULT_API;
 const token=()=>localStorage.getItem('haedal_token')||'';
@@ -258,10 +264,13 @@ function filtered(){
   });
   const s=$('#sortBy').value;
   const byNo=(a,b)=>String(a.no).localeCompare(String(b.no));
+  const byNoDesc=(a,b)=>String(b.no).localeCompare(String(a.no)); // 최신작 먼저
   if(s==='no')list.sort(byNo);
   else if(s==='title')list.sort((a,b)=>String(a.title).localeCompare(String(b.title),'ko'));
-  else if(s==='year')list.sort((a,b)=>(a.year||0)-(b.year||0)||byNo(a,b));
-  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byNo(a,b));
+  else if(s==='year')list.sort((a,b)=>(b.year||0)-(a.year||0)||byNoDesc(a,b));
+  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byNoDesc(a,b));
+  // 이번 접속에서 등록한 작품은 항상 맨 앞 (stable sort라 나머지 순서 유지)
+  list.sort((a,b)=>(isNewRow(b)?1:0)-(isNewRow(a)?1:0));
   return list;
 }
 function render(){
@@ -286,24 +295,26 @@ function renderStats(){
     <div class="stat" data-act="revenue" title="클릭하면 금액이 표시/숨김됩니다"><span>누적 판매액 ${revealRevenue?'🙉':'🙈'}</span><b>${revealRevenue?revenue.toLocaleString('ko-KR')+'원':'••••••'}</b></div>`;
 }
 function renderGrid(list){
+  lastList=list;
   $('#grid').className='grid'+(smallGrid?' small':'');
-  $('#grid').innerHTML=list.length?list.map(r=>{
+  $('#grid').innerHTML=list.length?list.map((r,i)=>{
     const st=soldState(r),u=imgUrl(r,true);
-    return`<div class="card" data-no="${esc(r.no)}">
+    return`<div class="card" data-idx="${i}">
       <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'">`:'<div class="noimg">🖼️</div>'}</div>
       <div class="meta">
-        <div class="no">${esc(r.no)}</div>
+        <div class="no">${esc(r.no||'번호 미부여')}</div>
         <div class="title">${esc(String(r.title).split('\n')[0])}</div>
-        <span class="badge ${st}">${soldLabel(st)}</span>
+        <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}
         <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}</div>
       </div></div>`;
   }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
 }
 function renderTable(list){
-  $('#tbody').innerHTML=list.map(r=>{
+  lastList=list;
+  $('#tbody').innerHTML=list.map((r,i)=>{
     const st=soldState(r);
-    return`<tr data-no="${esc(r.no)}">
-      <td>${esc(r.no)}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${esc(r.year||'')}</td>
+    return`<tr data-idx="${i}">
+      <td>${esc(r.no||'—')}${isNewRow(r)?' <span class="badge new">NEW</span>':''}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${esc(r.year||'')}</td>
       <td>${esc(r.size||'')}</td><td>${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)}</td>
       <td><span class="badge ${st}">${soldLabel(st)}</span></td>
       <td>${fmtWon(r.actual_price)}</td><td>${esc(r.sale_date||'')}</td><td>${esc(r.owner||'')}</td><td>${esc(r.channel||'')}</td><td class="wrap">${esc(r.note||'')}</td></tr>`;
@@ -311,14 +322,24 @@ function renderTable(list){
 }
 
 /* ---------- 상세 ---------- */
-function openDetail(no){
-  current=rows.find(r=>String(r.no)===String(no));if(!current)return;
-  $('#dNo').textContent=current.no;
+function fmtDiscount(v){
+  if(v===''||v==null||v==='-')return v||'';
+  const n=Number(v);
+  return isNaN(n)?v:Math.round(n*100)+'%';
+}
+function openDetail(r){
+  current=r;if(!current)return;
+  $('#dNo').textContent=current.no||'번호 미부여 (등록 예정)';
   const u=imgUrl(current,false);
   $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
-    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no').map(k=>
-      `<dt>${LABELS[k]}</dt><dd>${['price','actual_price'].includes(k)&&current[k]!=='Artist Archive'?fmtWon(current[k]):esc(current[k])}</dd>`).join('')+'</dl>';
+    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no').map(k=>{
+      let v=current[k];
+      if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
+      else if(k==='discount')v=esc(fmtDiscount(v));
+      else v=esc(v);
+      return`<dt>${LABELS[k]}</dt><dd>${v}</dd>`}).join('')+'</dl>';
   dlgDetail.showModal();
+  $('#dBody').scrollTop=0;
 }
 
 /* ---------- 수정/등록 폼 ---------- */
@@ -343,8 +364,11 @@ function openEdit(r,neu){
 
   const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
   const curImg=imgUrl(r,true);
+  const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
+  const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
+  const noLocked=!neu&&!!String(r.no).trim(); // 번호가 이미 있는 기존 작품만 잠금
   $('#eBody').innerHTML=
-    F(LABELS.no,`<input name="no" value="${esc(r.no)}"${neu?'':' readonly'}>`, neu?'연도를 바꾸면 자동으로 다시 채번됩니다':'')+
+    F(LABELS.no,`<input name="no" value="${esc(r.no)}"${noLocked?' readonly':''}>`, neu?'연도를 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'')+
     F(LABELS.image,
       `<div class="imgupload">
         ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
@@ -358,15 +382,15 @@ function openEdit(r,neu){
     F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
     F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
     F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
-    F(LABELS.price,`<input name="price" value="${esc(r.price)}">`)+
+    F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
     F(LABELS.sold,`<select name="sold">
         <option value=""${soldState(r)==='avail'?' selected':''}>판매가능</option>
         <option value="●"${r.sold==='●'?' selected':''}>● 판매완료</option>
         <option value="NFS"${String(r.sold).toUpperCase()==='NFS'?' selected':''}>NFS (비매)</option>
         <option value="등록 예정"${soldState(r)==='planned'?' selected':''}>등록 예정</option>
       </select>`)+
-    F(LABELS.discount,`<input name="discount" value="${esc(r.discount)}">`)+
-    F(LABELS.actual_price,`<input name="actual_price" value="${esc(r.actual_price)}">`)+
+    F(LABELS.discount,`<input name="discount" value="${esc(fmtPct(r.discount))}" placeholder="예: 20%">`,'백분율로 입력 (20% 또는 20)')+
+    F(LABELS.actual_price,`<input name="actual_price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.actual_price))}">`)+
     F(LABELS.payment,pickHTML('payment',PICK_VALS.payment)+`<input name="payment" value="${esc(r.payment)}">`)+
     F(LABELS.sale_date,`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`)+
     F(LABELS.delivery_date,`<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`)+
@@ -400,11 +424,31 @@ function openEdit(r,neu){
     exLines.unshift(line);renderExList();
     $('#exStart').value='';$('#exEnd').value='';$('#exName').value='';
   };
-  // 연도 변경 시 자동 채번 (신규만)
-  if(neu)$('#fYearIn').oninput=()=>{$('#eBody [name=no]').value=suggestNo($('#fYearIn').value)};
+  // 판매가격·실거래가 콤마 자동 표기
+  document.querySelectorAll('#eBody input.comma').forEach(el=>el.addEventListener('input',()=>{
+    const raw=el.value.replace(/,/g,'');
+    if(/^\d+$/.test(raw))el.value=Number(raw).toLocaleString('ko-KR');
+  }));
+  // 판매여부 변경: 등록 예정 ↔ 번호 부여 규칙
+  const soldSel=document.querySelector('#eBody [name=sold]');
+  const noEl=document.querySelector('#eBody [name=no]');
+  soldSel.onchange=()=>{
+    if(soldSel.value==='등록 예정'){
+      if(!noLocked){noEl.value='';toast('등록 예정 작품은 번호가 부여되지 않습니다')}
+    }else if(!noEl.value.trim()){
+      noEl.value=suggestNo($('#fYearIn').value);
+      toast('작품번호 부여: '+noEl.value);
+    }
+  };
+  if(neu&&soldState(r)==='planned')noEl.value='';
+  // 연도 변경 시 자동 채번 (번호가 잠기지 않았고 등록 예정이 아닐 때)
+  $('#fYearIn').oninput=()=>{
+    if(!noLocked&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value);
+  };
   // 이미지 업로드
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
+  document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
 }
 function renderExList(){
   $('#exList').innerHTML=exLines.map((l,i)=>`<div class="exline"><span>${esc(l)}</span><button type="button" data-exdel="${i}" title="삭제">✕</button></div>`).join('')||'<div class="hint">등록된 전시 이력이 없습니다</div>';
@@ -443,13 +487,22 @@ $('#editForm').onsubmit=async e=>{
   const ko=g('title_ko').trim(), en=g('title_en').trim();
   rec.title=en?ko+'\n'+en:ko;
   rec.exhibitions=exLines.join('\n');
-  if(!rec.no.trim()){toast('작품번호를 입력하세요');return}
-  if(isNew&&!/^HD-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD-YYYY-NNN 형식이 아닙니다');
+  // 콤마 제거
+  ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
+  // 할인률: 20% | 20 → 0.2
+  {const d=String(rec.discount).trim().replace('%','');const n=parseFloat(d);
+   if(d!==''&&!isNaN(n))rec.discount=n>1?String(n/100):String(n)}
+  const planned=rec.sold==='등록 예정';
+  if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
+  if(!rec.title.trim()){toast('작품명을 입력하세요');return}
+  if(rec.no.trim()&&!/^HD-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD-YYYY-NNN 형식이 아닙니다');
+  if(!isNew&&current&&current._row)rec._row=current._row; // 번호 없는 행 수정용 위치 정보
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{
     const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'add':'update',token:token(),row:rec})});
     const j=await res.json();
     if(!j.ok)throw new Error(j.error||'저장 실패');
+    if(isNew)markNew(rec); // 이번 접속 동안 NEW 표시 + 맨 앞 배치
     toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
     dlgEdit.close();await load();
   }catch(err){toast('오류: '+err.message)}
@@ -494,8 +547,8 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelector('.toolbar').style.display=view==='settings'?'none':'flex';
   if(view!=='settings')render();
 });
-$('#grid').onclick=e=>{const c=e.target.closest('.card');if(c)openDetail(c.dataset.no)};
-$('#tbody').onclick=e=>{const tr=e.target.closest('tr');if(tr)openDetail(tr.dataset.no)};
+$('#grid').onclick=e=>{const c=e.target.closest('.card');if(c)openDetail(lastList[+c.dataset.idx])};
+$('#tbody').onclick=e=>{const tr=e.target.closest('tr');if(tr)openDetail(lastList[+tr.dataset.idx])};
 $('#stats').onclick=e=>{
   const s=e.target.closest('.stat');if(!s)return;
   const act=s.dataset.act;

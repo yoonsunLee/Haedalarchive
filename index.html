@@ -122,6 +122,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <option value="title">작품명순</option>
     <option value="year">연도순</option>
   </select>
+  <button class="btn" id="btnDir" title="정렬 방향 전환">↓ 내림차순</button>
   <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
   <button class="btn" id="btnReload" title="새로고침">↻</button>
   <button class="btn" id="btnPf">📄 포트폴리오</button>
@@ -198,6 +199,8 @@ const KEYS=['no','image','title','caption','material','size','year','price','sol
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간·전시명',note:'비고'};
 
 let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
+let sortDir=DIR_DEFAULT.state;
 const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
 const rowKey=r=>String(r.no||'').trim()||String(r.title||'').trim();
 const isNewRow=r=>newKeys.includes(rowKey(r));
@@ -269,12 +272,15 @@ function filtered(){
     return true;
   });
   const s=$('#sortBy').value;
-  const byNo=(a,b)=>String(a.no).localeCompare(String(b.no));
-  const byReg=(a,b)=>(b._row||0)-(a._row||0); // 등록순: 최근 등록(시트 아래쪽)이 먼저
+  const sgn=sortDir==='asc'?1:-1; // 오름/내림 방향
+  const byNo=(a,b)=>{const an=String(a.no).trim(),bn=String(b.no).trim();
+    if(!an&&!bn)return 0;if(!an)return 1;if(!bn)return -1; // 번호 미부여는 항상 뒤로
+    return sgn*an.localeCompare(bn)};
+  const byReg=(a,b)=>sgn*((a._row||0)-(b._row||0)); // 등록순 (내림=최근 등록 먼저)
   if(s==='no')list.sort(byNo);
-  else if(s==='title')list.sort((a,b)=>String(a.title).localeCompare(String(b.title),'ko'));
-  else if(s==='year')list.sort((a,b)=>(b.year||0)-(a.year||0)||byReg(a,b));
-  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byReg(a,b));
+  else if(s==='title')list.sort((a,b)=>sgn*String(a.title).localeCompare(String(b.title),'ko'));
+  else if(s==='year')list.sort((a,b)=>sgn*((a.year||0)-(b.year||0))||byReg(a,b));
+  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byReg(a,b)); // 상태 그룹은 고정, 그룹 내 등록순만 방향 적용
   // 이번 접속에서 등록한 작품은 항상 맨 앞 (stable sort라 나머지 순서 유지)
   list.sort((a,b)=>(isNewRow(b)?1:0)-(isNewRow(a)?1:0));
   return list;
@@ -625,7 +631,11 @@ $('#btnCloseDetail').onclick=()=>dlgDetail.close();
 $('#btnCloseEdit').onclick=()=>dlgEdit.close();
 $('#btnCancelEdit').onclick=()=>dlgEdit.close();
 dlgDetail.addEventListener('click',e=>{if(e.target===dlgDetail)dlgDetail.close()});
-$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#sortBy').onchange=render;
+function updateDirBtn(){$('#btnDir').textContent=sortDir==='asc'?'↑ 오름차순':'↓ 내림차순'}
+$('#sortBy').onchange=()=>{sortDir=DIR_DEFAULT[$('#sortBy').value]||'desc';updateDirBtn();render()};
+$('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();render()};
+updateDirBtn();
+$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 $('#setApi').value=localStorage.getItem('haedal_api')||'';$('#setToken').value=token();
 load();

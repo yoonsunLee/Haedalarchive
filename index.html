@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>신해달 작품 아카이브</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
 <style>
 :root{
   --bg:#f7f5f1; --card:#ffffff; --ink:#1e2430; --sub:#6b7280; --line:#e5e1d8;
@@ -309,7 +309,12 @@ function render(){
 function renderStats(){
   const sold=rows.filter(r=>soldState(r)==='sold');
   const avail=rows.filter(r=>soldState(r)==='avail');
-  const revenue=sold.reduce((a,r)=>{const v=Number(r.actual_price)||Number(r.price)||0;return a+v},0);
+  // 누적판매액: 일반 작품은 판매완료 시 실거래가(없으면 판매가), 아트토이(수량 있는 작품)는 개당 가격 × 판매개수
+  const revenue=rows.reduce((a,r)=>{
+    const unit=Number(r.actual_price)||Number(r.price)||0;
+    if((r.qty??'')!=='')return a+unit*(Number(r.sold_qty)||0);
+    return soldState(r)==='sold'?a+unit:a;
+  },0);
   const fs=$('#fSold').value;
   $('#stats').innerHTML=`
     <div class="stat${fs===''?' on':''}" data-act="all"><span>전체 작품</span><b>${rows.length}점</b></div>

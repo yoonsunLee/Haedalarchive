@@ -71,9 +71,12 @@ function doGet(e) {
 
 /** 입력/수정: POST {action:'add'|'update'|'delete', token, row:{...}} */
 function doPost(e) {
+  const lock = LockService.getScriptLock(); // 동시 쓰기 직렬화 (행 밀림 경합 원천 차단)
   try {
     const req = JSON.parse(e.postData.contents);
     if (req.token !== TOKEN) return json_({ ok: false, error: '비밀번호가 일치하지 않습니다' });
+    if (String(req.data || '').length > 44000000) return json_({ ok: false, error: '파일이 너무 큽니다 (30MB 이하만 가능)' });
+    lock.waitLock(20000);
 
     const sh = sheet_();
     const values = sh.getDataRange().getValues();
@@ -140,6 +143,8 @@ function doPost(e) {
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
+  } finally {
+    try { lock.releaseLock(); } catch (ignored) {}
   }
 }
 

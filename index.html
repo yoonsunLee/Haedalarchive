@@ -109,6 +109,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <div class="toolbar">
   <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
   <select id="fYear"><option value="">전체 연도</option></select>
+  <select id="fEx" style="max-width:230px"><option value="">전체 전시</option></select>
   <select id="fSold">
     <option value="">전체 상태</option>
     <option value="avail">판매가능</option>
@@ -247,6 +248,12 @@ function uniqueExLines(){
   rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{l=l.trim();if(l&&!set.includes(l))set.push(l)}));
   return set;
 }
+const normEx=l=>String(l).replace(/\s+/g,' ').trim(); // 탭·공백 표기 차이 통일
+function allExNorm(){
+  const set=[];
+  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{const n=normEx(l);if(n&&!set.includes(n))set.push(n)}));
+  return set.sort().reverse(); // 날짜로 시작하므로 최신 전시부터
+}
 
 /* ---------- 데이터 로드 ---------- */
 async function load(){
@@ -264,10 +271,11 @@ async function load(){
 
 /* ---------- 필터·정렬·렌더 ---------- */
 function filtered(){
-  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value;
+  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value, fe=$('#fEx').value;
   let list=rows.filter(r=>{
     if(fy&&String(r.year)!==fy)return false;
     if(fs&&soldState(r)!==fs)return false;
+    if(fe&&!String(r.exhibitions||'').split('\n').some(l=>normEx(l)===fe))return false;
     if(q){const hay=[r.no,r.title,r.owner,r.material,r.note,r.channel,r.caption].join(' ').toLowerCase();if(!hay.includes(q))return false}
     return true;
   });
@@ -289,6 +297,9 @@ function render(){
   const years=[...new Set(rows.map(r=>r.year).filter(Boolean))].sort();
   const sel=$('#fYear'),cur=sel.value;
   sel.innerHTML='<option value="">전체 연도</option>'+years.map(y=>`<option${String(y)===cur?' selected':''}>${y}</option>`).join('');
+  const exSel=$('#fEx'),exCur=exSel.value;
+  exSel.innerHTML='<option value="">전체 전시</option>'+allExNorm().map(l=>
+    `<option value="${esc(l)}"${l===exCur?' selected':''}>${esc(l.length>42?l.slice(0,42)+'…':l)}</option>`).join('');
   const list=filtered();
   $('#cnt').textContent=` ${list.length}/${rows.length}점`;
   renderStats();
@@ -635,7 +646,7 @@ function updateDirBtn(){$('#btnDir').textContent=sortDir==='asc'?'↑ 오름차�
 $('#sortBy').onchange=()=>{sortDir=DIR_DEFAULT[$('#sortBy').value]||'desc';updateDirBtn();render()};
 $('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();render()};
 updateDirBtn();
-$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;
+$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 $('#setApi').value=localStorage.getItem('haedal_api')||'';$('#setToken').value=token();
 load();

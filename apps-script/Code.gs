@@ -18,7 +18,7 @@ const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';   // 드라이브 
 const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
 const TOKEN = 'haedal-2026'; // ★ 반드시 나만 아는 값으로 변경하세요 ★
 
-const KEYS = ['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
+const KEYS = ['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
 
 function sheet_() {
   return SpreadsheetApp.openById(SHEET_ID).getSheets()[0];
@@ -101,8 +101,13 @@ function doPost(e) {
       }
       sh.getRange(r, 1, 1, KEYS.length).setValues([KEYS.map(k => req.row[k] === undefined ? '' : req.row[k])]);
     } else if (req.action === 'delete') {
-      const r = findRow(req.no);
-      if (r === -1) return json_({ ok: false, error: '작품번호를 찾을 수 없습니다: ' + req.no });
+      const no = String(req.no || '').trim();
+      let r = no ? findRow(no) : -1;
+      if (r === -1 && req._row) { // 번호 없는 등록 예정 작품은 행 위치로 삭제
+        const idx = parseInt(req._row, 10);
+        if (idx >= 2 && idx <= values.length) r = idx;
+      }
+      if (r === -1) return json_({ ok: false, error: '삭제할 행을 찾을 수 없습니다: ' + (no || '(번호 없음)') });
       sh.deleteRow(r);
     } else if (req.action === 'upload_portfolio') {
       // 포트폴리오 PDF를 드라이브 portfolio 폴더에 저장 (버전이 쌓이고 사이트는 최신 파일 제공)

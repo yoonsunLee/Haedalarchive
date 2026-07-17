@@ -172,7 +172,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </main>
 
 <dialog id="dlgDetail">
-  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
+  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnDel" style="color:var(--sold)">🗑 삭제</button><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
   <div class="dlgbody" id="dBody"></div>
 </dialog>
 
@@ -196,8 +196,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <script>
 const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec';
-const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note'];
-const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간·전시명',note:'비고'};
+const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
+const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간·전시명',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
 let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
@@ -328,7 +328,7 @@ function renderGrid(list){
         <div class="no">${esc(r.no||'번호 미부여')}</div>
         <div class="title">${esc(String(r.title).split('\n')[0])}</div>
         <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}
-        <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}</div>
+        <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}${r.qty!==''&&r.qty!=null?` · 판매 ${esc(r.sold_qty||0)}/${esc(r.qty)}`:''}</div>
       </div></div>`;
   }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
 }
@@ -354,8 +354,9 @@ function openDetail(r){
   current=r;if(!current)return;
   $('#dNo').textContent=current.no||'번호 미부여 (등록 예정)';
   const u=imgUrl(current,false);
+  $('#btnDel').style.display=soldState(current)==='planned'?'':'none';
   $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
-    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no').map(k=>{
+    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no'&&!(['qty','sold_qty'].includes(k)&&current[k]==='')).map(k=>{
       let v=current[k];
       if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
       else if(k==='discount')v=esc(fmtDiscount(v));
@@ -387,7 +388,7 @@ function openEdit(r,neu){
   const tko=tparts[0]||'', ten=tparts.slice(1).join('\n');
   $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
 
-  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
   const curImg=imgUrl(r,true);
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
   const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
@@ -413,6 +414,8 @@ function openEdit(r,neu){
     F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
     F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
     F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
+    F(LABELS.qty,`<input name="qty" type="number" min="0" value="${esc(r.qty)}">`,'아트토이 총 제작 수량','toyonly')+
+    F(LABELS.sold_qty,`<input name="sold_qty" type="number" min="0" value="${esc(r.sold_qty)}">`,'지금까지 판매된 개수','toyonly')+
     F(LABELS.sold,`<select name="sold">
         <option value=""${soldState(r)==='avail'?' selected':''}>판매가능</option>
         <option value="●"${r.sold==='●'?' selected':''}>● 판매완료</option>
@@ -476,8 +479,14 @@ function openEdit(r,neu){
   const resuggest=()=>{
     if(!noLocked&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
   };
+  // 수량·판매개수는 아트토이(또는 값이 이미 있는 작품)에만 표시
+  const updateToyRows=()=>{
+    const show=typeSel.value==='HDT'||(r.qty??'')!==''||(r.sold_qty??'')!=='';
+    document.querySelectorAll('#eBody .row.toyonly').forEach(d=>d.style.display=show?'':'none');
+  };
+  updateToyRows();
   $('#fYearIn').oninput=resuggest;
-  typeSel.onchange=resuggest;
+  typeSel.onchange=()=>{resuggest();updateToyRows()};
   // 이미지 업로드
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
@@ -590,7 +599,7 @@ $('#btnXlsx').onclick=()=>{
   const header=KEYS.map(k=>LABELS[k]);
   const data=rows.map(r=>KEYS.map(k=>{
     const v=r[k];
-    return(['price','actual_price','year','discount'].includes(k)&&v!==''&&!isNaN(Number(v)))?Number(v):v;
+    return(['price','actual_price','year','discount','qty','sold_qty'].includes(k)&&v!==''&&v!=null&&!isNaN(Number(v)))?Number(v):(v??'');
   }));
   const ws=XLSX.utils.aoa_to_sheet([header,...data]);
   ws['!cols']=KEYS.map(k=>({wch:['caption','exhibitions','note','title'].includes(k)?46:k==='no'?13:12}));
@@ -633,6 +642,19 @@ $('#stats').onclick=e=>{
   render();
 };
 $('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
+$('#btnDel').onclick=async()=>{
+  if(!current)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const t=String(current.title).split('\n')[0];
+  if(!confirm(`'${t}' 작품을 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  try{
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'delete',token:token(),no:current.no,_row:current._row})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'삭제 실패');
+    toast('삭제되었습니다');
+    dlgDetail.close();await load();
+  }catch(e){toast('오류: '+e.message)}
+};
 $('#btnAdd').onclick=()=>{
   const yr=new Date().getFullYear();
   openEdit(Object.fromEntries(KEYS.map(k=>[k,k==='no'?suggestNo(yr):k==='year'?yr:''])),true);

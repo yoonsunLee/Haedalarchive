@@ -539,7 +539,10 @@ $('#editForm').onsubmit=async e=>{
   if(!rec.title.trim()){toast('작품명을 입력하세요');return}
   delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
   if(rec.no.trim()&&!/^HDT?-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)-YYYY-NNN 형식이 아닙니다');
-  if(!isNew&&current&&current._row)rec._row=current._row; // 번호 없는 행 수정용 위치 정보
+  if(!isNew&&current&&current._row){
+    rec._row=current._row; // 번호 없는 행 수정용 위치 정보
+    rec._expect=String(current.title).split('\n')[0]; // 서버측 행 대조용 원래 제목
+  }
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{
     const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'add':'update',token:token(),row:rec})});
@@ -648,7 +651,7 @@ $('#btnDel').onclick=async()=>{
   const t=String(current.title).split('\n')[0];
   if(!confirm(`'${t}' 작품을 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'delete',token:token(),no:current.no,_row:current._row})});
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'delete',token:token(),no:current.no,_row:current._row,expect:t})});
     const j=await res.json();
     if(!j.ok)throw new Error(j.error||'삭제 실패');
     toast('삭제되었습니다');

@@ -90,11 +90,17 @@ function doPost(e) {
     } else if (req.action === 'update') {
       const no = String(req.row.no || '').trim();
       let r = no ? findRow(no) : -1;
+      let viaRow = false;
       if (r === -1 && req.row._row) { // 번호가 없거나 방금 부여된 행은 위치로 찾음
         const idx = parseInt(req.row._row, 10);
-        if (idx >= 2 && idx <= values.length) r = idx;
+        if (idx >= 2 && idx <= values.length) { r = idx; viaRow = true; }
       }
       if (r === -1) return json_({ ok: false, error: '수정할 행을 찾을 수 없습니다: ' + (no || '(번호 없음)') });
+      // 안전장치: 위치로 찾은 경우 원래 제목과 대조
+      if (viaRow && req.row._expect !== undefined) {
+        const t = String(values[r - 1][2]).split('\n')[0].trim();
+        if (t !== String(req.row._expect).trim()) return json_({ ok: false, error: '화면 정보가 최신이 아닙니다. 새로고침(↻) 후 다시 시도하세요.' });
+      }
       if (no) { // 번호 중복 방지 (다른 행이 같은 번호를 쓰는 경우)
         const dup = findRow(no);
         if (dup !== -1 && dup !== r) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + no });
@@ -108,6 +114,11 @@ function doPost(e) {
         if (idx >= 2 && idx <= values.length) r = idx;
       }
       if (r === -1) return json_({ ok: false, error: '삭제할 행을 찾을 수 없습니다: ' + (no || '(번호 없음)') });
+      // 안전장치: 행 위치가 밀렸을 때 엉뚱한 작품이 지워지지 않도록 제목 대조
+      if (req.expect !== undefined) {
+        const t = String(values[r - 1][2]).split('\n')[0].trim();
+        if (t !== String(req.expect).trim()) return json_({ ok: false, error: '화면 정보가 최신이 아닙니다. 새로고침(↻) 후 다시 시도하세요.' });
+      }
       sh.deleteRow(r);
     } else if (req.action === 'upload_portfolio') {
       // 포트폴리오 PDF를 드라이브 portfolio 폴더에 저장 (버전이 쌓이고 사이트는 최신 파일 제공)

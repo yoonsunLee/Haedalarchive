@@ -130,6 +130,15 @@ function doPost(e) {
       const file = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       return json_(portfolioInfo_());
+    } else if (req.action === 'link_image') {
+      // 드라이브에 직접 올린 사진을 작품에 연결 (표시용 링크 공유 설정 + 시트 이미지 칸 갱신)
+      const no = String(req.no || '').trim();
+      const r = findRow(no);
+      if (r === -1) return json_({ ok: false, error: '작품번호를 찾을 수 없습니다: ' + no });
+      const file = DriveApp.getFileById(String(req.fileId));
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      sh.getRange(r, 2).setValue('drive:' + file.getId());
+      return json_({ ok: true, id: file.getId() });
     } else if (req.action === 'upload_image') {
       // 사이트에서 보낸 사진을 드라이브 images 폴더에 저장하고, 표시용 링크 공유를 설정
       const bytes = Utilities.base64Decode(req.data);

@@ -92,19 +92,23 @@ function doPost(e) {
       sh.appendRow(KEYS.map(k => req.row[k] === undefined ? '' : req.row[k]));
     } else if (req.action === 'update') {
       const no = String(req.row.no || '').trim();
-      let r = no ? findRow(no) : -1;
+      // 위치 정보(_row)를 항상 우선 사용한다. 번호로 먼저 찾으면 사용자가 작품번호를
+      // "다른 작품이 이미 쓰는 번호"로 바꿔 저장할 때 엉뚱한(그 다른) 행을 찾아 덮어쓰는
+      // 사고로 이어질 수 있어, 위치 기반 조회 후 아래에서 번호 중복만 별도로 막는다.
+      let r = -1;
       let viaRow = false;
-      if (r === -1 && req.row._row) { // 번호가 없거나 방금 부여된 행은 위치로 찾음
+      if (req.row._row) {
         const idx = parseInt(req.row._row, 10);
         if (idx >= 2 && idx <= values.length) { r = idx; viaRow = true; }
       }
+      if (r === -1 && no) r = findRow(no); // 위치 정보가 없는 예외적인 경우의 폴백
       if (r === -1) return json_({ ok: false, error: '수정할 행을 찾을 수 없습니다: ' + (no || '(번호 없음)') });
-      // 안전장치: 위치로 찾은 경우 원래 제목과 대조
+      // 안전장치: 위치로 찾은 경우 원래 제목과 대조 (행 밀림으로 인한 오수정 방지)
       if (viaRow && req.row._expect !== undefined) {
         const t = String(values[r - 1][2]).split('\n')[0].trim();
         if (t !== String(req.row._expect).trim()) return json_({ ok: false, error: '화면 정보가 최신이 아닙니다. 새로고침(↻) 후 다시 시도하세요.' });
       }
-      if (no) { // 번호 중복 방지 (다른 행이 같은 번호를 쓰는 경우)
+      if (no) { // 번호 중복 방지: 다른 행이 이미 같은 번호를 쓰고 있으면 거부
         const dup = findRow(no);
         if (dup !== -1 && dup !== r) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + no });
       }

@@ -374,10 +374,16 @@ function openDetail(r){
 /* ---------- 수정/등록 폼 ---------- */
 function suggestNo(yr,prefix){
   yr=String(yr||new Date().getFullYear());
-  prefix=prefix||'HD'; // 'HD' 일반 작품, 'HDT' 아트토이
+  prefix=prefix||'HD'; // 'HD' 일반 작품, 'HDT' 아트토이, 'ER' 이벤트 리워드
   const re=new RegExp('^'+prefix+'-(\\d{4})-(\\d+)$');
   const nums=rows.map(r=>{const m=String(r.no).trim().match(re);return m&&m[1]===yr?+m[2]:0});
   return `${prefix}-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
+}
+function prefixOf(no){
+  no=String(no||'').trim();
+  if(no.startsWith('HDT-'))return'HDT';
+  if(no.startsWith('ER-'))return'ER';
+  return'HD';
 }
 function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
   if(!vals.length)return'';
@@ -398,12 +404,19 @@ function openEdit(r,neu){
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
   const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
   const isExisting=!neu&&!!String(r.no).trim(); // 기존 작품 여부 (연도·유형 변경 시 자동 재채번을 막는 기준)
-  const curPrefix=String(r.no).trim().startsWith('HDT-')?'HDT':'HD';
+  const curPrefix=prefixOf(r.no);
+  const loadCandidates=rows.filter(x=>String(x.title).trim()).slice()
+    .sort((a,b)=>String(a.title).split('\n')[0].localeCompare(String(b.title).split('\n')[0],'ko'));
   $('#eBody').innerHTML=
     F('작품 유형',`<select name="notype"${isExisting?' disabled':''}>
         <option value="HD"${curPrefix==='HD'?' selected':''}>일반 작품 (HD-)</option>
         <option value="HDT"${curPrefix==='HDT'?' selected':''}>아트토이 (HDT-)</option>
+        <option value="ER"${curPrefix==='ER'?' selected':''}>이벤트 리워드 (ER-)</option>
       </select>`, isExisting?'':'유형별로 따로 채번됩니다')+
+    (neu?F('기존 작품에서 불러오기',
+      `<select id="loadFrom"><option value="">── 작품명으로 불러오기 ──</option>${
+        loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
+      '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
     F(LABELS.no,`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
     F(LABELS.image,
       `<div class="imgupload">
@@ -492,6 +505,33 @@ function openEdit(r,neu){
   updateToyRows();
   $('#fYearIn').oninput=resuggest;
   typeSel.onchange=()=>{resuggest();updateToyRows()};
+  // 기존 작품에서 불러오기 (신규 등록 전용): 작품번호·사진을 제외한 모든 정보를 채움
+  const loadSel=$('#loadFrom');
+  if(loadSel)loadSel.onchange=()=>{
+    if(loadSel.value==='')return;
+    const src=loadCandidates[+loadSel.value];
+    loadSel.value='';
+    if(!src)return;
+    const q=n=>document.querySelector(`#eBody [name="${n}"]`);
+    const tp=String(src.title||'').split('\n');
+    q('title_ko').value=tp[0]||''; q('title_en').value=tp.slice(1).join('\n');
+    q('caption').value=src.caption||''; q('material').value=src.material||''; q('size').value=src.size||'';
+    $('#fYearIn').value=src.year||'';
+    q('price').value=fmtComma(src.price);
+    q('qty').value=src.qty||''; q('sold_qty').value=src.sold_qty||'';
+    q('sold').value=src.sold==='●'?'●':(String(src.sold).toUpperCase()==='NFS'?'NFS':(soldState(src)==='planned'?'등록 예정':''));
+    q('discount').value=fmtPct(src.discount);
+    q('actual_price').value=fmtComma(src.actual_price);
+    q('payment').value=src.payment||'';
+    q('sale_date').value=toISO(src.sale_date); q('delivery_date').value=toISO(src.delivery_date);
+    q('channel').value=src.channel||''; q('owner').value=src.owner||''; q('note').value=src.note||'';
+    exLines=String(src.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean); renderExList();
+    typeSel.value=prefixOf(src.no);
+    if(q('sold').value==='등록 예정')noEl.value='';
+    else noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
+    updateToyRows();
+    toast('작품 정보를 불러왔습니다 — 작품번호와 사진은 새로 입력하세요');
+  };
   // 이미지 업로드
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
@@ -543,7 +583,7 @@ $('#editForm').onsubmit=async e=>{
   if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
   if(!rec.title.trim()){toast('작품명을 입력하세요');return}
   delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
-  if(rec.no.trim()&&!/^HDT?-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)-YYYY-NNN 형식이 아닙니다');
+  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
   // 다른 작품과 번호 중복 여부를 먼저 확인 (수정 시 번호를 직접 바꾼 경우 포함)
   if(rec.no.trim()){
     const dup=rows.find(x=>String(x.no).trim()===rec.no.trim()&&(isNew||x._row!==current._row));

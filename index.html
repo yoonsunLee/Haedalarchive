@@ -203,7 +203,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <script>
 const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec';
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
-const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기간·전시명',note:'비고',qty:'수량',sold_qty:'판매개수'};
+const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
 let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
@@ -372,9 +372,17 @@ function openDetail(r){
       if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
       else if(k==='discount')v=esc(fmtDiscount(v));
       else v=esc(v);
-      return`<dt>${LABELS[k]}</dt><dd>${v}</dd>`}).join('')+'</dl>';
+      return`<dt>${LABELS[k]}</dt><dd>${v}</dd>`}).join('')+
+    '<dt id="dExAutoLabel" style="display:none">🗓 등록된 전시 (자동)</dt><dd id="dExAuto"></dd>'+
+    '</dl>';
   dlgDetail.showModal();
   $('#dBody').scrollTop=0;
+  const no=current.no;
+  ensureEx().then(()=>{
+    if(current!==r)return; // 그 사이 다른 작품 열었으면 무시
+    const html=exAutoListInner(no);
+    if(html){ $('#dExAutoLabel').style.display=''; $('#dExAuto').innerHTML=html; }
+  }).catch(()=>{});
 }
 
 /* ---------- 수정/등록 폼 ---------- */
@@ -655,11 +663,29 @@ dlgPf.addEventListener('click',e=>{if(e.target===dlgPf)dlgPf.close()});
 
 /* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */
 let exRows=[];
+let exLoaded=false;
 async function loadEx(){
   const res=await fetch(api()+'?sheet=exhibitions&t='+Date.now());
   const j=await res.json();
   if(!j.ok)throw new Error(j.error||'응답 오류');
   exRows=j.rows||[];
+  exLoaded=true;
+}
+async function ensureEx(){ if(!exLoaded) await loadEx(); }
+/** 특정 작품번호가 포함된 전시들을 최신순으로 반환 */
+function exhibitionsForWork(no){
+  no=String(no||'').trim();
+  return exRows.filter(r=>String(r.work_nos||'').split(',').map(s=>s.trim()).includes(no))
+    .sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
+}
+/** 상세보기 dd에 삽입할 내부 HTML만 반환 (dt/dd 껍데기는 openDetail이 이미 갖고 있음) */
+function exAutoListInner(no){
+  const list=exhibitionsForWork(no);
+  if(!list.length)return'';
+  return list.map(r=>`<div style="margin-bottom:4px">
+      <strong>${esc(r.title)}</strong>${exBadge(r)}<br>
+      <span class="hint">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.docent_url?' · 🎧':''}</span>
+    </div>`).join('');
 }
 function exBadge(r){
   const today=new Date(Date.now()+9*3600*1000).toISOString().slice(0,10); // KST

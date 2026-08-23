@@ -698,7 +698,10 @@ function exFormHtml(r,isNew){
   ${F('장소',`<input name="venue" value="${esc(r.venue||'')}">`)}
   ${F('시작일',`<input type="date" name="start_date" value="${esc(r.start_date||'')}">`)}
   ${F('종료일',`<input type="date" name="end_date" value="${esc(r.end_date||'')}">`)}
-  ${F('출품작 번호',`<input name="work_nos" value="${esc(r.work_nos||'')}">`,'쉼표로 구분 예: HD-2026-011,HD-2026-009 — 홈페이지 전시 모드에 이 작품들이 노출됩니다')}
+  ${F('출품작 선택',`<input type="hidden" name="work_nos" value="${esc(r.work_nos||'')}">
+    <div id="exPickSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
+    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 선택한 순서대로 홈페이지 전시 모드에 노출됩니다')}
   ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
   ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
@@ -729,8 +732,46 @@ function renderExList(){
     }catch(e){toast('삭제 오류: '+e.message)}
   });
 }
+function initExPicker(){
+  const hid=$('#exBody [name=work_nos]');
+  let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const syncHid=()=>{hid.value=sel.join(',');};
+  const chip=no=>{
+    const w=rows.find(x=>String(x.no).trim()===no);
+    return`<span data-unpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
+  };
+  const card=w=>{
+    const no=String(w.no).trim(), on=sel.includes(no), u=imgUrl(w,true);
+    return`<div data-pick="${esc(no)}" style="cursor:pointer;border:2px solid ${on?'var(--accent)':'var(--line)'};border-radius:8px;overflow:hidden;background:var(--card)">
+      <div style="aspect-ratio:1/1;background:#f2f2f2 center/cover no-repeat;${u?`background-image:url('${u}')`:''}"></div>
+      <div style="padding:5px 6px">
+        <div style="font-size:.72rem;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(w.title||'(제목 없음)')}</div>
+        <div class="hint" style="font-size:.66rem">${esc(no)}</div>
+      </div>
+    </div>`;
+  };
+  const paint=()=>{
+    const q=($('#exPickSearch').value||'').trim().toLowerCase();
+    const list=rows.filter(w=>String(w.no||'').trim())
+      .filter(w=>!q||String(w.title||'').toLowerCase().includes(q)||String(w.no||'').toLowerCase().includes(q));
+    $('#exPickSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 선택된 작품이 없습니다</span>';
+    $('#exPickGrid').innerHTML=list.length?list.map(card).join(''):'<div class="hint" style="grid-column:1/-1">검색 결과가 없습니다</div>';
+    document.querySelectorAll('#exPickGrid [data-pick]').forEach(el=>el.onclick=()=>{
+      const no=el.dataset.pick;
+      sel=sel.includes(no)?sel.filter(x=>x!==no):[...sel,no];
+      syncHid(); paint();
+    });
+    document.querySelectorAll('#exPickSel [data-unpick]').forEach(el=>el.onclick=()=>{
+      sel=sel.filter(x=>x!==el.dataset.unpick);
+      syncHid(); paint();
+    });
+  };
+  $('#exPickSearch').oninput=paint;
+  syncHid(); paint();
+}
 function renderExForm(r,isNew){
   $('#exBody').innerHTML=exFormHtml(r,isNew);
+  initExPicker();
   $('#btnExBack').onclick=()=>renderExList();
   $('#btnExSave').onclick=async()=>{
     const g=n=>$('#exBody [name='+n+']').value.trim();

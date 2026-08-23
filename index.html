@@ -258,7 +258,7 @@ function allExNorm(){
 /* ---------- 데이터 로드 ---------- */
 async function load(){
   try{
-    const res=await fetch(api()+'?action=list&t='+Date.now());
+    const res=await fetch(api()+'?action=list&token='+encodeURIComponent(token())+'&t='+Date.now());
     const j=await res.json();
     if(!j.ok)throw new Error(j.error||'응답 오류');
     rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';
@@ -669,7 +669,7 @@ $('#btnSaveSet').onclick=async()=>{
   const st=$('#setStatus');
   st.textContent='연결 확인 중…';
   try{
-    const r=await fetch(api()+'?action=list');const j=await r.json();
+    const r=await fetch(api()+'?action=list&token='+encodeURIComponent(token()));const j=await r.json();
     st.textContent=j.ok?`✅ 연결 성공 — 시트에서 ${j.rows.length}점을 불러왔습니다.`:'⚠️ 응답 오류: '+(j.error||'');
   }catch(e){st.textContent='❌ 연결 실패: '+e.message}
   load();

@@ -127,6 +127,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
   <button class="btn" id="btnReload" title="새로고침">↻</button>
   <button class="btn" id="btnPf">📄 포트폴리오</button>
+  <button class="btn" id="btnEx">🗓 전시 관리</button>
   <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
   <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
 </div>
@@ -179,6 +180,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <dialog id="dlgPf">
   <div class="dlghead"><h2>📄 포트폴리오</h2><button class="btn" id="btnClosePf">✕</button></div>
   <div class="dlgbody" id="pfBody"></div>
+</dialog>
+
+<dialog id="dlgEx">
+  <div class="dlghead"><h2>🗓 전시 관리</h2><button class="btn" id="btnCloseEx">✕</button></div>
+  <div class="dlgbody" id="exBody"></div>
 </dialog>
 
 <dialog id="dlgEdit">
@@ -646,6 +652,105 @@ async function uploadPortfolio(file){
 $('#btnPf').onclick=openPortfolio;
 $('#btnClosePf').onclick=()=>dlgPf.close();
 dlgPf.addEventListener('click',e=>{if(e.target===dlgPf)dlgPf.close()});
+
+/* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */
+let exRows=[];
+async function loadEx(){
+  const res=await fetch(api()+'?sheet=exhibitions&t='+Date.now());
+  const j=await res.json();
+  if(!j.ok)throw new Error(j.error||'응답 오류');
+  exRows=j.rows||[];
+}
+function exBadge(r){
+  const today=new Date(Date.now()+9*3600*1000).toISOString().slice(0,10); // KST
+  const s=String(r.start_date||''),e=String(r.end_date||'');
+  const pill=(bg,fg,t)=>`<span style="font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;background:${bg};color:${fg}">${t}</span>`;
+  if(s&&e&&s<=today&&today<=e)return pill('#1f4d3a','#8fe0b8','진행중');
+  if(s&&s>today)return pill('#2f4260','#9cc8ee','예정');
+  return pill('#e8e8e8','#888','종료');
+}
+function exListHtml(){
+  const rows=exRows.slice().sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn primary" id="btnExAdd">＋ 전시 등록</button></div>
+  ${rows.length?'':'<div class="hint">등록된 전시가 없습니다. 전시를 등록하면 홈페이지 Now 섹션에 자동 반영됩니다.</div>'}
+  ${rows.map(r=>`
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <strong>${esc(r.title)}</strong>${exBadge(r)}
+        <span class="hint" style="margin-left:auto">${esc(r.id)}</span>
+      </div>
+      <div class="hint" style="margin-top:4px">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.type?' · '+esc(r.type):''}</div>
+      ${r.work_nos?`<div class="hint" style="margin-top:2px">출품작: ${esc(r.work_nos)}</div>`:''}
+      ${r.docent_url?`<div class="hint" style="margin-top:2px">🎧 ${esc(r.docent_url)}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn" data-exedit="${esc(r.id)}">✏️ 수정</button>
+        <button class="btn" data-exdel="${esc(r.id)}">🗑 삭제</button>
+      </div>
+    </div>`).join('')}`;
+}
+function exFormHtml(r,isNew){
+  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  const types=['개인전','그룹전','아트페어','기타'];
+  return `
+  ${F('전시 ID',`<input name="id" value="${esc(r.id||'')}" ${isNew?'placeholder="비우면 자동 생성"':'readonly'}>`)}
+  ${F('전시명 *',`<input name="title" value="${esc(r.title||'')}">`)}
+  ${F('장소',`<input name="venue" value="${esc(r.venue||'')}">`)}
+  ${F('시작일',`<input type="date" name="start_date" value="${esc(r.start_date||'')}">`)}
+  ${F('종료일',`<input type="date" name="end_date" value="${esc(r.end_date||'')}">`)}
+  ${F('출품작 번호',`<input name="work_nos" value="${esc(r.work_nos||'')}">`,'쉼표로 구분 예: HD-2026-011,HD-2026-009 — 홈페이지 전시 모드에 이 작품들이 노출됩니다')}
+  ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
+  ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+  ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
+  <div class="formfoot" style="padding:12px 0 0">
+    <button type="button" class="btn" id="btnExBack">← 목록</button>
+    <button type="button" class="btn primary" id="btnExSave">${isNew?'등록':'저장'}</button>
+  </div>`;
+}
+async function openEx(){
+  dlgEx.showModal();
+  $('#exBody').innerHTML='<div class="hint">불러오는 중…</div>';
+  try{ await loadEx(); renderExList(); }
+  catch(e){ $('#exBody').innerHTML='<div class="hint">불러오기 오류: '+esc(e.message)+'</div>'; }
+}
+function renderExList(){
+  $('#exBody').innerHTML=exListHtml();
+  $('#btnExAdd').onclick=()=>renderExForm({},true);
+  document.querySelectorAll('#exBody [data-exedit]').forEach(b=>b.onclick=()=>{
+    const r=exRows.find(x=>String(x.id)===b.dataset.exedit); if(r)renderExForm(r,false);
+  });
+  document.querySelectorAll('#exBody [data-exdel]').forEach(b=>b.onclick=async()=>{
+    const r=exRows.find(x=>String(x.id)===b.dataset.exdel); if(!r)return;
+    if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+    try{
+      const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'ex_delete',token:token(),id:r.id})});
+      const j=await res.json(); if(!j.ok)throw new Error(j.error||'삭제 실패');
+      toast('🗑 전시가 삭제되었습니다'); await loadEx(); renderExList();
+    }catch(e){toast('삭제 오류: '+e.message)}
+  });
+}
+function renderExForm(r,isNew){
+  $('#exBody').innerHTML=exFormHtml(r,isNew);
+  $('#btnExBack').onclick=()=>renderExList();
+  $('#btnExSave').onclick=async()=>{
+    const g=n=>$('#exBody [name='+n+']').value.trim();
+    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public')};
+    if(!row.title)return toast('전시명을 입력하세요');
+    if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
+    const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
+    try{
+      const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'ex_add':'ex_update',token:token(),row:row})});
+      const j=await res.json(); if(!j.ok)throw new Error(j.error||'저장 실패');
+      toast(isNew?'✅ 전시가 등록되었습니다':'✅ 전시가 수정되었습니다');
+      await loadEx(); renderExList();
+    }catch(e){toast('저장 오류: '+e.message)}
+    finally{saveBtn.disabled=false;}
+  };
+}
+$('#btnEx').onclick=openEx;
+$('#btnCloseEx').onclick=()=>dlgEx.close();
+dlgEx.addEventListener('click',e=>{if(e.target===dlgEx)dlgEx.close()});
+
 
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{

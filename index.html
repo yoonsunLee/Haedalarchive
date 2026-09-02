@@ -102,6 +102,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <nav class="tabs">
     <button data-v="gallery" class="on">갤러리</button>
     <button data-v="table">표</button>
+    <button data-v="press">Press</button>
     <button data-v="settings">설정</button>
   </nav>
 </header>
@@ -147,6 +148,18 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </table></div>
   </section>
 
+  <section id="vPress" hidden>
+    <div class="toolbar" style="padding:0 0 12px">
+      <input type="search" id="pq" placeholder="매체명·제목·인용구 검색…">
+      <button class="btn" id="btnPressReload" title="새로고침">↻</button>
+      <button class="btn primary" id="btnPressAdd">＋ 기사 등록</button>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>No.</th><th>매체명</th><th>날짜</th><th class="wrap">기사 제목</th><th>링크</th></tr></thead>
+      <tbody id="pressTbody"></tbody>
+    </table></div>
+  </section>
+
   <section id="vSettings" hidden>
     <div class="settings-box">
       <h3>⚙️ 구글 시트 연동 설정</h3>
@@ -162,6 +175,9 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       </div>
       <button class="btn primary" id="btnSaveSet">저장 후 연결 테스트</button>
       <p style="margin-top:16px" id="setStatus"></p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>📰 Press 탭</h3>
+      <p>같은 스프레드시트의 <b>"Press"</b> 탭에 기사를 저장합니다 (탭이 없으면 첫 등록 시 자동으로 만들어져요).</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📁 바로가기</h3>
       <p>
@@ -194,6 +210,18 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="formfoot">
       <button type="button" class="btn" id="btnCancelEdit">취소</button>
       <button type="submit" class="btn primary" id="btnSave">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPressEdit">
+  <div class="dlghead"><h2 id="peTitle">기사 등록</h2><button class="btn" id="btnClosePressEdit">✕</button></div>
+  <form id="pressEditForm" method="dialog">
+    <div class="dlgbody" id="peBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" id="btnDeletePress" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
+      <button type="button" class="btn" id="btnCancelPressEdit">취소</button>
+      <button type="submit" class="btn primary">저장</button>
     </div>
   </form>
 </dialog>
@@ -818,6 +846,88 @@ $('#btnEx').onclick=openEx;
 $('#btnCloseEx').onclick=()=>dlgEx.close();
 dlgEx.addEventListener('click',e=>{if(e.target===dlgEx)dlgEx.close()});
 
+/* ---------- Press ---------- */
+const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note'];
+const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
+let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
+
+async function loadPress(){
+  try{
+    const res=await fetch(api()+'?sheet=press&t='+Date.now());
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'응답 오류');
+    pressRows=j.rows;
+  }catch(e){
+    pressRows=[];
+    toast('Press 시트 연결 실패: '+e.message);
+  }
+  renderPressList();
+}
+function filteredPress(){
+  const q=($('#pq').value||'').trim().toLowerCase();
+  let list=pressRows.slice();
+  if(q)list=list.filter(r=>[r.outlet,r.title,r.quote].join(' ').toLowerCase().includes(q));
+  list.sort((a,b)=>(b._row||0)-(a._row||0)); // 최근 등록순
+  return list;
+}
+function renderPressList(){
+  const list=filteredPress();
+  lastPressList=list;
+  $('#pressTbody').innerHTML=list.length?list.map((r,i)=>
+    `<tr data-idx="${i}"><td>${esc(r.no||'—')}</td><td>${esc(r.outlet)}</td><td>${esc(r.date)}</td><td class="wrap">${esc(r.title)}</td><td>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>`:''}</td></tr>`
+  ).join(''):'<tr><td colspan="5" class="empty">등록된 기사가 없습니다</td></tr>';
+}
+function openPressEdit(r,neu){
+  pressIsNew=neu; pressCurrent=r;
+  $('#peTitle').textContent=neu?'기사 등록':'기사 수정';
+  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  $('#peBody').innerHTML=
+    F(PRESS_LABELS.no,`<input name="no" value="${esc(r.no)}" ${neu?'':'readonly'}>`,neu?'비워두면 자동으로 채번됩니다 (PR-연도-순번)':'')+
+    F(PRESS_LABELS.outlet,`<input name="outlet" value="${esc(r.outlet)}" placeholder="예: 코리안투데이">`)+
+    F(PRESS_LABELS.date,`<input name="date" type="date" value="${toISO(r.date)}">`)+
+    F(PRESS_LABELS.title,`<input name="title" value="${esc(r.title)}">`)+
+    F(PRESS_LABELS.url,`<input name="url" value="${esc(r.url)}" placeholder="https://…">`)+
+    F(PRESS_LABELS.quote,`<textarea name="quote" placeholder="기사에서 고른 인상적인 한 줄">${esc(r.quote)}</textarea>`)+
+    F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
+    F(PRESS_LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
+  $('#btnDeletePress').style.display=neu?'none':'';
+  dlgPressEdit.showModal();
+}
+$('#pressEditForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const g=n=>{const el=document.querySelector(`#peBody [name="${n}"]`);return el?el.value.trim():''};
+  const rec={};PRESS_KEYS.forEach(k=>rec[k]=g(k));
+  rec.date=rec.date?rec.date.replaceAll('-','.'):'';
+  if(!rec.title){toast('기사 제목을 입력하세요');return}
+  if(!pressIsNew)rec.no=pressCurrent.no; // 수정 시 번호는 읽기전용 필드값 그대로
+  try{
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:pressIsNew?'press_add':'press_update',token:token(),row:rec})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'저장 실패');
+    toast(pressIsNew?'기사가 등록되었습니다':'저장되었습니다');
+    dlgPressEdit.close();await loadPress();
+  }catch(err){toast('오류: '+err.message)}
+};
+$('#btnDeletePress').onclick=async()=>{
+  if(!pressCurrent||pressIsNew)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  if(!confirm(`'${pressCurrent.title}' 기사를 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  try{
+    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'press_delete',token:token(),no:pressCurrent.no})});
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'삭제 실패');
+    toast('삭제되었습니다');
+    dlgPressEdit.close();await loadPress();
+  }catch(e){toast('오류: '+e.message)}
+};
+$('#pressTbody').onclick=e=>{const tr=e.target.closest('tr[data-idx]');if(tr)openPressEdit(lastPressList[+tr.dataset.idx],false)};
+$('#btnPressAdd').onclick=()=>openPressEdit(Object.fromEntries(PRESS_KEYS.map(k=>[k,''])),true);
+$('#btnPressReload').onclick=()=>{loadPress();toast('새로고침')};
+$('#pq').oninput=renderPressList;
+$('#btnClosePressEdit').onclick=()=>dlgPressEdit.close();
+$('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
+dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
 
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{
@@ -853,9 +963,11 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   view=b.dataset.v;
   $('#vGallery').hidden=view!=='gallery';
   $('#vTable').hidden=view!=='table';
+  $('#vPress').hidden=view!=='press';
   $('#vSettings').hidden=view!=='settings';
-  document.querySelector('.toolbar').style.display=view==='settings'?'none':'flex';
-  if(view!=='settings')render();
+  document.querySelector('header + .toolbar').style.display=(view==='settings'||view==='press')?'none':'flex';
+  if(view==='gallery'||view==='table')render();
+  if(view==='press')renderPressList();
 });
 $('#grid').onclick=e=>{const c=e.target.closest('.card');if(c)openDetail(lastList[+c.dataset.idx])};
 $('#tbody').onclick=e=>{const tr=e.target.closest('tr');if(tr)openDetail(lastList[+tr.dataset.idx])};
@@ -897,6 +1009,7 @@ $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 $('#setApi').value=localStorage.getItem('haedal_api')||'';$('#setToken').value=token();
 load();
+loadPress();
 </script>
 </body>
 </html>

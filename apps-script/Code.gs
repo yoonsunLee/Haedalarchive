@@ -22,7 +22,7 @@ const KEYS = ['no','image','title','caption','material','size','year','price','s
   'exhibitions','note','qty','sold_qty'];
 
 // 토큰 없이 조회할 때(=홈페이지·외부) 공개되는 필드. 판매가격(price)은 비공개 방침.
-const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','sold','exhibitions'];
+const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','exhibitions'];
 
 // 전시 시트 (없으면 자동 생성)
 const EX_SHEET = 'exhibitions';

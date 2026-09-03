@@ -17,9 +17,11 @@ const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';    // 드라이브
 const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
 const TOKEN = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
 
+// audio_master/transcript_ko/transcript_en은 시트에 U~W열로 컬럼을 추가한 뒤에만 실제로 채워짐
+// (컬럼 없어도 읽기/쓰기 자체는 안전 — 빈 값으로 처리됨)
 const KEYS = ['no','image','title','caption','material','size','year','price','sold',
   'discount','actual_price','payment','sale_date','delivery_date','channel','owner',
-  'exhibitions','note','qty','sold_qty'];
+  'exhibitions','note','qty','sold_qty','audio_master','transcript_ko','transcript_en'];
 
 // 토큰 없이 조회할 때(=홈페이지·외부) 공개되는 필드. 판매가격(price)은 비공개 방침.
 const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','exhibitions'];
@@ -252,6 +254,21 @@ function doPost(e) {
       const file = DriveApp.getFolderById(IMAGES_FOLDER_ID).createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       return json_({ ok: true, id: file.getId() });
+    } else if (req.action === 'publish') {
+      // 홈페이지 발행 트리거 — GitHub repository_dispatch로 shinhaedal 저장소의
+      // publish.yml(작품 발행 파이프라인)을 즉시 실행시킨다.
+      const ghToken = PropertiesService.getScriptProperties().getProperty('GITHUB_PAT');
+      if (!ghToken) return json_({ ok: false, error: 'GITHUB_PAT가 스크립트 속성에 설정되지 않았습니다' });
+      const resp = UrlFetchApp.fetch('https://api.github.com/repos/yoonsunLee/shinhaedal/dispatches', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + ghToken, Accept: 'application/vnd.github+json' },
+        payload: JSON.stringify({ event_type: 'archive-publish' }),
+        muteHttpExceptions: true
+      });
+      const code = resp.getResponseCode();
+      if (code !== 204) return json_({ ok: false, error: 'GitHub 요청 실패 (' + code + '): ' + resp.getContentText() });
+      return json_({ ok: true });
     } else {
       return json_({ ok: false, error: '알 수 없는 action: ' + req.action });
     }

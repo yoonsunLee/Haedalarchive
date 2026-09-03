@@ -15,7 +15,7 @@ const SHEET_ID = '14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU'; // 신해달 �
 const BACKUP_FOLDER_ID = '1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4';    // 드라이브 '신해달 작품 아카이브' 폴더
 const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';    // 드라이브 images 폴더
 const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
-const TOKEN = 'shinhaedal'; // ★★ 나만 아는 값으로 관리 중 — 바꾸지 마세요 ★★
+const TOKEN = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
 
 const KEYS = ['no','image','title','caption','material','size','year','price','sold',
   'discount','actual_price','payment','sale_date','delivery_date','channel','owner',

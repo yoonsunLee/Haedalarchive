@@ -14,12 +14,19 @@
 }
 *{box-sizing:border-box; margin:0; padding:0}
 body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif; line-height:1.55}
+.app{display:flex; min-height:100vh}
+.sidebar{flex:0 0 176px; width:176px; background:var(--card); border-right:1px solid var(--line); padding:16px 10px; display:flex; flex-direction:column; gap:2px; position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto}
+.sidebar-brand{font-size:.92rem; font-weight:600; padding:4px 10px 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sidebar button{text-align:left; border:none; background:none; color:var(--ink); padding:10px 12px; border-radius:8px; cursor:pointer; font-size:.88rem; white-space:nowrap}
+.sidebar button.on{background:var(--accent); color:#fff}
+.sidebar button:hover:not(.on){background:var(--bg)}
+.content{flex:1; min-width:0}
 header{position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
 header h1{font-size:1.05rem; letter-spacing:.02em; margin-right:auto; white-space:nowrap}
 header h1 small{color:var(--sub); font-weight:400; font-size:.78rem; margin-left:6px}
-.tabs{display:flex; gap:4px}
-.tabs button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.86rem}
-.tabs button.on{background:var(--accent); border-color:var(--accent); color:#fff}
+.view-toggle{display:flex; gap:4px; margin-bottom:14px}
+.view-toggle button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.86rem}
+.view-toggle button.on{background:var(--accent); border-color:var(--accent); color:#fff}
 #syncdot{width:8px; height:8px; border-radius:50%; background:#bbb; flex-shrink:0}
 #syncdot.live{background:#3fa96d} #syncdot.local{background:#d9a23c}
 .toolbar{display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; align-items:center}
@@ -98,21 +105,30 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 #toast.show{opacity:.95}
 .empty{text-align:center; color:var(--sub); padding:60px 0}
 @media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .sidebar{width:100%; flex:0 0 auto; height:auto; position:sticky; top:0; z-index:60; flex-direction:row; overflow-x:auto; padding:8px 10px; gap:6px; border-right:none; border-bottom:1px solid var(--line)}
+  .sidebar-brand{display:none}
+}
 </style>
 </head>
 <body>
+<div class="app">
+<nav class="sidebar">
+  <div class="sidebar-brand">🦦 신해달 아카이브</div>
+  <button data-v="works" class="on">Works</button>
+  <button data-v="exhibitions">Exhibitions</button>
+  <button data-v="press">Press</button>
+  <button data-v="website">Website</button>
+  <button data-v="settings">Settings</button>
+</nav>
+<div class="content">
 <header>
   <h1>신해달 작품 아카이브<small id="cnt"></small></h1>
   <div id="syncdot" title="데이터 소스"></div>
-  <nav class="tabs">
-    <button data-v="gallery" class="on">갤러리</button>
-    <button data-v="table">표</button>
-    <button data-v="press">Press</button>
-    <button data-v="settings">설정</button>
-  </nav>
 </header>
 
-<div class="toolbar">
+<div class="toolbar" id="worksToolbar">
   <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
   <select id="fYear"><option value="">전체 연도</option></select>
   <select id="fEx" style="max-width:230px"><option value="">전체 전시</option></select>
@@ -132,20 +148,20 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button class="btn" id="btnDir" title="정렬 방향 전환">↓ 내림차순</button>
   <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
   <button class="btn" id="btnReload" title="새로고침">↻</button>
-  <button class="btn" id="btnEx">🗓 전시 관리</button>
   <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
   <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
 </div>
 
 <main>
   <div id="issues" hidden></div>
-  <section id="vGallery">
+  <section id="vWorks">
+    <div class="view-toggle">
+      <button data-view="gallery" class="on">▦ 갤러리</button>
+      <button data-view="table">≡ 표</button>
+    </div>
     <div class="stats" id="stats"></div>
     <div class="grid" id="grid"></div>
-  </section>
-
-  <section id="vTable" hidden>
-    <div class="tablewrap"><table>
+    <div class="tablewrap" id="tableWrap" hidden><table>
       <thead><tr>
         <th>No.</th><th>작품명</th><th>연도</th><th>크기</th><th>판매가</th><th>상태</th><th>실거래가</th><th>판매일</th><th>소장자</th><th>판매경로</th><th class="wrap">비고</th>
       </tr></thead>
@@ -163,6 +179,18 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <thead><tr><th>No.</th><th>매체명</th><th>날짜</th><th class="wrap">기사 제목</th><th>링크</th></tr></thead>
       <tbody id="pressTbody"></tbody>
     </table></div>
+  </section>
+
+  <section id="vWebsite" hidden>
+    <div class="settings-box">
+      <h3>🚀 홈페이지에 반영</h3>
+      <p>작품·전시·Press를 다 입력하셨으면 눌러주세요. 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
+      <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
+      <p style="margin-top:8px" id="publishStatus"></p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🔗 바로가기</h3>
+      <p><a href="https://yoonsunlee.github.io/shinhaedal/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
+    </div>
   </section>
 
   <section id="vSettings" hidden>
@@ -189,14 +217,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
         <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank" rel="noopener">구글 시트 DB 열기</a> ·
         <a href="https://drive.google.com/drive/folders/1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4" target="_blank" rel="noopener">구글 드라이브 폴더 열기</a>
       </p>
-      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
-      <h3>🚀 홈페이지에 반영</h3>
-      <p>작품·전시·Press를 다 입력하셨으면 눌러주세요. 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
-      <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
-      <p style="margin-top:8px" id="publishStatus"></p>
     </div>
   </section>
 </main>
+</div>
+</div>
 
 <dialog id="dlgDetail">
   <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnDel" style="color:var(--sold)">🗑 삭제</button><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
@@ -239,7 +264,7 @@ const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
-let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
 let sortDir=DIR_DEFAULT.state;
 const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
@@ -859,7 +884,6 @@ function renderExForm(r,isNew){
     finally{saveBtn.disabled=false;}
   };
 }
-$('#btnEx').onclick=openEx;
 $('#btnCloseEx').onclick=()=>dlgEx.close();
 dlgEx.addEventListener('click',e=>{if(e.target===dlgEx)dlgEx.close()});
 
@@ -986,16 +1010,25 @@ $('#btnPublish').onclick=async()=>{
 };
 
 /* ---------- 이벤트 ---------- */
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
-  view=b.dataset.v;
-  $('#vGallery').hidden=view!=='gallery';
-  $('#vTable').hidden=view!=='table';
-  $('#vPress').hidden=view!=='press';
-  $('#vSettings').hidden=view!=='settings';
-  document.querySelector('header + .toolbar').style.display=(view==='settings'||view==='press')?'none':'flex';
-  if(view==='gallery'||view==='table')render();
-  if(view==='press')renderPressList();
+document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
+  if(b.dataset.v==='exhibitions'){ openEx(); return; } // 전용 화면 대신 기존 다이얼로그를 그대로 사용
+  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b && x.dataset.v!=='exhibitions'));
+  section=b.dataset.v;
+  $('#vWorks').hidden=section!=='works';
+  $('#vPress').hidden=section!=='press';
+  $('#vWebsite').hidden=section!=='website';
+  $('#vSettings').hidden=section!=='settings';
+  $('#worksToolbar').style.display=section==='works'?'flex':'none';
+  if(section==='works')render();
+  if(section==='press')renderPressList();
+});
+document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
+  view=b.dataset.view;
+  $('#grid').hidden=view!=='gallery';
+  $('#stats').hidden=view!=='gallery';
+  $('#tableWrap').hidden=view!=='table';
+  render();
 });
 $('#grid').onclick=e=>{const c=e.target.closest('.card');if(c)openDetail(lastList[+c.dataset.idx])};
 $('#tbody').onclick=e=>{const tr=e.target.closest('tr');if(tr)openDetail(lastList[+tr.dataset.idx])};

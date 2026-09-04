@@ -169,6 +169,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </table></div>
   </section>
 
+  <section id="vExhibitions" hidden>
+    <div id="exBody"></div>
+  </section>
+
   <section id="vPress" hidden>
     <div class="toolbar" style="padding:0 0 12px">
       <input type="search" id="pq" placeholder="매체명·제목·인용구 검색…">
@@ -229,10 +233,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </dialog>
 
 
-<dialog id="dlgEx">
-  <div class="dlghead"><h2>🗓 전시 관리</h2><button class="btn" id="btnCloseEx">✕</button></div>
-  <div class="dlgbody" id="exBody"></div>
-</dialog>
 
 <dialog id="dlgEdit">
   <div class="dlghead"><h2 id="eTitle">작품 수정</h2><button class="btn" id="btnCloseEdit">✕</button></div>
@@ -807,7 +807,6 @@ function exFormHtml(r,isNew){
   </div>`;
 }
 async function openEx(){
-  dlgEx.showModal();
   $('#exBody').innerHTML='<div class="hint">불러오는 중…</div>';
   try{ await loadEx(); renderExList(); }
   catch(e){ $('#exBody').innerHTML='<div class="hint">불러오기 오류: '+esc(e.message)+'</div>'; }
@@ -884,9 +883,6 @@ function renderExForm(r,isNew){
     finally{saveBtn.disabled=false;}
   };
 }
-$('#btnCloseEx').onclick=()=>dlgEx.close();
-dlgEx.addEventListener('click',e=>{if(e.target===dlgEx)dlgEx.close()});
-
 /* ---------- Press ---------- */
 const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note'];
 const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
@@ -1011,15 +1007,16 @@ $('#btnPublish').onclick=async()=>{
 
 /* ---------- 이벤트 ---------- */
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
-  if(b.dataset.v==='exhibitions'){ openEx(); return; } // 전용 화면 대신 기존 다이얼로그를 그대로 사용
-  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b && x.dataset.v!=='exhibitions'));
+  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
   section=b.dataset.v;
   $('#vWorks').hidden=section!=='works';
+  $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
   $('#vWebsite').hidden=section!=='website';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section==='works')render();
+  if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
 });
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{

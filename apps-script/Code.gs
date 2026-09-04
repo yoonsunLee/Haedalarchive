@@ -14,7 +14,6 @@
 const SHEET_ID = '14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU'; // 신해달 작품 아카이브 DB
 const BACKUP_FOLDER_ID = '1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4';    // 드라이브 '신해달 작품 아카이브' 폴더
 const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';    // 드라이브 images 폴더
-const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
 const TOKEN = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
 
 // audio_master/transcript_ko/transcript_en은 시트에 U~W열로 컬럼을 추가한 뒤에만 실제로 채워짐
@@ -83,25 +82,8 @@ function findByFirstCol_(sh, val) {
   return -1;
 }
 
-/** 조회: GET ?action=portfolio */
-function portfolioInfo_() {
-  const files = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).getFilesByType(MimeType.PDF);
-  let latest = null;
-  while (files.hasNext()) {
-    const f = files.next();
-    if (!latest || f.getLastUpdated() > latest.getLastUpdated()) latest = f;
-  }
-  if (!latest) return { ok: true, exists: false };
-  return {
-    ok: true, exists: true, id: latest.getId(), name: latest.getName(),
-    size: Math.round(latest.getSize() / 1048576 * 10) / 10,
-    updated: Utilities.formatDate(latest.getLastUpdated(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm')
-  };
-}
-
 /**
  * 조회
- *  GET ?action=portfolio                → 포트폴리오 PDF 정보
  *  GET ?sheet=exhibitions               → 전시 목록 (전 필드 공개 설계)
  *  GET ?sheet=press                     → Press(기사) 목록 (전 필드 공개 설계)
  *  GET ?action=list                     → 공개 필드만 (홈페이지 동기화용)
@@ -110,10 +92,6 @@ function portfolioInfo_() {
 function doGet(e) {
   try {
     const p = (e && e.parameter) || {};
-    if (p.action === 'portfolio') {
-      if (p.token !== TOKEN) return json_({ ok: false, error: '비밀번호가 일치하지 않습니다' });
-      return json_(portfolioInfo_());
-    }
     if (p.sheet === 'exhibitions') {
       return json_({ ok: true, rows: readRows_(exSheet_(), EX_KEYS, 'yyyy-MM-dd', false) });
     }
@@ -237,12 +215,6 @@ function doPost(e) {
       const r = findByFirstCol_(sh2, no);
       if (r === -1) return json_({ ok: false, error: '삭제할 기사를 찾을 수 없습니다: ' + no });
       sh2.deleteRow(r);
-    } else if (req.action === 'upload_portfolio') {
-      const bytes = Utilities.base64Decode(req.data);
-      const blob = Utilities.newBlob(bytes, 'application/pdf', req.filename || ('portfolio_' + Date.now() + '.pdf'));
-      const file = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      return json_(portfolioInfo_());
     } else if (req.action === 'link_image') {
       const no = String(req.no || '').trim();
       const r = findRow(no);

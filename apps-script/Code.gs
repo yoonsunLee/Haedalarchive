@@ -110,7 +110,10 @@ function portfolioInfo_() {
 function doGet(e) {
   try {
     const p = (e && e.parameter) || {};
-    if (p.action === 'portfolio') return json_(portfolioInfo_());
+    if (p.action === 'portfolio') {
+      if (p.token !== TOKEN) return json_({ ok: false, error: '비밀번호가 일치하지 않습니다' });
+      return json_(portfolioInfo_());
+    }
     if (p.sheet === 'exhibitions') {
       return json_({ ok: true, rows: readRows_(exSheet_(), EX_KEYS, 'yyyy-MM-dd', false) });
     }

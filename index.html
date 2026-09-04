@@ -657,7 +657,7 @@ async function openPortfolio(){
   dlgPf.showModal();
   $('#pfBody').innerHTML='<div class="hint">불러오는 중…</div>';
   try{
-    const j=await (await fetch(api()+'?action=portfolio&t='+Date.now())).json();
+    const j=await (await fetch(api()+'?action=portfolio&token='+encodeURIComponent(token())+'&t='+Date.now())).json();
     if(!j.ok)throw new Error(j.error||'응답 오류');
     renderPf(j);
   }catch(e){$('#pfBody').innerHTML='<div class="hint">불러오기 실패: '+esc(e.message)+'</div>'}

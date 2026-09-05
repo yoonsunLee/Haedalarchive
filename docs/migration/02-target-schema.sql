@@ -2,9 +2,15 @@
 -- 해달아카이브 목표 스키마 (Supabase / PostgreSQL)
 -- Step 1-B, 2026-09-05
 --
--- 합의된 범위: 5개 핵심 테이블 + soft delete + activity log.
--- editions / collectors / locations / work_movements / sales 는 이번 범위에서 제외한다
+-- 범위: 6개 핵심 테이블 + soft delete + activity log.
+-- collectors / locations / work_movements 는 이번 범위에서 제외한다
 -- (요청된 적 없는 기능이고, Postgres에서는 나중에 추가하는 비용이 낮다).
+--
+-- editions는 애초 제외했다가 2026-09-05 작가 결정으로 포함했다:
+-- HD-2026-012/013/014는 별개 작품 3점이 아니라 "한 작품의 에디션 3점"이다.
+-- 이에 따라 판매/소장 정보는 works가 아니라 editions가 보유한다.
+-- 유일작(에디션 아님)도 예외 없이 edition 1/1 행을 갖는다 —
+-- 특수 케이스를 추가하는 대신 없애는 쪽이 코드 경로가 하나로 유지된다.
 --
 -- 설계 원칙
 --   1. 위치가 아니라 이름으로 매핑한다 (현행 시트 버그 계열의 근본 원인 제거).
@@ -49,19 +55,11 @@ create table works (
   depth_cm        numeric(7,1),
 
   work_state      work_status not null default 'completed',
-  sale_status     sale_status not null default 'available',
 
-  -- 판매/소장 정보는 전부 비공개. 공개 발행 whitelist에 절대 포함하지 않는다.
+  -- 정가(기준 호가). 개별 에디션이 다른 값에 팔릴 수 있으므로 실제 거래액은 editions에 둔다.
   list_price_krw   bigint check (list_price_krw >= 0),
-  actual_price_krw bigint check (actual_price_krw >= 0),
-  discount_rate    numeric(4,3) check (discount_rate between 0 and 1),
-  payment_method   text,
-  sales_channel    text,
-  collector_name   text,
-  sale_date        date,
-  delivery_date    date,
-  edition_size     int check (edition_size > 0),   -- 현행 '수량'
-  edition_sold     int check (edition_sold >= 0),  -- 현행 '판매개수'
+  -- 에디션 총 수. 유일작은 1.
+  edition_size     int not null default 1 check (edition_size > 0),
 
   -- 공개 정책을 코드가 아니라 데이터로 (publish.py의 ER- 접두사/ID 하드코딩 대체)
   publish_web     boolean not null default false,
@@ -74,15 +72,63 @@ create table works (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   deleted_at      timestamptz,
-  version         bigint not null default 1,       -- 낙관적 동시성
-
-  constraint edition_sold_le_size
-    check (edition_size is null or edition_sold is null or edition_sold <= edition_size)
+  version         bigint not null default 1        -- 낙관적 동시성
 );
 
 create index works_publish_idx  on works (publish_web) where deleted_at is null;
 create index works_series_idx   on works (series_key)  where series_key is not null;
 create index works_year_idx     on works (year desc, work_no desc);
+
+-- ── 에디션 (개별 실물 1점) ────────────────────────────────────────────
+-- 유일작도 1/1 행을 하나 갖는다. 판매·소장 정보는 전부 여기에 있고 전부 비공개다.
+create table editions (
+  id              uuid primary key default gen_random_uuid(),
+  work_id         uuid not null references works(id) on delete restrict,
+  edition_number  int not null check (edition_number > 0),   -- 3점 중 1번이면 1
+
+  status          sale_status not null default 'available',
+
+  list_price_krw   bigint check (list_price_krw >= 0),       -- 이 점의 실제 호가(비면 works 값)
+  actual_price_krw bigint check (actual_price_krw >= 0),
+  discount_rate    numeric(4,3) check (discount_rate between 0 and 1),
+  payment_method   text,
+  sales_channel    text,
+  collector_name   text,                                     -- 비공개
+  sale_date        date,
+  delivery_date    date,
+  coa_no           text,
+  internal_note    text,
+
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now(),
+  deleted_at      timestamptz,
+  version         bigint not null default 1,
+
+  unique (work_id, edition_number)
+);
+
+create index editions_work_idx   on editions (work_id);
+create index editions_status_idx on editions (status) where deleted_at is null;
+
+-- 작품 단위 판매 상태는 저장하지 않고 에디션에서 유도한다(진실이 한 곳에만 있도록).
+create view works_status as
+select
+  w.id,
+  w.work_no,
+  w.edition_size,
+  count(e.id) filter (where e.deleted_at is null)                        as edition_rows,
+  count(e.id) filter (where e.deleted_at is null and e.status = 'sold')  as sold_count,
+  case
+    when count(e.id) filter (where e.deleted_at is null and e.status <> 'sold') = 0
+         and count(e.id) filter (where e.deleted_at is null) > 0 then 'sold'
+    when bool_or(e.status = 'available') then 'available'
+    when bool_or(e.status = 'reserved')  then 'reserved'
+    else 'nfs'
+  end as effective_status
+from works w
+left join editions e on e.work_id = w.id
+where w.deleted_at is null
+group by w.id, w.work_no, w.edition_size;
 
 -- ── 전시 ──────────────────────────────────────────────────────────────
 create table exhibitions (
@@ -136,7 +182,11 @@ create table press (
   quote_ko        text,
   quote_en        text,
   url             text,
-  image_url       text,
+  -- 이미지: 언론사 CDN 직링크에만 의존하면 기사가 내려갈 때 깨진다.
+  -- 원본 주소는 출처 기록용으로 남기고, 실제 표시는 자체 보관 사본으로 한다.
+  image_source_url text,                          -- 최초 출처 (기록/추적용)
+  image_file       text,                          -- 자체 보관 사본 (drive:FILEID)
+  image_archived_at timestamptz,
   byline          text,                           -- 현행 note (기자명). 공개 여부는 발행 whitelist에서 결정
   -- 기사 제목 문자열로 전시를 추론하던 것(press/index.html)을 명시적 관계로 대체
   linked_exhibition_id uuid references exhibitions(id) on delete set null,
@@ -191,6 +241,7 @@ begin
 end $$;
 
 create trigger works_touch       before update on works       for each row execute function touch_row();
+create trigger editions_touch    before update on editions    for each row execute function touch_row();
 create trigger exhibitions_touch before update on exhibitions for each row execute function touch_row();
 create trigger press_touch       before update on press       for each row execute function touch_row();
 
@@ -200,6 +251,7 @@ create trigger press_touch       before update on press       for each row execu
 -- 공개 읽기 정책 자체가 필요 없다.
 -- =====================================================================
 alter table works            enable row level security;
+alter table editions         enable row level security;
 alter table exhibitions      enable row level security;
 alter table exhibition_works enable row level security;
 alter table press            enable row level security;
@@ -208,6 +260,7 @@ alter table activity_log     enable row level security;
 
 -- 로그인한 관리자(=작가 본인)만 전체 접근.
 create policy works_admin       on works            for all to authenticated using (true) with check (true);
+create policy editions_admin    on editions         for all to authenticated using (true) with check (true);
 create policy exhibitions_admin on exhibitions      for all to authenticated using (true) with check (true);
 create policy ex_works_admin    on exhibition_works for all to authenticated using (true) with check (true);
 create policy press_admin       on press            for all to authenticated using (true) with check (true);

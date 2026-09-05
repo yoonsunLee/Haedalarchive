@@ -1,3 +1,7 @@
 NVIDIA Corporation/
 Thumbs.db
 desktop.ini
+
+# 이관 SQL에는 소장자·거래가가 들어간다. 절대 커밋 금지.
+migration*.sql
+*.local.sql

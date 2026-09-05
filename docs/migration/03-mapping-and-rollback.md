@@ -35,7 +35,7 @@
 ### `exhibitions` → `exhibitions`
 `id→exhibition_no`, `title→title_ko`, `venue→venue_ko`, `type` 한국어→enum
 (`개인전`→`solo`, `단체전`→`group`, `아트페어`→`art_fair`), 나머지 동명 이관.
-`work_nos` 쉼표 문자열 → `exhibition_works` 행으로 전개(46건).
+`work_nos` 쉼표 문자열 → `exhibition_works` 행으로 전개(원본 54건 → 에디션 접기·중복 제거 후 48건).
 
 ### `Press` → `press`
 `no→press_no`, `outlet→outlet_ko`, `date→published_date`, `title→title_ko`,
@@ -82,7 +82,7 @@ editions 3행:
 
 | # | 검증 | 통과 기준 |
 |--:|---|---|
-| 1 | 행 수 | works **16**(18행에서 아트토이 3행→1행), editions **18**, exhibitions 14, press 6, exhibition_works **43**(013·014 중복 제거) |
+| 1 | 행 수 | works **16**(18행에서 아트토이 3행→1행), editions **18**, exhibitions 14, press 6, exhibition_works **48**(원본 54건에서 013·014 접기로 6건 감소) |
 | 2 | ID 집합 | 시트의 work_no/exhibition_no/press_no 집합과 완전 일치 |
 | 3 | 필드 값 | 텍스트 필드 정규화 후 문자열 비교 100% 일치 |
 | 4 | 금액 합계 | `SUM(editions.actual_price_krw)`가 시트 실거래가 합계와 일치 (에디션으로 옮겨도 총액 불변) |

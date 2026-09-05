@@ -272,3 +272,28 @@ create policy activity_insert   on activity_log     for insert to authenticated 
 
 -- 발행 파이프라인(GitHub Actions)은 service_role 키로 접속하며 RLS를 우회한다.
 -- 그 키는 서버(Actions secret)에만 두고 브라우저에는 절대 넣지 않는다.
+
+-- =====================================================================
+-- Data API 노출 권한
+--
+-- 프로젝트 생성 시 "Automatically expose new tables"를 껐으므로(권장 설정),
+-- 테이블을 Data API로 쓰려면 아래 GRANT가 필요하다. 없으면 로그인해도
+-- "permission denied"가 난다.
+--
+-- anon(비로그인)에게는 아무 권한도 주지 않는다. 관리자 화면이 공개 저장소에
+-- 배포되는 탓에 anon 키는 사실상 공개 값이므로, 이 역할에 권한을 주는 순간
+-- 판매가·소장자 정보가 그대로 공개된다.
+-- =====================================================================
+grant usage on schema public to authenticated;
+
+grant select, insert, update, delete on
+  works, editions, exhibitions, exhibition_works, press, terminology
+  to authenticated;
+
+grant select, insert on activity_log to authenticated;
+grant usage, select on sequence activity_log_id_seq to authenticated;
+
+grant select on works_status to authenticated;
+
+-- anon에는 의도적으로 아무것도 부여하지 않는다 (기본값 유지).
+-- 공식 홈페이지는 발행된 정적 JSON만 읽으므로 anon 접근이 필요 없다.

@@ -20,7 +20,8 @@
 --   5. 원본 문자열을 잃지 않는다 (size 등은 원문 보존 + 파생 수치 병행).
 -- =====================================================================
 
-create extension if not exists pgcrypto;   -- gen_random_uuid()
+-- gen_random_uuid()는 PostgreSQL 13부터 코어에 포함돼 별도 확장이 필요 없다.
+-- (Supabase는 public 스키마에 확장 설치를 제한하는 경우가 있어 굳이 걸지 않는다.)
 
 -- ── 열거형 ────────────────────────────────────────────────────────────
 -- 현행 '판매여부' 한 컬럼이 ●/NFS/빈칸/- 네 가지 의미를 겸하던 것을 분리한다.
@@ -111,7 +112,11 @@ create index editions_work_idx   on editions (work_id);
 create index editions_status_idx on editions (status) where deleted_at is null;
 
 -- 작품 단위 판매 상태는 저장하지 않고 에디션에서 유도한다(진실이 한 곳에만 있도록).
-create view works_status as
+--
+-- security_invoker=true 필수: 기본값(false)이면 뷰가 '뷰를 만든 사람' 권한으로 실행돼
+-- works/editions에 걸어둔 RLS를 우회한다. 즉 판매·소장 정보가 뷰를 통해 새어나갈 수 있다.
+-- true로 두면 뷰를 조회하는 사람의 권한으로 평가되어 RLS가 그대로 적용된다.
+create view works_status with (security_invoker = true) as
 select
   w.id,
   w.work_no,

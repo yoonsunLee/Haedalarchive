@@ -68,6 +68,50 @@ check("admin.html이 effective_status를 사용한다", "effective_status" in ad
 # 뷰를 안 쓰고 자체적으로 sold 전량 판정하던 옛 코드가 남아있지 않은지
 check("자체 판정 코드(allSold) 잔존 없음", "allSold" not in admin, "flattenWork가 다시 계산 중")
 
+print("\n[2-1] 삭제한 함수를 아직 부르는 곳이 없는가")
+# 구글시트 시절 함수를 지우면서 호출부를 남기면 클릭 순간 ReferenceError로 조용히 죽는다.
+# 실제로 발행 버튼과 이미지 업로드가 이 때문에 '아무 반응 없음' 상태였고,
+# node --check는 문법만 보므로 잡지 못했다.
+REMOVED = ["token()", "api()", "blockWrite()", "blockWriteFetch()",
+           "DEFAULT_API", "haedal_token", "haedal_api", "setApi", "setToken"]
+for name in REMOVED:
+    check("삭제된 '%s' 호출 없음" % name, name not in admin,
+          "%d곳 남아있음" % admin.count(name))
+
+# 정의되지 않은 함수를 부르는지 확인.
+# 문자열·주석·CSS를 먼저 걷어내지 않으면 오탐이 쏟아진다
+# (예: Supabase 쿼리 문자열의 'editions(*)', CSS의 calc()/blur()).
+# 정의는 원본에서 찾는다. 걷어낸 텍스트에서 찾으면 정리 과정에 손상된 정의를
+# 못 찾아 '정의가 없다'는 오탐이 난다(실제로 그랬다).
+defined = set(re.findall(r"(?:async\s+)?function\s+(\w+)", admin))
+defined |= set(re.findall(r"(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(", admin))
+defined |= set(re.findall(r"(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?function", admin))
+defined |= set(re.findall(r"(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\w+\s*=>", admin))
+# 함수 인자도 호출 가능한 이름이다 (예: new Promise((res,rej)=>{ ... res(x) })).
+for params in re.findall(r"\(([^()]*)\)\s*=>", admin) + re.findall(r"function\s*\w*\s*\(([^()]*)\)", admin):
+    for name in params.split(","):
+        name = name.strip().split("=")[0].strip()
+        if re.fullmatch(r"\w+", name):
+            defined.add(name)
+
+# 호출은 문자열·주석·CSS를 걷어낸 뒤에 찾는다. 문자열을 먼저 지워야
+# 'https://...' 의 // 가 주석으로 오인돼 뒷부분이 통째로 날아가지 않는다.
+code = re.sub(r"<style[\s\S]*?</style>", "", admin)
+code = re.sub(r"'(?:\\.|[^'\\\n])*'", "''", code)
+code = re.sub(r'"(?:\\.|[^"\\\n])*"', '""', code)
+code = re.sub(r"`(?:\\.|[^`\\])*`", "``", code)
+code = re.sub(r"/\*[\s\S]*?\*/", "", code)
+code = re.sub(r"//[^\n]*", "", code)
+KEYWORDS = {"if","for","while","switch","catch","return","typeof","async","await","function",
+            "new","delete","void","in","of","do","else","try","throw"}
+BUILTINS = {"fetch","alert","confirm","parseInt","parseFloat","isNaN","String","Number",
+            "Boolean","Array","Object","JSON","Math","Date","Promise","Error","setTimeout",
+            "clearTimeout","setInterval","require","encodeURIComponent","decodeURIComponent",
+            "eval","Image","Blob","FormData","URL","structuredClone"}
+called = set(re.findall(r"(?<![\w.$])([a-z_]\w{2,})\s*\(", code))
+unknown = sorted(called - defined - KEYWORDS - BUILTINS)
+check("정의 없는 함수 호출 없음", not unknown, unknown[:8])
+
 print("\n[3] 공개 대상이 현재 사이트와 일치하는가")
 pub = sb("works?select=work_no&publish_web=eq.true")
 check("공개 작품 15건", len(pub) == 15, len(pub))

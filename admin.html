@@ -1098,7 +1098,6 @@ function renderExList(){
 }
 async function uploadImage(file){
   if(!file)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   toast('이미지 압축 중…');
   try{
     const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
@@ -1425,7 +1424,6 @@ async function showWho(){
 
 
 $('#btnPublish').onclick=async()=>{
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
   try{

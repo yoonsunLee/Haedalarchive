@@ -17,21 +17,24 @@ const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';    // 드라이브
 const TOKEN = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
 
 // audio_master/transcript_ko/transcript_en은 시트에 U~W열로 컬럼을 추가한 뒤에만 실제로 채워짐
-// (컬럼 없어도 읽기/쓰기 자체는 안전 — 빈 값으로 처리됨)
+// title_en/caption_en/material_en은 X~Z열 (없어도 읽기/쓰기 자체는 안전 — 빈 값으로 처리됨)
 const KEYS = ['no','image','title','caption','material','size','year','price','sold',
   'discount','actual_price','payment','sale_date','delivery_date','channel','owner',
-  'exhibitions','note','qty','sold_qty','audio_master','transcript_ko','transcript_en'];
+  'exhibitions','note','qty','sold_qty','audio_master','transcript_ko','transcript_en',
+  'title_en','caption_en','material_en'];
 
 // 토큰 없이 조회할 때(=홈페이지·외부) 공개되는 필드. 판매가격(price)은 비공개 방침.
-const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','exhibitions'];
+const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','exhibitions',
+  'title_en','caption_en','material_en'];
 
-// 전시 시트 (없으면 자동 생성)
+// 전시 시트 (없으면 자동 생성) — title_en/venue_en은 J~K열
 const EX_SHEET = 'exhibitions';
-const EX_KEYS = ['id','title','venue','start_date','end_date','work_nos','docent_url','type','note_public'];
+const EX_KEYS = ['id','title','venue','start_date','end_date','work_nos','docent_url','type','note_public',
+  'title_en','venue_en'];
 
-// Press(기사) 시트 (없으면 자동 생성)
+// Press(기사) 시트 (없으면 자동 생성) — title_en/quote_en은 I~J열
 const PRESS_SHEET = 'Press';
-const PRESS_KEYS = ['no','outlet','date','title','url','quote','image','note'];
+const PRESS_KEYS = ['no','outlet','date','title','url','quote','image','note','title_en','quote_en'];
 
 function sheet_() {
   return SpreadsheetApp.openById(SHEET_ID).getSheets()[0];

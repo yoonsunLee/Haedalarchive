@@ -38,7 +38,7 @@ const PRESS_KEYS = ['no','outlet','date','title','url','quote','image','note','t
 
 function sheet_() {
   const sh = SpreadsheetApp.openById(SHEET_ID).getSheets()[0];
-  ensureColumns_(sh, KEYS);
+  ensureColumns_(sh, KEYS, LABELS_WORK);
   return sh;
 }
 
@@ -46,7 +46,7 @@ function exSheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = ss.getSheetByName(EX_SHEET);
   if (!sh) { sh = ss.insertSheet(EX_SHEET); sh.appendRow(EX_KEYS); }
-  ensureColumns_(sh, EX_KEYS);
+  ensureColumns_(sh, EX_KEYS, LABELS_EX);
   return sh;
 }
 
@@ -54,7 +54,7 @@ function pressSheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = ss.getSheetByName(PRESS_SHEET);
   if (!sh) { sh = ss.insertSheet(PRESS_SHEET); sh.appendRow(PRESS_KEYS); }
-  ensureColumns_(sh, PRESS_KEYS);
+  ensureColumns_(sh, PRESS_KEYS, LABELS_PRESS);
   return sh;
 }
 
@@ -82,11 +82,18 @@ function readRows_(sh, keys, dateFmt, withRow) {
 }
 
 // 자동 생성되는 컬럼의 표시 이름. 여기 없는 키는 키 이름을 그대로 헤더로 쓴다.
-const COLUMN_LABELS = {
+// title_en처럼 시트마다 뜻이 다른 키가 있으므로 시트별로 나눠 둔다
+// (한 벌로 공유하면 전시 시트에 '작품명(영문)'이 붙는 식의 혼동이 생긴다).
+const LABELS_WORK = {
   audio_master: '오디오 원본', transcript_ko: '대본(한글)', transcript_en: '대본(영문)',
-  title_en: '작품명(영문)', caption_en: '캡션(영문)', material_en: '재료(영문)',
-  venue_en: '장소(영문)', quote_en: '인용(영문)'
+  title_en: '작품명(영문)', caption_en: '캡션(영문)', material_en: '재료(영문)'
 };
+const LABELS_EX    = { title_en: '전시명(영문)', venue_en: '장소(영문)' };
+const LABELS_PRESS = { title_en: '기사제목(영문)', quote_en: '인용(영문)' };
+
+// 2026-09-05에 시트별 구분 없이 붙였던 라벨. 전시/Press 시트에 '작품명(영문)'이 잘못 들어갔다.
+// 이 값들만 자동 정정 대상으로 삼는다(사람이 직접 지은 헤더는 덮어쓰지 않도록).
+const MISLABELED_ = ['작품명(영문)'];
 
 /**
  * 공용: 시트 컬럼 수가 KEYS보다 모자라면 자동으로 늘리고 비어있는 헤더만 채운다.
@@ -96,15 +103,21 @@ const COLUMN_LABELS = {
  * 그래서 컬럼 생성은 사람이 아니라 이 함수가 담당한다.
  * 이미 값이 있는 헤더는 절대 덮어쓰지 않는다(기존 한글 헤더 보존).
  */
-function ensureColumns_(sh, keys) {
+function ensureColumns_(sh, keys, labels) {
+  labels = labels || {};
   const need = keys.length;
   const maxCols = sh.getMaxColumns();
   if (maxCols < need) sh.insertColumnsAfter(maxCols, need - maxCols);
   const header = sh.getRange(1, 1, 1, need).getValues()[0];
   let changed = false;
   for (let j = 0; j < need; j++) {
-    if (String(header[j] === null || header[j] === undefined ? '' : header[j]).trim() === '') {
-      header[j] = COLUMN_LABELS[keys[j]] || keys[j];
+    const cur = String(header[j] === null || header[j] === undefined ? '' : header[j]).trim();
+    const want = labels[keys[j]] || keys[j];
+    // 비어있으면 채운다. 또한 이 스크립트가 예전에 잘못 붙인 라벨이면 올바른 이름으로 정정한다
+    // (사람이 직접 지은 헤더는 건드리지 않기 위해, 정정 대상은 아래 목록으로 한정).
+    const isStaleAutoLabel = cur !== '' && cur !== want && MISLABELED_.indexOf(cur) !== -1;
+    if (cur === '' || isStaleAutoLabel) {
+      header[j] = want;
       changed = true;
     }
   }

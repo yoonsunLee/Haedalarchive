@@ -297,17 +297,6 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
 
-/* 이 화면은 아직 읽기 전용이다. 저장 경로를 옮기기 전까지
-   쓰기 버튼이 조용히 실패하지 않도록 명시적으로 막는다. */
-function blockWrite(){
-  toast('아직 읽기 전용 단계입니다 — 수정은 기존 화면에서 해주세요');
-  return false;
-}
-/* 옛 구글시트 백엔드로 나가던 호출 자리. 실제 요청 대신 실패를 돌려준다. */
-async function blockWriteFetch(){
-  blockWrite();
-  throw new Error('읽기 전용 단계');
-}
 
 /* ---------- 쓰기 계층 ----------
    화면은 여전히 '납작한 한 줄'을 다루지만, 저장할 때는 works와 editions로 나눠 넣는다.
@@ -1439,10 +1428,14 @@ $('#btnPublish').onclick=async()=>{
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
   try{
-    const res=await blockWriteFetch();
-    const j=await res.json();
-    st.textContent=j.ok?'✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.':('❌ '+(j.error||'실패'));
-  }catch(e){st.textContent='❌ 오류: '+e.message}
+    // GitHub 토큰은 브라우저에 둘 수 없어 Edge Function이 대신 호출한다.
+    const {data, error} = await sb.functions.invoke('publish', { body:{} });
+    if(error) throw error;
+    if(data && data.ok === false) throw new Error(data.error||'실패');
+    st.textContent='✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.';
+  }catch(e){
+    st.textContent='❌ 오류: '+(e.message||e);
+  }
 };
 
 /* ---------- 이벤트 ---------- */

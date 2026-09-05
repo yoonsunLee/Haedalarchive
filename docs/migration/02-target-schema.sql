@@ -300,5 +300,16 @@ grant usage, select on sequence activity_log_id_seq to authenticated;
 
 grant select on works_status to authenticated;
 
+-- 발행 파이프라인(GitHub Actions)이 쓰는 service_role.
+-- 주의: service_role은 RLS를 우회하지만 '테이블 접근 권한'은 별개다.
+-- auto-expose를 껐으므로 여기서 명시적으로 주지 않으면 403이 난다.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on
+  works, editions, exhibitions, exhibition_works, press, terminology
+  to service_role;
+grant select, insert on activity_log to service_role;
+grant usage, select on sequence activity_log_id_seq to service_role;
+grant select on works_status to service_role;
+
 -- anon에는 의도적으로 아무것도 부여하지 않는다 (기본값 유지).
 -- 공식 홈페이지는 발행된 정적 JSON만 읽으므로 anon 접근이 필요 없다.

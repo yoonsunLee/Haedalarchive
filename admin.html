@@ -309,6 +309,143 @@ async function blockWriteFetch(){
   throw new Error('읽기 전용 단계');
 }
 
+/* ---------- 쓰기 계층 ----------
+   화면은 여전히 '납작한 한 줄'을 다루지만, 저장할 때는 works와 editions로 나눠 넣는다.
+   판매·소장 정보는 works가 아니라 editions에 있다는 점이 핵심이다. */
+
+function numOrNull(v){
+  var s = String(v == null ? '' : v).replace(/,/g, '').trim();
+  if(s === '' || s === '-') return null;
+  return /^\d+$/.test(s) ? Number(s) : null;
+}
+function rateOrNull(v){
+  var s = String(v == null ? '' : v).trim().replace('%','');
+  if(s === '' || s === '-') return null;
+  var n = parseFloat(s);
+  if(isNaN(n)) return null;
+  if(n > 1) n = n / 100;
+  return (n >= 0 && n <= 1) ? Math.round(n * 1000) / 1000 : null;
+}
+function dateOrNull(v){
+  var s = String(v == null ? '' : v).trim();
+  if(!s || s === '-') return null;
+  var m = s.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/);
+  if(!m) return null;
+  var mo = +m[2], d = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return m[1] + '-' + ('0'+mo).slice(-2) + '-' + ('0'+d).slice(-2);
+}
+function textOrNull(v){
+  var s = String(v == null ? '' : v).trim();
+  return s === '' ? null : s;
+}
+/* 크기 원문은 그대로 두고, 뽑을 수 있으면 수치도 채운다. 'A1 (59.4 × 84.1)'는 괄호 안에서. */
+function parseSize(v){
+  var s = String(v == null ? '' : v).trim();
+  if(!s) return { text:null, w:null, h:null, d:null };
+  var target = s, paren = s.match(/\(([^)]*)\)/);
+  if(paren && /[×xX*]/.test(paren[1])) target = paren[1];
+  var parts = target.split(/\s*[×xX*]\s*/).map(function(x){ return x.trim(); });
+  var nums = [];
+  for(var i=0;i<parts.length;i++){
+    if(/^\d+(\.\d+)?$/.test(parts[i])) nums.push(parseFloat(parts[i]));
+    else { nums = []; break; }
+  }
+  if(nums.length === 2) return { text:s, w:nums[0], h:nums[1], d:null };
+  if(nums.length === 3) return { text:s, w:nums[0], h:nums[1], d:nums[2] };
+  return { text:s, w:null, h:null, d:null };
+}
+var SOLD_TO_STATUS = { '●':'sold', 'NFS':'nfs', '':'available' };
+
+/* 납작한 폼 값 → works 컬럼 */
+function recToWork(rec){
+  var sz = parseSize(rec.size);
+  var planned = String(rec.sold||'').trim() === '등록 예정';
+  return {
+    work_no: String(rec.no||'').trim(),
+    title_ko: String(rec.title||'').trim(),
+    title_en: textOrNull(rec.title_en),
+    caption_ko: textOrNull(rec.caption),
+    caption_en: textOrNull(rec.caption_en),
+    material_ko: textOrNull(rec.material),
+    material_en: textOrNull(rec.material_en),
+    year: numOrNull(rec.year),
+    size_text: sz.text, width_cm: sz.w, height_cm: sz.h, depth_cm: sz.d,
+    list_price_krw: numOrNull(rec.price),
+    internal_note: textOrNull(rec.note),
+    image_file: textOrNull(rec.image),
+    edition_size: Math.max(1, numOrNull(rec.qty) || 1),
+    work_state: planned ? 'planned' : 'completed'
+  };
+}
+/* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
+function recToEdition(rec){
+  var mark = String(rec.sold||'').trim();
+  return {
+    status: SOLD_TO_STATUS[mark] || 'available',
+    actual_price_krw: numOrNull(rec.actual_price),
+    discount_rate: rateOrNull(rec.discount),
+    payment_method: textOrNull(rec.payment),
+    sales_channel: textOrNull(rec.channel),
+    collector_name: textOrNull(rec.owner),
+    sale_date: dateOrNull(rec.sale_date),
+    delivery_date: dateOrNull(rec.delivery_date)
+  };
+}
+
+/* 저장 중 다른 곳에서 같은 행이 바뀌었으면 덮어쓰지 않고 멈춘다.
+   version은 트리거가 자동으로 올린다. */
+function conflictError(){
+  return new Error('이 작품이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+
+async function saveWorkToDb(rec, neu, cur){
+  var w = recToWork(rec);
+  if(!w.work_no && !(String(rec.sold||'').trim()==='등록 예정'))
+    throw new Error('작품번호를 입력하세요');
+  if(!w.title_ko) throw new Error('작품명을 입력하세요');
+
+  if(neu){
+    var ins = await sb.from('works').insert(w).select('id').single();
+    if(ins.error){
+      if(String(ins.error.message||'').indexOf('duplicate') >= 0)
+        throw new Error('이미 존재하는 작품번호입니다: ' + w.work_no);
+      throw ins.error;
+    }
+    var e = recToEdition(rec);
+    e.work_id = ins.data.id; e.edition_number = 1;
+    var ei = await sb.from('editions').insert(e);
+    if(ei.error) throw ei.error;
+    return;
+  }
+
+  // 수정: version이 그대로일 때만 반영된다(그 사이 바뀌었으면 0행 → 충돌)
+  var upd = await sb.from('works').update(w)
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0) throw conflictError();
+
+  var eds = cur._editions || [];
+  if(eds.length === 1){
+    // 유일작: 폼의 판매 정보가 그 한 점의 정보다
+    var eu = await sb.from('editions').update(recToEdition(rec))
+      .eq('id', eds[0].id).eq('version', eds[0].version).select('id');
+    if(eu.error) throw eu.error;
+    if(!eu.data || eu.data.length === 0) throw conflictError();
+  }
+  // 에디션이 여러 점이면 이 폼으로 건드리지 않는다(점마다 소장자·가격이 다르므로).
+  // 에디션 편집은 아래 전용 패널에서 한다.
+}
+
+async function softDeleteWork(cur){
+  var upd = await sb.from('works')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0) throw conflictError();
+}
+
+
 const EX_TYPE_KO = { solo:'개인전', group:'단체전', curated:'기획전',
                      art_fair:'아트페어', special:'특별전', popup:'팝업' };
 const SOLD_MARK = { sold:'●', nfs:'NFS', available:'', reserved:'' };
@@ -835,48 +972,32 @@ async function uploadImage(file){
 /* ---------- 저장 ---------- */
 $('#editForm').onsubmit=async e=>{
   e.preventDefault();
-  if(true){ return blockWrite(); }
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value:''};
   const rec={};
   KEYS.forEach(k=>rec[k]=g(k));
-  // 한글/영문 제목을 각자의 컬럼에 나눠 저장한다(예전처럼 한 칸에 합치지 않는다).
-  // title에 남아있던 줄바꿈 영문은 title_en으로 옮겨지며 자연스럽게 정리된다.
   const ko=g('title_ko').trim(), en=g('title_en').trim();
   rec.title=ko;
   rec.title_en=en;
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
-  rec.exhibitions=exLines.join('\n');
-  // 콤마 제거
+  rec.exhibitions='';            // 전시 이력은 전시 화면에서 관리한다(자동 생성)
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
-  // 할인률: 20% | 20 → 0.2
-  {const d=String(rec.discount).trim().replace('%','');const n=parseFloat(d);
-   if(d!==''&&!isNaN(n))rec.discount=n>1?String(n/100):String(n)}
-  const planned=rec.sold==='등록 예정';
-  if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
-  if(!rec.title.trim()){toast('작품명을 입력하세요');return}
-  delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
-  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
-  // 다른 작품과 번호 중복 여부를 먼저 확인 (수정 시 번호를 직접 바꾼 경우 포함)
-  if(rec.no.trim()){
-    const dup=rows.find(x=>String(x.no).trim()===rec.no.trim()&&(isNew||x._row!==current._row));
-    if(dup){toast('이미 존재하는 작품번호입니다: '+rec.no.trim());return}
-  }
-  if(!isNew&&current&&current._row){
-    rec._row=current._row; // 번호 없는 행 수정용 위치 정보
-    rec._expect=String(current.title).split('\n')[0]; // 서버측 행 대조용 원래 제목
-  }
+  delete rec.notype;
+  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))
+    toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
+
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{
-    const res=await blockWriteFetch();
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'저장 실패');
-    if(isNew)markNew(rec); // 이번 접속 동안 NEW 표시 + 맨 앞 배치
+    await saveWorkToDb(rec, isNew, current);
+    if(isNew)markNew(rec);
     toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
-    dlgEdit.close();await load();
-  }catch(err){toast('오류: '+err.message)}
-  $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+    dlgEdit.close();
+    await load();
+  }catch(err){
+    toast('저장 실패: '+(err.message||err));
+  }finally{
+    $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+  }
 };
 
 /* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */

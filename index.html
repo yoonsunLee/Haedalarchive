@@ -399,10 +399,14 @@ function computeIssues(){
     if(!String(r.image||'').trim())
       issues.push({no:r.no,text:`${label} · 이미지 없음`,row:r});
     const titleParts=String(r.title||'').split('\n');
+    // 영문 제목은 title_en 컬럼이 정식 위치이고, 예전 행은 title의 둘째 줄에 들어있다.
+    const titleEn=String(r.title_en||'').trim()||String(titleParts[1]||'').trim();
     if(!titleParts[0]?.trim())
       issues.push({no:r.no,text:`${label} · 작품명 없음`,row:r});
-    else if(!titleParts[1]?.trim())
+    else if(!titleEn)
       issues.push({no:r.no,text:`${label} · 영문 작품명 없음`,row:r});
+    if(!String(r.material_en||'').trim())
+      issues.push({no:r.no,text:`${label} · 영문 재료 없음`,row:r});
     if(st==='sold'){
       if(!String(r.owner||'').trim())
         issues.push({no:r.no,text:`${label} · 판매완료인데 소장자 없음`,row:r});
@@ -521,8 +525,10 @@ function openEdit(r,neu){
   isNew=neu; exLines=String(r.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean);
   PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size'); PICK_VALS.payment=uniqueVals('payment');
   const exAll=uniqueExLines();
+  // 영문 제목은 이제 title_en 전용 컬럼에 저장한다. 다만 예전에 등록된 작품은
+  // title 한 칸에 "한글\n영문"으로 합쳐져 있어서, 그런 행은 아래처럼 분리해 읽는다.
   const tparts=String(r.title||'').split('\n');
-  const tko=tparts[0]||'', ten=tparts.slice(1).join('\n');
+  const tko=tparts[0]||'', ten=String(r.title_en||'').trim()||tparts.slice(1).join('\n');
   $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
 
   const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
@@ -554,7 +560,9 @@ function openEdit(r,neu){
     F('작품명 (한글)',`<input name="title_ko" value="${esc(tko)}">`)+
     F('작품명 (영문)',`<input name="title_en" value="${esc(ten)}">`)+
     F(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`)+
+    F('캡션 (영문)',`<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 캡션이 대신 표시됩니다')+
     F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
+    F('재료 (영문)',`<textarea name="material_en">${esc(r.material_en||'')}</textarea>`,'예: Traditional Korean najeonchilgi on a hemp-wrapped wood core')+
     F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
     F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
     F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
@@ -697,8 +705,13 @@ $('#editForm').onsubmit=async e=>{
   const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value:''};
   const rec={};
   KEYS.forEach(k=>rec[k]=g(k));
+  // 한글/영문 제목을 각자의 컬럼에 나눠 저장한다(예전처럼 한 칸에 합치지 않는다).
+  // title에 남아있던 줄바꿈 영문은 title_en으로 옮겨지며 자연스럽게 정리된다.
   const ko=g('title_ko').trim(), en=g('title_en').trim();
-  rec.title=en?ko+'\n'+en:ko;
+  rec.title=ko;
+  rec.title_en=en;
+  rec.caption_en=g('caption_en');
+  rec.material_en=g('material_en');
   rec.exhibitions=exLines.join('\n');
   // 콤마 제거
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});

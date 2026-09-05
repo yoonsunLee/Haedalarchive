@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신해달 작품 아카이브 (Supabase)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<meta name="robots" content="noindex,nofollow,noarchive">
+<style>
+:root{
+  --bg:#f7f5f1; --card:#ffffff; --ink:#1e2430; --sub:#6b7280; --line:#e5e1d8;
+  --accent:#1a3c5e; --accent2:#2e6da4; --sold:#b0453a; --avail:#2e7d54; --nfs:#8a6d3b; --planned:#6b5ca5;
+  --shadow:0 1px 3px rgba(30,36,48,.08),0 4px 16px rgba(30,36,48,.06);
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif; line-height:1.55}
+.app{display:flex; min-height:100vh}
+.sidebar{flex:0 0 176px; width:176px; background:var(--card); border-right:1px solid var(--line); padding:16px 10px; display:flex; flex-direction:column; gap:2px; position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto}
+.sidebar-brand{font-size:.92rem; font-weight:600; padding:4px 10px 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sidebar button{text-align:left; border:none; background:none; color:var(--ink); padding:10px 12px; border-radius:8px; cursor:pointer; font-size:.88rem; white-space:nowrap}
+.sidebar button.on{background:var(--accent); color:#fff}
+.sidebar button:hover:not(.on){background:var(--bg)}
+.content{flex:1; min-width:0}
+header{position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+header h1{font-size:1.05rem; letter-spacing:.02em; margin-right:auto; white-space:nowrap}
+header h1 small{color:var(--sub); font-weight:400; font-size:.78rem; margin-left:6px}
+.view-toggle{display:flex; gap:4px; margin-bottom:14px}
+.view-toggle button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.86rem}
+.view-toggle button.on{background:var(--accent); border-color:var(--accent); color:#fff}
+#syncdot{width:8px; height:8px; border-radius:50%; background:#bbb; flex-shrink:0}
+#syncdot.live{background:#3fa96d} #syncdot.local{background:#d9a23c}
+.toolbar{display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; align-items:center}
+.toolbar input[type=search]{flex:1; min-width:150px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.92rem}
+.toolbar select{padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.88rem}
+.btn{padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); cursor:pointer; font-size:.88rem; white-space:nowrap}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn:active{transform:translateY(1px)}
+main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
+#issues{background:#fbf3e3; border:1px solid #e8cf9c; border-radius:12px; padding:12px 14px; margin:16px 0}
+.issues-head{font-size:.85rem; font-weight:600; color:var(--nfs); margin-bottom:8px}
+.issues-list{display:flex; flex-wrap:wrap; gap:6px}
+.issue-item{border:1px solid #e8cf9c; background:#fff; color:var(--ink); border-radius:8px; padding:5px 10px; font-size:.8rem; cursor:pointer}
+.issue-item:hover{border-color:var(--nfs)}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px}
+.stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); cursor:pointer; user-select:none}
+.stat.on{border-color:var(--accent); outline:2px solid var(--accent)}
+.stat b{display:block; font-size:1.25rem; margin-top:2px}
+.stat span{color:var(--sub); font-size:.78rem}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px}
+.grid.small{grid-template-columns:repeat(auto-fill,minmax(115px,1fr)); gap:8px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; box-shadow:var(--shadow); transition:transform .12s}
+.card:hover{transform:translateY(-2px)}
+.card .imgbox{aspect-ratio:1; background:linear-gradient(135deg,#dfe7ee,#c9d6e2); display:flex; align-items:center; justify-content:center; overflow:hidden}
+.card .imgbox img{width:100%; height:100%; object-fit:cover}
+.card .imgbox .noimg{font-size:2rem; opacity:.4}
+.card .meta{padding:10px 12px 12px}
+.card .no{font-size:.72rem; color:var(--sub); letter-spacing:.04em}
+.card .title{font-size:.92rem; font-weight:600; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.grid.small .meta{padding:6px 8px 8px}
+.grid.small .title{font-size:.76rem; -webkit-line-clamp:1; margin:1px 0 3px}
+.grid.small .no{font-size:.62rem}
+.grid.small .price{display:none}
+.grid.small .badge{font-size:.6rem; padding:1px 6px}
+.badge{display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:10px; color:#fff}
+.badge.sold{background:var(--sold)} .badge.avail{background:var(--avail)} .badge.nfs{background:var(--nfs)} .badge.planned{background:var(--planned)}
+.badge.new{background:#d94f70; margin-left:4px; animation:newpulse 1.6s ease-in-out infinite}
+@keyframes newpulse{50%{opacity:.55}}
+.card .price{font-size:.85rem; margin-top:4px; color:var(--sub)}
+table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); font-size:.85rem}
+.tablewrap{overflow-x:auto; border-radius:12px}
+th,td{padding:9px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; white-space:nowrap}
+td.wrap{white-space:normal; min-width:180px; max-width:340px}
+th{background:var(--accent); color:#fff; position:sticky; top:0; font-weight:600}
+tbody tr{cursor:pointer} tbody tr:hover{background:rgba(46,109,164,.07)}
+dialog{border:none; border-radius:16px; padding:0; max-width:720px; width:calc(100% - 32px); background:var(--card); color:var(--ink); box-shadow:0 10px 50px rgba(0,0,0,.3); margin:auto}
+dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
+.dlghead{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--line)}
+.dlghead h2{font-size:1rem; margin-right:auto}
+.dlgbody{padding:18px; max-height:72vh; overflow-y:auto}
+.detailimg{width:100%; max-height:380px; object-fit:contain; border-radius:10px; background:#eee; margin-bottom:14px}
+.kv{display:grid; grid-template-columns:96px 1fr; gap:6px 12px; font-size:.9rem}
+.kv dt{color:var(--sub)} .kv dd{white-space:pre-wrap; word-break:break-word}
+form .row{display:grid; grid-template-columns:110px 1fr; gap:8px 12px; align-items:start; margin-bottom:9px}
+form label{color:var(--sub); font-size:.85rem; padding-top:7px}
+form input,form textarea,form select{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:.9rem; font-family:inherit}
+form textarea{resize:vertical; min-height:56px}
+form select.pick{margin-bottom:4px; color:var(--sub)}
+.hint{font-size:.75rem; color:var(--sub); margin-top:2px}
+.formfoot{display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line)}
+.exline{display:flex; align-items:flex-start; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:5px 8px; margin-bottom:4px; font-size:.82rem}
+.exline span{flex:1; white-space:pre-wrap}
+.exline button{border:none; background:none; color:var(--sold); cursor:pointer; font-size:.9rem; padding:0 2px}
+.exadd{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
+.exadd input[type=date]{width:auto; flex:0 0 auto}
+.exadd input[type=text]{flex:1; min-width:120px}
+.imgupload{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
+.imgpreview{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line)}
+.settings-box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; max-width:640px; margin:0 auto; box-shadow:var(--shadow)}
+.settings-box h3{margin-bottom:10px; font-size:.98rem}
+.settings-box p{font-size:.85rem; color:var(--sub); margin-bottom:12px}
+.settings-box .row{display:flex; flex-direction:column; gap:4px; margin-bottom:14px}
+.settings-box label{font-size:.83rem; color:var(--sub)}
+.settings-box input{padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink)}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
+#toast.show{opacity:.95}
+.empty{text-align:center; color:var(--sub); padding:60px 0}
+@media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .sidebar{width:100%; flex:0 0 auto; height:auto; position:sticky; top:0; z-index:60; flex-direction:row; overflow-x:auto; padding:8px 10px; gap:6px; border-right:none; border-bottom:1px solid var(--line)}
+  .sidebar-brand{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="loginGate" style="position:fixed;inset:0;z-index:9999;background:#f7f5f1;display:flex;align-items:center;justify-content:center">
+  <form id="loginForm" style="background:#fff;border:1px solid #e5e1d8;border-radius:14px;padding:28px 26px;width:min(360px,92vw);box-shadow:0 1px 3px rgba(30,36,48,.08),0 4px 16px rgba(30,36,48,.06)">
+    <div style="font-size:1.05rem;font-weight:600;margin-bottom:4px">신해달 작품 아카이브</div>
+    <div style="font-size:.82rem;color:#6b7280;margin-bottom:18px">관리자 로그인</div>
+    <label style="display:block;font-size:.8rem;color:#6b7280;margin-bottom:4px">이메일</label>
+    <input id="loginEmail" type="email" autocomplete="username" required style="width:100%;padding:9px 11px;border:1px solid #e5e1d8;border-radius:8px;margin-bottom:12px;font-size:.9rem">
+    <label style="display:block;font-size:.8rem;color:#6b7280;margin-bottom:4px">비밀번호</label>
+    <input id="loginPw" type="password" autocomplete="current-password" required style="width:100%;padding:9px 11px;border:1px solid #e5e1d8;border-radius:8px;margin-bottom:16px;font-size:.9rem">
+    <button type="submit" id="loginBtn" style="width:100%;padding:10px;border:none;border-radius:8px;background:#1a3c5e;color:#fff;font-size:.9rem;cursor:pointer">로그인</button>
+    <div id="loginMsg" style="font-size:.8rem;color:#b0453a;margin-top:10px;min-height:1.2em"></div>
+  </form>
+</div>
+
+<div class="app">
+<nav class="sidebar">
+  <div class="sidebar-brand">🦦 신해달 아카이브</div>
+  <button data-v="works" class="on">Works</button>
+  <button data-v="exhibitions">Exhibitions</button>
+  <button data-v="press">Press</button>
+  <button data-v="website">Website</button>
+  <button data-v="settings">Settings</button>
+</nav>
+<div class="content">
+<header>
+  <h1>신해달 작품 아카이브<small id="cnt"></small></h1>
+  <div id="syncdot" title="데이터 소스"></div>
+</header>
+
+<div class="toolbar" id="worksToolbar">
+  <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
+  <select id="fYear"><option value="">전체 연도</option></select>
+  <select id="fEx" style="max-width:230px"><option value="">전체 전시</option></select>
+  <select id="fSold">
+    <option value="">전체 상태</option>
+    <option value="avail">판매가능</option>
+    <option value="sold">판매완료</option>
+    <option value="nfs">비매(NFS)</option>
+    <option value="planned">등록 예정</option>
+  </select>
+  <select id="sortBy">
+    <option value="state">기본순 (판매상태·최근등록)</option>
+    <option value="no">작품번호순</option>
+    <option value="title">작품명순</option>
+    <option value="year">연도순</option>
+  </select>
+  <button class="btn" id="btnDir" title="정렬 방향 전환">↓ 내림차순</button>
+  <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
+  <button class="btn" id="btnReload" title="새로고침">↻</button>
+  <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
+  <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
+</div>
+
+<main>
+  <div id="issues" hidden></div>
+  <section id="vWorks">
+    <div class="view-toggle">
+      <button data-view="gallery" class="on">▦ 갤러리</button>
+      <button data-view="table">≡ 표</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="grid" id="grid"></div>
+    <div class="tablewrap" id="tableWrap" hidden><table>
+      <thead><tr>
+        <th>No.</th><th>작품명</th><th>연도</th><th>크기</th><th>판매가</th><th>상태</th><th>실거래가</th><th>판매일</th><th>소장자</th><th>판매경로</th><th class="wrap">비고</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="vExhibitions" hidden>
+    <div id="exBody"></div>
+  </section>
+
+  <section id="vPress" hidden>
+    <div class="toolbar" style="padding:0 0 12px">
+      <input type="search" id="pq" placeholder="매체명·제목·인용구 검색…">
+      <button class="btn" id="btnPressReload" title="새로고침">↻</button>
+      <button class="btn primary" id="btnPressAdd">＋ 기사 등록</button>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>No.</th><th>매체명</th><th>날짜</th><th class="wrap">기사 제목</th><th>링크</th></tr></thead>
+      <tbody id="pressTbody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="vWebsite" hidden>
+    <div class="settings-box">
+      <h3>🚀 홈페이지에 반영</h3>
+      <p>작품·전시·Press를 다 입력하셨으면 눌러주세요. 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
+      <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
+      <p style="margin-top:8px" id="publishStatus"></p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🔗 바로가기</h3>
+      <p><a href="https://yoonsunlee.github.io/shinhaedal/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
+    </div>
+  </section>
+
+  <section id="vSettings" hidden>
+    <div class="settings-box">
+      <h3>⚙️ 구글 시트 연동 설정</h3>
+      <p>구글 시트 연동 API가 내장되어 있어 조회는 자동으로 연결됩니다.<br>
+      <b>입력·수정을 하려면 이 기기에서 한 번 수정 비밀번호를 저장하세요.</b> URL 칸은 API를 재배포한 경우에만 바꾸면 됩니다.</p>
+      <div class="row">
+        <label>Apps Script 웹앱 URL (…/exec 로 끝나는 주소)</label>
+        <input id="setApi" placeholder="기본 내장 API 사용 중">
+      </div>
+      <div class="row">
+        <label>수정 비밀번호</label>
+        <input id="setToken" type="password" placeholder="Apps Script의 TOKEN과 동일하게">
+      </div>
+      <button class="btn primary" id="btnSaveSet">저장 후 연결 테스트</button>
+      <p style="margin-top:16px" id="setStatus"></p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>📰 Press 탭</h3>
+      <p>같은 스프레드시트의 <b>"Press"</b> 탭에 기사를 저장합니다 (탭이 없으면 첫 등록 시 자동으로 만들어져요).</p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>📁 바로가기</h3>
+      <p>
+        <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank" rel="noopener">구글 시트 DB 열기</a> ·
+        <a href="https://drive.google.com/drive/folders/1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4" target="_blank" rel="noopener">구글 드라이브 폴더 열기</a>
+      </p>
+    </div>
+  </section>
+</main>
+</div>
+</div>
+
+<dialog id="dlgDetail">
+  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnDel" style="color:var(--sold)">🗑 삭제</button><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
+  <div class="dlgbody" id="dBody"></div>
+</dialog>
+
+
+
+<dialog id="dlgEdit">
+  <div class="dlghead"><h2 id="eTitle">작품 수정</h2><button class="btn" id="btnCloseEdit">✕</button></div>
+  <form id="editForm" method="dialog">
+    <div class="dlgbody" id="eBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" id="btnCancelEdit">취소</button>
+      <button type="submit" class="btn primary" id="btnSave">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPressEdit">
+  <div class="dlghead"><h2 id="peTitle">기사 등록</h2><button class="btn" id="btnClosePressEdit">✕</button></div>
+  <form id="pressEditForm" method="dialog">
+    <div class="dlgbody" id="peBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" id="btnDeletePress" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
+      <button type="button" class="btn" id="btnCancelPressEdit">취소</button>
+      <button type="submit" class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec';
+const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
+const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
+
+let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
+let sortDir=DIR_DEFAULT.state;
+const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
+const rowKey=r=>String(r.no||'').trim()||String(r.title||'').trim();
+const isNewRow=r=>newKeys.includes(rowKey(r));
+function markNew(r){newKeys.push(rowKey(r));sessionStorage.setItem('haedal_new',JSON.stringify(newKeys))}
+const $=s=>document.querySelector(s);
+/* ---------- Supabase 연결 ----------
+   anon(publishable) 키는 공개돼도 되는 값이다. 실제 보호는 RLS가 한다:
+   로그인하지 않으면 어떤 테이블도 읽거나 쓸 수 없다. */
+const SB_URL = 'https://nprtlonrdwwsmewrxotl.supabase.co';
+const SB_KEY = 'sb_publishable_HhORDROnuBf8iqPbjZKfUg_XOEAJ4L5';
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+});
+
+/* 이 화면은 아직 읽기 전용이다. 저장 경로를 옮기기 전까지
+   쓰기 버튼이 조용히 실패하지 않도록 명시적으로 막는다. */
+function blockWrite(){
+  toast('아직 읽기 전용 단계입니다 — 수정은 기존 화면에서 해주세요');
+  return false;
+}
+/* 옛 구글시트 백엔드로 나가던 호출 자리. 실제 요청 대신 실패를 돌려준다. */
+async function blockWriteFetch(){
+  blockWrite();
+  throw new Error('읽기 전용 단계');
+}
+
+const EX_TYPE_KO = { solo:'개인전', group:'단체전', curated:'기획전',
+                     art_fair:'아트페어', special:'특별전', popup:'팝업' };
+const SOLD_MARK = { sold:'●', nfs:'NFS', available:'', reserved:'' };
+
+/* 옛 화면 코드가 기대하는 납작한 행 모양으로 되돌린다.
+   판매 정보는 editions로 내려갔으므로 여기서 다시 합쳐 준다.
+
+   status는 여기서 다시 계산하지 않고 works_status 뷰가 준 값(effective_status)을 쓴다.
+   같은 판정을 두 곳에서 하면 반드시 어긋난다 — 실제로 처음엔 '첫 판매 에디션'을
+   대표로 삼는 바람에 3점 중 1점이 남은 아트토이가 '판매완료'로 표시됐다. */
+function flattenWork(w, exText, statusRow){
+  var eds = (w.editions || []).filter(function(e){ return !e.deleted_at; })
+                              .sort(function(a,b){ return a.edition_number - b.edition_number; });
+  var sold = eds.filter(function(e){ return e.status === 'sold'; });
+  var lead = sold[0] || eds[0] || {};
+  var eff = (statusRow && statusRow.effective_status) || 'available';
+  var soldMark = (w.work_state === 'planned') ? '등록 예정' : (SOLD_MARK[eff] || '');
+  return {
+    no: w.work_no,
+    image: w.image_file || '',
+    title: w.title_ko || '',
+    title_en: w.title_en || '',
+    caption: w.caption_ko || '',
+    caption_en: w.caption_en || '',
+    material: w.material_ko || '',
+    material_en: w.material_en || '',
+    size: w.size_text || '',
+    year: w.year == null ? '' : String(w.year),
+    price: w.list_price_krw == null ? '' : String(w.list_price_krw),
+    sold: soldMark,
+    discount: lead.discount_rate == null ? '' : String(lead.discount_rate),
+    actual_price: lead.actual_price_krw == null ? '' : String(lead.actual_price_krw),
+    payment: lead.payment_method || '',
+    sale_date: lead.sale_date || '',
+    delivery_date: lead.delivery_date || '',
+    channel: lead.sales_channel || '',
+    owner: eds.filter(function(e){ return e.collector_name; })
+              .map(function(e){ return e.collector_name; }).join(', '),
+    exhibitions: exText || '',
+    note: w.internal_note || '',
+    qty: w.edition_size > 1 ? String(w.edition_size) : '',
+    sold_qty: w.edition_size > 1 ? String(sold.length) : '',
+    audio_master: w.audio_master || '',
+    transcript_ko: w.transcript_ko || '',
+    transcript_en: w.transcript_en || '',
+    _id: w.id, _version: w.version, _editions: eds,
+    _publish_web: w.publish_web, _kind: w.kind
+  };
+}
+
+/* 전시 이력 텍스트는 이제 손으로 쓰지 않고 exhibition_works에서 만든다.
+   (작가 결정 2026-09-05 — 정식 명칭으로 통일되고 전시 등록만 하면 자동 반영) */
+function buildExText(exList){
+  return exList.map(function(e){
+    var s  = String(e.start_date || '').replace(/-/g, '.');
+    var en = String(e.end_date || '').slice(5).replace(/-/g, '.');
+    var venue = e.venue_ko ? ', ' + e.venue_ko : '';
+    return s + ' – ' + en + '  ' + e.title_ko + venue;
+  }).join('\n');
+}
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtWon(v){if(v===''||v==null||isNaN(Number(v)))return v||'';return Number(v).toLocaleString('ko-KR')+'원'}
+function soldState(r){
+  const s=String(r.sold||'').trim();
+  if(s==='●'||s==='O'||s==='o')return'sold';
+  if(s.toUpperCase()==='NFS')return'nfs';
+  if(s.replace(/\s/g,'')==='등록예정')return'planned';
+  return'avail';
+}
+function soldLabel(st){return {sold:'판매완료',nfs:'NFS',planned:'등록 예정',avail:'판매가능'}[st]}
+const STATE_RANK={avail:0,nfs:1,sold:2,planned:3};
+function imgUrl(r,thumb){
+  let v=String(r.image||'').trim();
+  if(!v)return'';
+  if(/^https?:\/\//.test(v)){
+    const m=v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
+    if(m)return`https://drive.google.com/thumbnail?id=${m[1]}&sz=w${thumb?600:1200}`;
+    return v;
+  }
+  if(/^drive:/.test(v))return`https://drive.google.com/thumbnail?id=${v.slice(6)}&sz=w${thumb?600:1200}`;
+  const file=v.split('/').pop();
+  return thumb?`thumbs/${file.replace(/\.[a-z]+$/i,'')}.jpg`:`images/${file}`;
+}
+function toISO(v){ // '2026.03.21' | '2026-03-21' | Date-ish → 'YYYY-MM-DD' or ''
+  const m=String(v||'').match(/(\d{4})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
+  return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';
+}
+function uniqueVals(key){
+  const set=[];
+  rows.forEach(r=>{const v=String(r[key]||'').trim();if(v&&v!=='-'&&!set.includes(v))set.push(v)});
+  return set;
+}
+function uniqueExLines(){
+  const set=[];
+  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{l=l.trim();if(l&&!set.includes(l))set.push(l)}));
+  return set;
+}
+const normEx=l=>String(l).replace(/\s+/g,' ').trim(); // 탭·공백 표기 차이 통일
+function allExNorm(){
+  const set=[];
+  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{const n=normEx(l);if(n&&!set.includes(n))set.push(n)}));
+  return set.sort().reverse(); // 날짜로 시작하므로 최신 전시부터
+}
+
+/* ---------- 데이터 로드 ---------- */
+async function load(){
+  try{
+    var r = await Promise.all([
+      sb.from('works').select('*, editions(*)').is('deleted_at', null),
+      sb.from('exhibitions').select('*').is('deleted_at', null),
+      sb.from('exhibition_works').select('exhibition_id, work_id'),
+      sb.from('works_status').select('*')      // 판매상태 판정은 DB 뷰가 단독으로 담당
+    ]);
+    var wq = r[0], xq = r[1], lq = r[2], sq = r[3];
+    if(wq.error) throw wq.error;
+    if(xq.error) throw xq.error;
+    if(lq.error) throw lq.error;
+    if(sq.error) throw sq.error;
+    var statusById = {}; (sq.data || []).forEach(function(s){ statusById[s.id] = s; });
+
+    var exById = {}, worksById = {};
+    (xq.data || []).forEach(function(e){ exById[e.id] = e; });
+    (wq.data || []).forEach(function(w){ worksById[w.id] = w; });
+
+    var exOfWork = {}, worksOfEx = {};
+    (lq.data || []).forEach(function(l){
+      (exOfWork[l.work_id] = exOfWork[l.work_id] || []).push(exById[l.exhibition_id]);
+      (worksOfEx[l.exhibition_id] = worksOfEx[l.exhibition_id] || []).push(worksById[l.work_id]);
+    });
+
+    exRows = (xq.data || []).map(function(e){
+      var members = (worksOfEx[e.id] || []).filter(Boolean).map(function(w){ return w.work_no; });
+      return {
+        id: e.exhibition_no, title: e.title_ko, venue: e.venue_ko || '',
+        start_date: e.start_date || '', end_date: e.end_date || '',
+        type: EX_TYPE_KO[e.type] || e.type,
+        docent_url: e.docent_url || '', note_public: e.note_public_ko || '',
+        title_en: e.title_en || '', venue_en: e.venue_en || '',
+        work_nos: members.join(','),
+        _id: e.id, _version: e.version
+      };
+    });
+    exLoaded = true;
+
+    rows = (wq.data || []).map(function(w){
+      var list = (exOfWork[w.id] || []).filter(Boolean).sort(function(a,b){
+        return String(b.start_date||'').localeCompare(String(a.start_date||''));
+      });
+      return flattenWork(w, buildExText(list), statusById[w.id]);
+    });
+    $('#syncdot').className='live'; $('#syncdot').title='Supabase 연동 중';
+  }catch(e){
+    rows=[]; $('#syncdot').className=''; $('#syncdot').title='연결 실패';
+    toast('Supabase 연결 실패: '+(e.message||e)+' — ↻ 버튼으로 다시 시도하세요');
+  }
+  render();
+}
+
+/* ---------- 필터·정렬·렌더 ---------- */
+function filtered(){
+  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value, fe=$('#fEx').value;
+  let list=rows.filter(r=>{
+    if(fy&&String(r.year)!==fy)return false;
+    if(fs&&soldState(r)!==fs)return false;
+    if(fe&&!String(r.exhibitions||'').split('\n').some(l=>normEx(l)===fe))return false;
+    if(q){const hay=[r.no,r.title,r.owner,r.material,r.note,r.channel,r.caption].join(' ').toLowerCase();if(!hay.includes(q))return false}
+    return true;
+  });
+  const s=$('#sortBy').value;
+  const sgn=sortDir==='asc'?1:-1; // 오름/내림 방향
+  const byNo=(a,b)=>{const an=String(a.no).trim(),bn=String(b.no).trim();
+    if(!an&&!bn)return 0;if(!an)return 1;if(!bn)return -1; // 번호 미부여는 항상 뒤로
+    return sgn*an.localeCompare(bn)};
+  const byReg=(a,b)=>sgn*((a._row||0)-(b._row||0)); // 등록순 (내림=최근 등록 먼저)
+  if(s==='no')list.sort(byNo);
+  else if(s==='title')list.sort((a,b)=>sgn*String(a.title).localeCompare(String(b.title),'ko'));
+  else if(s==='year')list.sort((a,b)=>sgn*((a.year||0)-(b.year||0))||byReg(a,b));
+  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byReg(a,b)); // 상태 그룹은 고정, 그룹 내 등록순만 방향 적용
+  // 이번 접속에서 등록한 작품은 항상 맨 앞 (stable sort라 나머지 순서 유지)
+  list.sort((a,b)=>(isNewRow(b)?1:0)-(isNewRow(a)?1:0));
+  return list;
+}
+function render(){
+  const years=[...new Set(rows.map(r=>r.year).filter(Boolean))].sort();
+  const sel=$('#fYear'),cur=sel.value;
+  sel.innerHTML='<option value="">전체 연도</option>'+years.map(y=>`<option${String(y)===cur?' selected':''}>${y}</option>`).join('');
+  const exSel=$('#fEx'),exCur=exSel.value;
+  exSel.innerHTML='<option value="">전체 전시</option>'+allExNorm().map(l=>
+    `<option value="${esc(l)}"${l===exCur?' selected':''}>${esc(l.length>42?l.slice(0,42)+'…':l)}</option>`).join('');
+  const list=filtered();
+  $('#cnt').textContent=` ${list.length}/${rows.length}점`;
+  renderStats();
+  renderIssues();
+  if(view==='gallery')renderGrid(list);
+  if(view==='table')renderTable(list);
+}
+function renderStats(){
+  const sold=rows.filter(r=>soldState(r)==='sold');
+  const avail=rows.filter(r=>soldState(r)==='avail');
+  // 누적판매액: 일반 작품은 판매완료 시 실거래가(없으면 판매가), 아트토이(수량 있는 작품)는 개당 가격 × 판매개수
+  const revenue=rows.reduce((a,r)=>{
+    const unit=Number(r.actual_price)||Number(r.price)||0;
+    if((r.qty??'')!=='')return a+unit*(Number(r.sold_qty)||0);
+    return soldState(r)==='sold'?a+unit:a;
+  },0);
+  const fs=$('#fSold').value;
+  $('#stats').innerHTML=`
+    <div class="stat${fs===''?' on':''}" data-act="all"><span>전체 작품</span><b>${rows.length}점</b></div>
+    <div class="stat${fs==='avail'?' on':''}" data-act="avail"><span>판매 가능</span><b>${avail.length}점</b></div>
+    <div class="stat${fs==='sold'?' on':''}" data-act="sold"><span>판매 완료</span><b>${sold.length}점</b></div>
+    <div class="stat" data-act="revenue" title="클릭하면 금액이 표시/숨김됩니다"><span>누적 판매액 ${revealRevenue?'🙉':'🙈'}</span><b>${revealRevenue?revenue.toLocaleString('ko-KR')+'원':'••••••'}</b></div>`;
+}
+/* ---------- Needs Attention: 누락·오류 자동 탐지 (읽기 전용, 클릭하면 해당 작품/전시로 이동) ---------- */
+function computeIssues(){
+  const issues=[];
+  rows.forEach(r=>{
+    const st=soldState(r);
+    const label=r.no||'(번호 미부여)';
+    if(st==='planned')return; // 등록 예정은 아직 정보가 없는 게 정상이라 제외
+    if(!String(r.image||'').trim())
+      issues.push({no:r.no,text:`${label} · 이미지 없음`,row:r});
+    const titleParts=String(r.title||'').split('\n');
+    // 영문 제목은 title_en 컬럼이 정식 위치이고, 예전 행은 title의 둘째 줄에 들어있다.
+    const titleEn=String(r.title_en||'').trim()||String(titleParts[1]||'').trim();
+    if(!titleParts[0]?.trim())
+      issues.push({no:r.no,text:`${label} · 작품명 없음`,row:r});
+    else if(!titleEn)
+      issues.push({no:r.no,text:`${label} · 영문 작품명 없음`,row:r});
+    if(!String(r.material_en||'').trim())
+      issues.push({no:r.no,text:`${label} · 영문 재료 없음`,row:r});
+    if(st==='sold'){
+      if(!String(r.owner||'').trim())
+        issues.push({no:r.no,text:`${label} · 판매완료인데 소장자 없음`,row:r});
+      if(!String(r.delivery_date||'').trim())
+        issues.push({no:r.no,text:`${label} · 판매완료인데 인도일 없음`,row:r});
+    }
+    if(st==='avail'&&!String(r.price||'').trim()&&(r.qty??'')==='')
+      issues.push({no:r.no,text:`${label} · 판매가능인데 가격 없음`,row:r});
+  });
+  const today=new Date();today.setHours(0,0,0,0);
+  exRows.forEach(ex=>{
+    if(!ex.end_date)return;
+    const end=new Date(ex.end_date);if(isNaN(end))return;
+    const days=Math.round((end-today)/86400000);
+    if(days>=0&&days<=7)
+      issues.push({no:null,text:`${ex.title||ex.id} · 종료까지 D-${days}`,ex:ex});
+  });
+  return issues;
+}
+function renderIssues(){
+  const box=$('#issues');
+  if(!box)return;
+  const issues=computeIssues();
+  if(!issues.length){box.hidden=true;return}
+  box.hidden=false;
+  box.innerHTML=`<div class="issues-head">⚠ 확인 필요 ${issues.length}건</div>`+
+    `<div class="issues-list">`+issues.map((it,i)=>
+      `<button type="button" class="issue-item" data-issue="${i}">${esc(it.text)}</button>`).join('')+
+    `</div>`;
+  box.querySelectorAll('[data-issue]').forEach((btn,i)=>{
+    btn.onclick=()=>{
+      const it=issues[i];
+      if(it.row)openDetail(it.row);
+      else if(it.ex){openEx().then(()=>renderExForm(it.ex,false))}
+    };
+  });
+}
+function renderGrid(list){
+  lastList=list;
+  $('#grid').className='grid'+(smallGrid?' small':'');
+  $('#grid').innerHTML=list.length?list.map((r,i)=>{
+    const st=soldState(r),u=imgUrl(r,true);
+    return`<div class="card" data-idx="${i}">
+      <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'">`:'<div class="noimg">🖼️</div>'}</div>
+      <div class="meta">
+        <div class="no">${esc(r.no||'번호 미부여')}</div>
+        <div class="title">${esc(String(r.title).split('\n')[0])}</div>
+        <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}
+        <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}${r.qty!==''&&r.qty!=null?` · 판매 ${esc(r.sold_qty||0)}/${esc(r.qty)}`:''}</div>
+      </div></div>`;
+  }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
+}
+function renderTable(list){
+  lastList=list;
+  $('#tbody').innerHTML=list.map((r,i)=>{
+    const st=soldState(r);
+    return`<tr data-idx="${i}">
+      <td>${esc(r.no||'—')}${isNewRow(r)?' <span class="badge new">NEW</span>':''}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${esc(r.year||'')}</td>
+      <td>${esc(r.size||'')}</td><td>${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)}</td>
+      <td><span class="badge ${st}">${soldLabel(st)}</span></td>
+      <td>${fmtWon(r.actual_price)}</td><td>${esc(r.sale_date||'')}</td><td>${esc(r.owner||'')}</td><td>${esc(r.channel||'')}</td><td class="wrap">${esc(r.note||'')}</td></tr>`;
+  }).join('');
+}
+
+/* ---------- 상세 ---------- */
+function fmtDiscount(v){
+  if(v===''||v==null||v==='-')return v||'';
+  const n=Number(v);
+  return isNaN(n)?v:Math.round(n*100)+'%';
+}
+function openDetail(r){
+  current=r;if(!current)return;
+  $('#dNo').textContent=current.no||'번호 미부여 (등록 예정)';
+  const u=imgUrl(current,false);
+  $('#btnDel').style.display=soldState(current)==='planned'?'':'none';
+  $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
+    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no'&&!(['qty','sold_qty'].includes(k)&&current[k]==='')).map(k=>{
+      let v=current[k];
+      if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
+      else if(k==='discount')v=esc(fmtDiscount(v));
+      else v=esc(v);
+      return`<dt>${LABELS[k]}</dt><dd>${v}</dd>`}).join('')+
+    '<dt id="dExAutoLabel" style="display:none">🗓 등록된 전시 (자동)</dt><dd id="dExAuto"></dd>'+
+    '</dl>';
+  dlgDetail.showModal();
+  $('#dBody').scrollTop=0;
+  const no=current.no;
+  ensureEx().then(()=>{
+    if(current!==r)return; // 그 사이 다른 작품 열었으면 무시
+    const html=exAutoListInner(no);
+    if(html){ $('#dExAutoLabel').style.display=''; $('#dExAuto').innerHTML=html; }
+  }).catch(()=>{});
+}
+
+/* ---------- 수정/등록 폼 ---------- */
+function suggestNo(yr,prefix){
+  yr=String(yr||new Date().getFullYear());
+  prefix=prefix||'HD'; // 'HD' 일반 작품, 'HDT' 아트토이, 'ER' 이벤트 리워드
+  const re=new RegExp('^'+prefix+'-(\\d{4})-(\\d+)$');
+  const nums=rows.map(r=>{const m=String(r.no).trim().match(re);return m&&m[1]===yr?+m[2]:0});
+  return `${prefix}-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
+}
+function prefixOf(no){
+  no=String(no||'').trim();
+  if(no.startsWith('HDT-'))return'HDT';
+  if(no.startsWith('ER-'))return'ER';
+  return'HD';
+}
+function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
+  if(!vals.length)return'';
+  return`<select class="pick" data-fill="${key}"><option value="">── 기존 값에서 선택 ──</option>${
+    vals.map((v,i)=>`<option value="${i}">${esc(v.split('\n')[0].slice(0,60))}${v.includes('\n')?' …':''}</option>`).join('')}</select>`;
+}
+const PICK_VALS={};
+function openEdit(r,neu){
+  isNew=neu; exLines=String(r.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size'); PICK_VALS.payment=uniqueVals('payment');
+  const exAll=uniqueExLines();
+  // 영문 제목은 이제 title_en 전용 컬럼에 저장한다. 다만 예전에 등록된 작품은
+  // title 한 칸에 "한글\n영문"으로 합쳐져 있어서, 그런 행은 아래처럼 분리해 읽는다.
+  const tparts=String(r.title||'').split('\n');
+  const tko=tparts[0]||'', ten=String(r.title_en||'').trim()||tparts.slice(1).join('\n');
+  $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
+
+  const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  const curImg=imgUrl(r,true);
+  const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
+  const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
+  const isExisting=!neu&&!!String(r.no).trim(); // 기존 작품 여부 (연도·유형 변경 시 자동 재채번을 막는 기준)
+  const curPrefix=prefixOf(r.no);
+  const loadCandidates=rows.filter(x=>String(x.title).trim()).slice()
+    .sort((a,b)=>String(a.title).split('\n')[0].localeCompare(String(b.title).split('\n')[0],'ko'));
+  $('#eBody').innerHTML=
+    F('작품 유형',`<select name="notype"${isExisting?' disabled':''}>
+        <option value="HD"${curPrefix==='HD'?' selected':''}>일반 작품 (HD-)</option>
+        <option value="HDT"${curPrefix==='HDT'?' selected':''}>아트토이 (HDT-)</option>
+        <option value="ER"${curPrefix==='ER'?' selected':''}>이벤트 리워드 (ER-)</option>
+      </select>`, isExisting?'':'유형별로 따로 채번됩니다')+
+    (neu?F('기존 작품에서 불러오기',
+      `<select id="loadFrom"><option value="">── 작품명으로 불러오기 ──</option>${
+        loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
+      '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
+    F(LABELS.no,`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
+    F(LABELS.image,
+      `<div class="imgupload">
+        ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
+        <input type="file" id="fFile" accept="image/*" style="width:auto">
+      </div>
+      <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 선택하면 자동으로 드라이브에 업로드됩니다">`,
+      '사진 선택 → 구글드라이브 자동 저장. 파일명(저장소 images 폴더)이나 이미지 URL 직접 입력도 가능')+
+    F('작품명 (한글)',`<input name="title_ko" value="${esc(tko)}">`)+
+    F('작품명 (영문)',`<input name="title_en" value="${esc(ten)}">`)+
+    F(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`)+
+    F('캡션 (영문)',`<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 캡션이 대신 표시됩니다')+
+    F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
+    F('재료 (영문)',`<textarea name="material_en">${esc(r.material_en||'')}</textarea>`,'예: Traditional Korean najeonchilgi on a hemp-wrapped wood core')+
+    F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
+    F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
+    F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
+    F(LABELS.qty,`<input name="qty" type="number" min="0" value="${esc(r.qty)}">`,'아트토이 총 제작 수량','toyonly')+
+    F(LABELS.sold_qty,`<input name="sold_qty" type="number" min="0" value="${esc(r.sold_qty)}">`,'지금까지 판매된 개수','toyonly')+
+    F(LABELS.sold,`<select name="sold">
+        <option value=""${soldState(r)==='avail'?' selected':''}>판매가능</option>
+        <option value="●"${r.sold==='●'?' selected':''}>● 판매완료</option>
+        <option value="NFS"${String(r.sold).toUpperCase()==='NFS'?' selected':''}>NFS (비매)</option>
+        <option value="등록 예정"${soldState(r)==='planned'?' selected':''}>등록 예정</option>
+      </select>`)+
+    F(LABELS.discount,`<input name="discount" value="${esc(fmtPct(r.discount))}" placeholder="예: 20%">`,'백분율로 입력 (20% 또는 20)')+
+    F(LABELS.actual_price,`<input name="actual_price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.actual_price))}">`)+
+    F(LABELS.payment,pickHTML('payment',PICK_VALS.payment)+`<input name="payment" value="${esc(r.payment)}">`)+
+    F(LABELS.sale_date,`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`)+
+    F(LABELS.delivery_date,`<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`)+
+    F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
+    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
+    F(LABELS.exhibitions,
+      `<div id="exList"></div>
+       <div class="exadd">
+         <input type="date" id="exStart" title="시작일"><input type="date" id="exEnd" title="종료일">
+         <input type="text" id="exName" placeholder="전시명, 장소, 도시, 국가">
+         <button type="button" class="btn" id="exAddBtn">추가</button>
+       </div>
+       ${exAll.length?`<select class="pick" id="exPick" style="margin-top:6px"><option value="">── 기존 전시 이력에서 추가 ──</option>${exAll.map((v,i)=>`<option value="${i}">${esc(v.slice(0,70))}</option>`).join('')}</select>`:''}`,
+      '새 전시는 날짜 선택 후 전시명 입력 → [추가]')+
+    F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
+
+  renderExList();
+  // 기존 값 선택 → 채우기
+  document.querySelectorAll('#eBody select.pick[data-fill]').forEach(s=>s.onchange=()=>{
+    if(s.value==='')return;
+    const el=document.querySelector(`#eBody [name="${s.dataset.fill}"]`);
+    el.value=PICK_VALS[s.dataset.fill][+s.value]; s.value='';
+  });
+  const exPick=$('#exPick');
+  if(exPick){const all=exAll;exPick.onchange=()=>{if(exPick.value==='')return;const l=all[+exPick.value];if(!exLines.includes(l))exLines.unshift(l);renderExList();exPick.value=''}}
+  $('#exAddBtn').onclick=()=>{
+    const s=$('#exStart').value,e=$('#exEnd').value,n=$('#exName').value.trim();
+    if(!s||!n){toast('시작일과 전시명을 입력하세요');return}
+    const f=d=>d.replaceAll('-','.');
+    const line=e?`${f(s)} – ${e.slice(0,4)===s.slice(0,4)?f(e).slice(5):f(e)}  ${n}`:`${f(s)}  ${n}`;
+    exLines.unshift(line);renderExList();
+    $('#exStart').value='';$('#exEnd').value='';$('#exName').value='';
+  };
+  // 판매가격·실거래가 콤마 자동 표기
+  document.querySelectorAll('#eBody input.comma').forEach(el=>el.addEventListener('input',()=>{
+    const raw=el.value.replace(/,/g,'');
+    if(/^\d+$/.test(raw))el.value=Number(raw).toLocaleString('ko-KR');
+  }));
+  // 판매여부 변경: 등록 예정 ↔ 번호 부여 규칙
+  const soldSel=document.querySelector('#eBody [name=sold]');
+  const noEl=document.querySelector('#eBody [name=no]');
+  const typeSel=document.querySelector('#eBody [name=notype]');
+  soldSel.onchange=()=>{
+    if(soldSel.value==='등록 예정'){
+      if(!isExisting){noEl.value='';toast('등록 예정 작품은 번호가 부여되지 않습니다')}
+    }else if(!noEl.value.trim()){
+      noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
+      toast('작품번호 부여: '+noEl.value);
+    }
+  };
+  if(neu&&soldState(r)==='planned')noEl.value='';
+  // 연도·유형 변경 시 자동 채번 (신규 등록에서만, 등록 예정이 아닐 때)
+  const resuggest=()=>{
+    if(!isExisting&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
+  };
+  // 수량·판매개수는 아트토이(또는 값이 이미 있는 작품)에만 표시
+  const updateToyRows=()=>{
+    const show=typeSel.value==='HDT'||(r.qty??'')!==''||(r.sold_qty??'')!=='';
+    document.querySelectorAll('#eBody .row.toyonly').forEach(d=>d.style.display=show?'':'none');
+  };
+  updateToyRows();
+  $('#fYearIn').oninput=resuggest;
+  typeSel.onchange=()=>{resuggest();updateToyRows()};
+  // 기존 작품에서 불러오기 (신규 등록 전용): 작품번호·사진을 제외한 모든 정보를 채움
+  const loadSel=$('#loadFrom');
+  if(loadSel)loadSel.onchange=()=>{
+    if(loadSel.value==='')return;
+    const src=loadCandidates[+loadSel.value];
+    loadSel.value='';
+    if(!src)return;
+    const q=n=>document.querySelector(`#eBody [name="${n}"]`);
+    const tp=String(src.title||'').split('\n');
+    q('title_ko').value=tp[0]||''; q('title_en').value=tp.slice(1).join('\n');
+    q('caption').value=src.caption||''; q('material').value=src.material||''; q('size').value=src.size||'';
+    $('#fYearIn').value=src.year||'';
+    q('price').value=fmtComma(src.price);
+    q('qty').value=src.qty||''; q('sold_qty').value=src.sold_qty||'';
+    q('sold').value=src.sold==='●'?'●':(String(src.sold).toUpperCase()==='NFS'?'NFS':(soldState(src)==='planned'?'등록 예정':''));
+    q('discount').value=fmtPct(src.discount);
+    q('actual_price').value=fmtComma(src.actual_price);
+    q('payment').value=src.payment||'';
+    q('sale_date').value=toISO(src.sale_date); q('delivery_date').value=toISO(src.delivery_date);
+    q('channel').value=src.channel||''; q('owner').value=src.owner||''; q('note').value=src.note||'';
+    exLines=String(src.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean); renderExList();
+    typeSel.value=prefixOf(src.no);
+    if(q('sold').value==='등록 예정')noEl.value='';
+    else noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
+    updateToyRows();
+    toast('작품 정보를 불러왔습니다 — 작품번호와 사진은 새로 입력하세요');
+  };
+  // 이미지 업로드
+  $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
+  dlgEdit.showModal();
+  document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
+}
+function renderExList(){
+  $('#exList').innerHTML=exLines.map((l,i)=>`<div class="exline"><span>${esc(l)}</span><button type="button" data-exdel="${i}" title="삭제">✕</button></div>`).join('')||'<div class="hint">등록된 전시 이력이 없습니다</div>';
+  document.querySelectorAll('[data-exdel]').forEach(b=>b.onclick=()=>{exLines.splice(+b.dataset.exdel,1);renderExList()});
+}
+async function uploadImage(file){
+  if(!file)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  toast('이미지 압축 중…');
+  try{
+    const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataUrl});
+    const MAX=1600, sc=Math.min(1,MAX/Math.max(img.width,img.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    const jpeg=cv.toDataURL('image/jpeg',0.87);
+    const b64=jpeg.split(',')[1];
+    toast('드라이브에 업로드 중…');
+    const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'업로드 실패');
+    $('#fImage').value='drive:'+j.id;
+    const p=$('#imgPrev');p.src=jpeg;p.style.display='';
+    toast('✅ 드라이브 업로드 완료');
+  }catch(e){toast('업로드 오류: '+e.message)}
+}
+
+/* ---------- 저장 ---------- */
+$('#editForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(true){ return blockWrite(); }
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value:''};
+  const rec={};
+  KEYS.forEach(k=>rec[k]=g(k));
+  // 한글/영문 제목을 각자의 컬럼에 나눠 저장한다(예전처럼 한 칸에 합치지 않는다).
+  // title에 남아있던 줄바꿈 영문은 title_en으로 옮겨지며 자연스럽게 정리된다.
+  const ko=g('title_ko').trim(), en=g('title_en').trim();
+  rec.title=ko;
+  rec.title_en=en;
+  rec.caption_en=g('caption_en');
+  rec.material_en=g('material_en');
+  rec.exhibitions=exLines.join('\n');
+  // 콤마 제거
+  ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
+  // 할인률: 20% | 20 → 0.2
+  {const d=String(rec.discount).trim().replace('%','');const n=parseFloat(d);
+   if(d!==''&&!isNaN(n))rec.discount=n>1?String(n/100):String(n)}
+  const planned=rec.sold==='등록 예정';
+  if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
+  if(!rec.title.trim()){toast('작품명을 입력하세요');return}
+  delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
+  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
+  // 다른 작품과 번호 중복 여부를 먼저 확인 (수정 시 번호를 직접 바꾼 경우 포함)
+  if(rec.no.trim()){
+    const dup=rows.find(x=>String(x.no).trim()===rec.no.trim()&&(isNew||x._row!==current._row));
+    if(dup){toast('이미 존재하는 작품번호입니다: '+rec.no.trim());return}
+  }
+  if(!isNew&&current&&current._row){
+    rec._row=current._row; // 번호 없는 행 수정용 위치 정보
+    rec._expect=String(current.title).split('\n')[0]; // 서버측 행 대조용 원래 제목
+  }
+  $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
+  try{
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'저장 실패');
+    if(isNew)markNew(rec); // 이번 접속 동안 NEW 표시 + 맨 앞 배치
+    toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
+    dlgEdit.close();await load();
+  }catch(err){toast('오류: '+err.message)}
+  $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+};
+
+/* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */
+let exRows=[];
+let exLoaded=false;
+async function loadEx(){
+  // 전시는 load()에서 작품과 함께 읽는다(관계를 같이 풀어야 하므로).
+  if(!exLoaded) await load();
+}
+async function ensureEx(){ if(!exLoaded) await loadEx(); }
+/** 특정 작품번호가 포함된 전시들을 최신순으로 반환 */
+function exhibitionsForWork(no){
+  no=String(no||'').trim();
+  return exRows.filter(r=>String(r.work_nos||'').split(',').map(s=>s.trim()).includes(no))
+    .sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
+}
+/** 상세보기 dd에 삽입할 내부 HTML만 반환 (dt/dd 껍데기는 openDetail이 이미 갖고 있음) */
+function exAutoListInner(no){
+  const list=exhibitionsForWork(no);
+  if(!list.length)return'';
+  return list.map(r=>`<div style="margin-bottom:4px">
+      <strong>${esc(r.title)}</strong>${exBadge(r)}<br>
+      <span class="hint">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.docent_url?' · 🎧':''}</span>
+    </div>`).join('');
+}
+function exBadge(r){
+  const today=new Date(Date.now()+9*3600*1000).toISOString().slice(0,10); // KST
+  const s=String(r.start_date||''),e=String(r.end_date||'');
+  const pill=(bg,fg,t)=>`<span style="font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:20px;background:${bg};color:${fg}">${t}</span>`;
+  if(s&&e&&s<=today&&today<=e)return pill('#1f4d3a','#8fe0b8','진행중');
+  if(s&&s>today)return pill('#2f4260','#9cc8ee','예정');
+  return pill('#e8e8e8','#888','종료');
+}
+function exListHtml(){
+  const rows=exRows.slice().sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn primary" id="btnExAdd">＋ 전시 등록</button></div>
+  ${rows.length?'':'<div class="hint">등록된 전시가 없습니다. 전시를 등록하면 홈페이지 Now 섹션에 자동 반영됩니다.</div>'}
+  ${rows.map(r=>`
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <strong>${esc(r.title)}</strong>${exBadge(r)}
+        <span class="hint" style="margin-left:auto">${esc(r.id)}</span>
+      </div>
+      <div class="hint" style="margin-top:4px">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.type?' · '+esc(r.type):''}</div>
+      ${r.work_nos?`<div class="hint" style="margin-top:2px">출품작: ${esc(r.work_nos)}</div>`:''}
+      ${r.docent_url?`<div class="hint" style="margin-top:2px">🎧 ${esc(r.docent_url)}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn" data-exedit="${esc(r.id)}">✏️ 수정</button>
+        <button class="btn" data-exdel="${esc(r.id)}">🗑 삭제</button>
+      </div>
+    </div>`).join('')}`;
+}
+function exFormHtml(r,isNew){
+  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  const types=['개인전','그룹전','아트페어','기타'];
+  return `
+  ${F('전시 ID',`<input name="id" value="${esc(r.id||'')}" ${isNew?'placeholder="비우면 자동 생성"':'readonly'}>`)}
+  ${F('전시명 *',`<input name="title" value="${esc(r.title||'')}">`)}
+  ${F('장소',`<input name="venue" value="${esc(r.venue||'')}">`)}
+  ${F('시작일',`<input type="date" name="start_date" value="${esc(r.start_date||'')}">`)}
+  ${F('종료일',`<input type="date" name="end_date" value="${esc(r.end_date||'')}">`)}
+  ${F('출품작 선택',`<input type="hidden" name="work_nos" value="${esc(r.work_nos||'')}">
+    <div id="exPickSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
+    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 선택한 순서대로 홈페이지 전시 모드에 노출됩니다')}
+  ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
+  ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+  ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
+  <div class="formfoot" style="padding:12px 0 0">
+    <button type="button" class="btn" id="btnExBack">← 목록</button>
+    <button type="button" class="btn primary" id="btnExSave">${isNew?'등록':'저장'}</button>
+  </div>`;
+}
+async function openEx(){
+  $('#exBody').innerHTML='<div class="hint">불러오는 중…</div>';
+  try{ await loadEx(); renderExList(); }
+  catch(e){ $('#exBody').innerHTML='<div class="hint">불러오기 오류: '+esc(e.message)+'</div>'; }
+}
+function renderExList(){
+  $('#exBody').innerHTML=exListHtml();
+  $('#btnExAdd').onclick=()=>renderExForm({},true);
+  document.querySelectorAll('#exBody [data-exedit]').forEach(b=>b.onclick=()=>{
+    const r=exRows.find(x=>String(x.id)===b.dataset.exedit); if(r)renderExForm(r,false);
+  });
+  document.querySelectorAll('#exBody [data-exdel]').forEach(b=>b.onclick=async()=>{
+    const r=exRows.find(x=>String(x.id)===b.dataset.exdel); if(!r)return;
+    if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+    try{
+      const res=await blockWriteFetch();
+      const j=await res.json(); if(!j.ok)throw new Error(j.error||'삭제 실패');
+      toast('🗑 전시가 삭제되었습니다'); await loadEx(); renderExList();
+    }catch(e){toast('삭제 오류: '+e.message)}
+  });
+}
+function initExPicker(){
+  const hid=$('#exBody [name=work_nos]');
+  let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const syncHid=()=>{hid.value=sel.join(',');};
+  const chip=no=>{
+    const w=rows.find(x=>String(x.no).trim()===no);
+    return`<span data-unpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
+  };
+  const card=w=>{
+    const no=String(w.no).trim(), on=sel.includes(no), u=imgUrl(w,true);
+    return`<div data-pick="${esc(no)}" style="cursor:pointer;border:2px solid ${on?'var(--accent)':'var(--line)'};border-radius:8px;overflow:hidden;background:var(--card)">
+      <div style="aspect-ratio:1/1;background:#f2f2f2 center/cover no-repeat;${u?`background-image:url('${u}')`:''}"></div>
+      <div style="padding:5px 6px">
+        <div style="font-size:.72rem;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(w.title||'(제목 없음)')}</div>
+        <div class="hint" style="font-size:.66rem">${esc(no)}</div>
+      </div>
+    </div>`;
+  };
+  const paint=()=>{
+    const q=($('#exPickSearch').value||'').trim().toLowerCase();
+    const list=rows.filter(w=>String(w.no||'').trim())
+      .filter(w=>!q||String(w.title||'').toLowerCase().includes(q)||String(w.no||'').toLowerCase().includes(q));
+    $('#exPickSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 선택된 작품이 없습니다</span>';
+    $('#exPickGrid').innerHTML=list.length?list.map(card).join(''):'<div class="hint" style="grid-column:1/-1">검색 결과가 없습니다</div>';
+    document.querySelectorAll('#exPickGrid [data-pick]').forEach(el=>el.onclick=()=>{
+      const no=el.dataset.pick;
+      sel=sel.includes(no)?sel.filter(x=>x!==no):[...sel,no];
+      syncHid(); paint();
+    });
+    document.querySelectorAll('#exPickSel [data-unpick]').forEach(el=>el.onclick=()=>{
+      sel=sel.filter(x=>x!==el.dataset.unpick);
+      syncHid(); paint();
+    });
+  };
+  $('#exPickSearch').oninput=paint;
+  syncHid(); paint();
+}
+function renderExForm(r,isNew){
+  $('#exBody').innerHTML=exFormHtml(r,isNew);
+  initExPicker();
+  $('#btnExBack').onclick=()=>renderExList();
+  $('#btnExSave').onclick=async()=>{
+    const g=n=>$('#exBody [name='+n+']').value.trim();
+    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public')};
+    if(!row.title)return toast('전시명을 입력하세요');
+    if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
+    const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
+    try{
+      const res=await blockWriteFetch();
+      const j=await res.json(); if(!j.ok)throw new Error(j.error||'저장 실패');
+      toast(isNew?'✅ 전시가 등록되었습니다':'✅ 전시가 수정되었습니다');
+      await loadEx(); renderExList();
+    }catch(e){toast('저장 오류: '+e.message)}
+    finally{saveBtn.disabled=false;}
+  };
+}
+/* ---------- Press ---------- */
+const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note'];
+const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
+let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
+
+async function loadPress(){
+  try{
+    var q = await sb.from('press').select('*').is('deleted_at', null);
+    if(q.error) throw q.error;
+    pressRows = (q.data||[]).map(function(p){
+      return { no:p.press_no, outlet:p.outlet_ko, date:p.published_date||'',
+               title:p.title_ko, url:p.url||'', quote:p.quote_ko||'',
+               image:p.image_source_url||'', note:p.byline||'',
+               title_en:p.title_en||'', quote_en:p.quote_en||'',
+               _id:p.id, _version:p.version };
+    });
+  }catch(e){
+    pressRows=[];
+    toast('Press 불러오기 실패: '+(e.message||e));
+  }
+  renderPressList();
+}
+function filteredPress(){
+  const q=($('#pq').value||'').trim().toLowerCase();
+  let list=pressRows.slice();
+  if(q)list=list.filter(r=>[r.outlet,r.title,r.quote].join(' ').toLowerCase().includes(q));
+  list.sort((a,b)=>(b._row||0)-(a._row||0)); // 최근 등록순
+  return list;
+}
+function renderPressList(){
+  const list=filteredPress();
+  lastPressList=list;
+  $('#pressTbody').innerHTML=list.length?list.map((r,i)=>
+    `<tr data-idx="${i}"><td>${esc(r.no||'—')}</td><td>${esc(r.outlet)}</td><td>${esc(r.date)}</td><td class="wrap">${esc(r.title)}</td><td>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗</a>`:''}</td></tr>`
+  ).join(''):'<tr><td colspan="5" class="empty">등록된 기사가 없습니다</td></tr>';
+}
+function openPressEdit(r,neu){
+  pressIsNew=neu; pressCurrent=r;
+  $('#peTitle').textContent=neu?'기사 등록':'기사 수정';
+  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  $('#peBody').innerHTML=
+    F(PRESS_LABELS.no,`<input name="no" value="${esc(r.no)}" ${neu?'':'readonly'}>`,neu?'비워두면 자동으로 채번됩니다 (PR-연도-순번)':'')+
+    F(PRESS_LABELS.outlet,`<input name="outlet" value="${esc(r.outlet)}" placeholder="예: 코리안투데이">`)+
+    F(PRESS_LABELS.date,`<input name="date" type="date" value="${toISO(r.date)}">`)+
+    F(PRESS_LABELS.title,`<input name="title" value="${esc(r.title)}">`)+
+    F(PRESS_LABELS.url,`<input name="url" value="${esc(r.url)}" placeholder="https://…">`)+
+    F(PRESS_LABELS.quote,`<textarea name="quote" placeholder="기사에서 고른 인상적인 한 줄">${esc(r.quote)}</textarea>`)+
+    F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
+    F(PRESS_LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
+  $('#btnDeletePress').style.display=neu?'none':'';
+  dlgPressEdit.showModal();
+}
+$('#pressEditForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(true){ return blockWrite(); }
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const g=n=>{const el=document.querySelector(`#peBody [name="${n}"]`);return el?el.value.trim():''};
+  const rec={};PRESS_KEYS.forEach(k=>rec[k]=g(k));
+  rec.date=rec.date?rec.date.replaceAll('-','.'):'';
+  if(!rec.title){toast('기사 제목을 입력하세요');return}
+  if(!pressIsNew)rec.no=pressCurrent.no; // 수정 시 번호는 읽기전용 필드값 그대로
+  try{
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'저장 실패');
+    toast(pressIsNew?'기사가 등록되었습니다':'저장되었습니다');
+    dlgPressEdit.close();await loadPress();
+  }catch(err){toast('오류: '+err.message)}
+};
+$('#btnDeletePress').onclick=async()=>{
+  if(!pressCurrent||pressIsNew)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  if(!confirm(`'${pressCurrent.title}' 기사를 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  try{
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'삭제 실패');
+    toast('삭제되었습니다');
+    dlgPressEdit.close();await loadPress();
+  }catch(e){toast('오류: '+e.message)}
+};
+$('#pressTbody').onclick=e=>{const tr=e.target.closest('tr[data-idx]');if(tr)openPressEdit(lastPressList[+tr.dataset.idx],false)};
+$('#btnPressAdd').onclick=()=>openPressEdit(Object.fromEntries(PRESS_KEYS.map(k=>[k,''])),true);
+$('#btnPressReload').onclick=()=>{loadPress();toast('새로고침')};
+$('#pq').oninput=renderPressList;
+$('#btnClosePressEdit').onclick=()=>dlgPressEdit.close();
+$('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
+dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
+
+/* ---------- 엑셀 다운로드 ---------- */
+$('#btnXlsx').onclick=()=>{
+  const header=KEYS.map(k=>LABELS[k]);
+  const data=rows.map(r=>KEYS.map(k=>{
+    const v=r[k];
+    return(['price','actual_price','year','discount','qty','sold_qty'].includes(k)&&v!==''&&v!=null&&!isNaN(Number(v)))?Number(v):(v??'');
+  }));
+  const ws=XLSX.utils.aoa_to_sheet([header,...data]);
+  ws['!cols']=KEYS.map(k=>({wch:['caption','exhibitions','note','title'].includes(k)?46:k==='no'?13:12}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'작품 아카이브');
+  XLSX.writeFile(wb,`신해달_작품아카이브_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('엑셀 파일이 다운로드되었습니다');
+};
+
+/* ---------- 설정 ---------- */
+$('#btnSaveSet').onclick=async()=>{
+  const u=$('#setApi').value.trim(),t=$('#setToken').value;
+  localStorage.setItem('haedal_api',u);localStorage.setItem('haedal_token',t);
+  const st=$('#setStatus');
+  st.textContent='연결 확인 중…';
+  try{
+    const r=await blockWriteFetch();const j=await r.json();
+    st.textContent=j.ok?`✅ 연결 성공 — 시트에서 ${j.rows.length}점을 불러왔습니다.`:'⚠️ 응답 오류: '+(j.error||'');
+  }catch(e){st.textContent='❌ 연결 실패: '+e.message}
+  load();
+};
+
+$('#btnPublish').onclick=async()=>{
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const st=$('#publishStatus');
+  st.textContent='반영 요청 중…';
+  try{
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    st.textContent=j.ok?'✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.':('❌ '+(j.error||'실패'));
+  }catch(e){st.textContent='❌ 오류: '+e.message}
+};
+
+/* ---------- 이벤트 ---------- */
+document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
+  section=b.dataset.v;
+  $('#vWorks').hidden=section!=='works';
+  $('#vExhibitions').hidden=section!=='exhibitions';
+  $('#vPress').hidden=section!=='press';
+  $('#vWebsite').hidden=section!=='website';
+  $('#vSettings').hidden=section!=='settings';
+  $('#worksToolbar').style.display=section==='works'?'flex':'none';
+  if(section==='works')render();
+  if(section==='exhibitions')openEx();
+  if(section==='press')renderPressList();
+});
+document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
+  view=b.dataset.view;
+  $('#grid').hidden=view!=='gallery';
+  $('#stats').hidden=view!=='gallery';
+  $('#tableWrap').hidden=view!=='table';
+  render();
+});
+$('#grid').onclick=e=>{const c=e.target.closest('.card');if(c)openDetail(lastList[+c.dataset.idx])};
+$('#tbody').onclick=e=>{const tr=e.target.closest('tr');if(tr)openDetail(lastList[+tr.dataset.idx])};
+$('#stats').onclick=e=>{
+  const s=e.target.closest('.stat');if(!s)return;
+  const act=s.dataset.act;
+  if(act==='revenue'){revealRevenue=!revealRevenue;renderStats();return}
+  $('#fSold').value=act==='all'?'':act;
+  render();
+};
+$('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
+$('#btnDel').onclick=async()=>{
+  if(!current)return;
+  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
+  const t=String(current.title).split('\n')[0];
+  if(!confirm(`'${t}' 작품을 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  try{
+    const res=await blockWriteFetch();
+    const j=await res.json();
+    if(!j.ok)throw new Error(j.error||'삭제 실패');
+    toast('삭제되었습니다');
+    dlgDetail.close();await load();
+  }catch(e){toast('오류: '+e.message)}
+};
+$('#btnAdd').onclick=()=>{
+  const yr=new Date().getFullYear();
+  openEdit(Object.fromEntries(KEYS.map(k=>[k,k==='no'?suggestNo(yr):k==='year'?yr:''])),true);
+};
+$('#btnSize').onclick=()=>{smallGrid=!smallGrid;$('#btnSize').textContent=smallGrid?'▤ 크게보기':'▦ 작게보기';render()};
+$('#btnCloseDetail').onclick=()=>dlgDetail.close();
+$('#btnCloseEdit').onclick=()=>dlgEdit.close();
+$('#btnCancelEdit').onclick=()=>dlgEdit.close();
+dlgDetail.addEventListener('click',e=>{if(e.target===dlgDetail)dlgDetail.close()});
+function updateDirBtn(){$('#btnDir').textContent=sortDir==='asc'?'↑ 오름차순':'↓ 내림차순'}
+$('#sortBy').onchange=()=>{sortDir=DIR_DEFAULT[$('#sortBy').value]||'desc';updateDirBtn();render()};
+$('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();render()};
+updateDirBtn();
+$('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
+$('#btnReload').onclick=()=>{load();toast('새로고침')};
+loadPress();
+
+/* ---------- 로그인 게이트 ----------
+   RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.
+   따라서 화면 부팅 자체를 세션 확보 이후로 미룬다. */
+(function(){
+  var gate = document.getElementById('loginGate');
+  var form = document.getElementById('loginForm');
+  var msg  = document.getElementById('loginMsg');
+  var btn  = document.getElementById('loginBtn');
+  var booted = false;
+
+  function boot(session){
+    gate.style.display = 'none';
+    if(booted) return;
+    booted = true;
+    var who = document.querySelector('.sidebar-brand');
+    if(who && session && session.user) who.title = session.user.email;
+    load();
+  }
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    msg.textContent = '';
+    btn.disabled = true; btn.textContent = '로그인 중…';
+    try{
+      var res = await sb.auth.signInWithPassword({
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPw').value
+      });
+      if(res.error) throw res.error;
+      boot(res.data.session);
+    }catch(err){
+      msg.textContent = (err && err.message === 'Invalid login credentials')
+        ? '이메일 또는 비밀번호가 맞지 않습니다'
+        : ('로그인 실패: ' + (err && err.message ? err.message : err));
+    }finally{
+      btn.disabled = false; btn.textContent = '로그인';
+    }
+  });
+
+  // 이미 로그인돼 있으면 바로 통과
+  sb.auth.getSession().then(function(r){
+    if(r.data && r.data.session) boot(r.data.session);
+  });
+})();
+</script>
+</body>
+</html>

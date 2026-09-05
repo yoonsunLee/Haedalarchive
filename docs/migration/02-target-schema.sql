@@ -70,6 +70,13 @@ create table works (
 
   internal_note   text,                            -- 현행 '비고'
 
+  -- 미디어. 이미지는 계속 Google Drive에 두고 'drive:FILEID' 문자열만 보관한다
+  -- (Storage 이전은 별도 리스크라 이번 범위에서 제외).
+  image_file      text,                            -- drive:FILEID
+  audio_master    text,                            -- drive:FILEID (Audio Guide용, 현재 미사용)
+  transcript_ko   text,
+  transcript_en   text,
+
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
   deleted_at      timestamptz,

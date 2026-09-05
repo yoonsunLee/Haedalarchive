@@ -7,7 +7,7 @@
 | 시트 컬럼 | → | 목표 컬럼 | 변환 규칙 |
 |---|---|---|---|
 | Artwork No. | → | `work_no` | 그대로. `ER-` 접두사는 `kind='event_reward'` |
-| 이미지 | → | (별도) | `drive:FILEID` 유지. Drive 계속 사용하므로 문자열 그대로 보관 |
+| 이미지 | → | `works.image_file` | `drive:FILEID` 문자열 그대로. **이 필드가 없으면 발행 시 이미지가 전부 사라진다** |
 | 작품명 | → | `title_ko` + `title_en` | `\n` 분리. `title_en` 컬럼에 값이 있으면 그쪽 우선 |
 | 캡션 | → | `caption_ko` (+`caption_en`) | 006·007은 한/영 수동 분리 필요 |
 | 재료 | → | `material_ko` (+`material_en`) | 006·007·008은 한/영 수동 분리 필요 |
@@ -26,8 +26,8 @@
 | 비고 | → | `internal_note` (+ `exhibition_works.caption_*_override`) | "CODE NAME BLUE용 캡션"은 오버라이드로 분리 |
 | 수량 | → | `works.edition_size` | 값 없으면 1(유일작) |
 | 판매개수 | → | (폐기) | `editions.status='sold'` 개수로 유도. `works_status` 뷰 참조 |
-| 오디오 원본 | → | (별도) | Drive ID |
-| 대본(한글/영문) | → | `transcript_ko`/`transcript_en` | ※ 현행 유지. 오디오 착수 시점에 테이블 추가 검토 |
+| 오디오 원본 | → | `works.audio_master` | Drive ID (현재 전 행 비어 있음) |
+| 대본(한글/영문) | → | `works.transcript_ko`/`transcript_en` | 현재 전 행 비어 있음 |
 | 작품명/캡션/재료(영문) | → | `title_en`/`caption_en`/`material_en` | |
 | — | → | `publish_web` | **신규**: `ER-` 아님 AND `HD-2026-013/014` 아님 → true (publish.py 하드코딩 대체) |
 | — | → | `series_key` | **신규**: `N차적 저작물`, `POV`, `우주조약/무주의 바다` 그룹 (프론트 heuristic 대체) |
@@ -98,7 +98,8 @@ editions 3행:
 
 1. **한/영 분리** — `title` 15건, `material` 3건, `caption` 2건.
    기존에 한 칸에 뭉쳐 있던 값이 `*_ko`/`*_en`으로 갈렸다. 이번 작업의 목적 그 자체.
-2. **줄바꿈 문자** — 캡션 3건의 `
+2. **줄바꿈 문자** — 캡션 3건의 `
+
 ` vs `
 `. 화면상 차이 없음(프론트가 정규화).
    데이터 일관성을 위해 마이그레이션 후 UPDATE로 `

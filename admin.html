@@ -478,7 +478,8 @@ async function saveExhibitionToDb(row, neu, cur){
     title_en: textOrNull(row.title_en),
     venue_en: textOrNull(row.venue_en),
     poster_url: textOrNull(row.poster_url),
-    map_url: textOrNull(row.map_url)
+    map_url: textOrNull(row.map_url),
+    featured_work_nos: textOrNull(row.featured_work_nos)
   };
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -742,6 +743,7 @@ async function load(){
         docent_url: e.docent_url || '', note_public: e.note_public_ko || '',
         title_en: e.title_en || '', venue_en: e.venue_en || '',
         poster_url: e.poster_url || '', map_url: e.map_url || '',
+        featured_work_nos: e.featured_work_nos || '',
         work_nos: members.join(','),
         _id: e.id, _version: e.version
       };
@@ -1247,7 +1249,11 @@ function exFormHtml(r,isNew){
   ${F('출품작 선택',`<input type="hidden" name="work_nos" value="${esc(r.work_nos||'')}">
     <div id="exPickSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
-    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 선택한 순서대로 홈페이지 전시 모드에 노출됩니다')}
+    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 전시 기간 중 Works 페이지에서 "이번 전시 작품 보기"로 연결되는 전체 목록입니다')}
+  ${F('홈페이지 추천 작품 (최대 5)',`<input type="hidden" name="featured_work_nos" value="${esc(r.featured_work_nos||'')}">
+    <div id="exFeatSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <div id="exFeatGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,
+    '위 출품작 중 홈 화면 "Now on View" 카드에 보여줄 작품을 최대 5개까지 고르세요. 비워두면 출품작 선택 순서대로 앞의 5개가 자동 노출됩니다')}
   ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
   ${F('포스터 이미지',
     `<div class="imgupload">
@@ -1287,7 +1293,7 @@ function renderExList(){
 function initExPicker(){
   const hid=$('#exBody [name=work_nos]');
   let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const syncHid=()=>{hid.value=sel.join(',');};
+  const syncHid=()=>{hid.value=sel.join(','); hid.dispatchEvent(new Event('input'));};
   const chip=no=>{
     const w=rows.find(x=>String(x.no).trim()===no);
     return`<span data-unpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
@@ -1321,9 +1327,53 @@ function initExPicker(){
   $('#exPickSearch').oninput=paint;
   syncHid(); paint();
 }
+function initExFeaturedPicker(){
+  const hid=$('#exBody [name=featured_work_nos]');
+  const workNosHid=$('#exBody [name=work_nos]');
+  let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const syncHid=()=>{hid.value=sel.join(',');};
+  const chip=no=>{
+    const w=rows.find(x=>String(x.no).trim()===no);
+    return`<span data-featunpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
+  };
+  const card=w=>{
+    const no=String(w.no).trim(), on=sel.includes(no), u=imgUrl(w,true);
+    return`<div data-featpick="${esc(no)}" style="cursor:pointer;border:2px solid ${on?'var(--accent)':'var(--line)'};border-radius:8px;overflow:hidden;background:var(--card)">
+      <div style="aspect-ratio:1/1;background:#f2f2f2 center/cover no-repeat;${u?`background-image:url('${u}')`:''}"></div>
+      <div style="padding:5px 6px">
+        <div style="font-size:.72rem;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(w.title||'(제목 없음)')}</div>
+        <div class="hint" style="font-size:.66rem">${esc(no)}</div>
+      </div>
+    </div>`;
+  };
+  const paint=()=>{
+    const candidateIds=String(workNosHid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+    sel=sel.filter(no=>candidateIds.includes(no));
+    syncHid();
+    const list=candidateIds.map(no=>rows.find(x=>String(x.no).trim()===no)).filter(Boolean);
+    $('#exFeatSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 추천 작품을 고르지 않았습니다 (비우면 출품작 앞의 5개가 자동 노출)</span>';
+    $('#exFeatGrid').innerHTML=list.length?list.map(card).join(''):'<div class="hint" style="grid-column:1/-1">먼저 위에서 출품작을 선택하세요</div>';
+    document.querySelectorAll('#exFeatGrid [data-featpick]').forEach(el=>el.onclick=()=>{
+      const no=el.dataset.featpick;
+      if(sel.includes(no)){ sel=sel.filter(x=>x!==no); }
+      else{
+        if(sel.length>=5){ toast('최대 5개까지 선택할 수 있어요'); return; }
+        sel=[...sel,no];
+      }
+      syncHid(); paint();
+    });
+    document.querySelectorAll('#exFeatSel [data-featunpick]').forEach(el=>el.onclick=()=>{
+      sel=sel.filter(x=>x!==el.dataset.featunpick);
+      syncHid(); paint();
+    });
+  };
+  workNosHid.addEventListener('input', paint);
+  syncHid(); paint();
+}
 function renderExForm(r,isNew){
   $('#exBody').innerHTML=exFormHtml(r,isNew);
   initExPicker();
+  initExFeaturedPicker();
   $('#btnExBack').onclick=()=>renderExList();
   const posterVal=String(r.poster_url||'').trim();
   if(posterVal.indexOf('sb:')===0){
@@ -1336,7 +1386,7 @@ function renderExForm(r,isNew){
   $('#exPosterFile').onchange=()=>uploadExPoster($('#exPosterFile').files[0], r.id);
   $('#btnExSave').onclick=async()=>{
     const g=n=>$('#exBody [name='+n+']').value.trim();
-    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url')};
+    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url'),featured_work_nos:g('featured_work_nos')};
     if(!row.title)return toast('전시명을 입력하세요');
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
     row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();

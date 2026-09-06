@@ -6,6 +6,7 @@
 <title>신해달 작품 아카이브</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#f7f5f1; --card:#ffffff; --ink:#1e2430; --sub:#6b7280; --line:#e5e1d8;
@@ -93,9 +94,33 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 #toast.show{opacity:.95}
 .empty{text-align:center; color:var(--sub); padding:60px 0}
 @media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
+
+#loginGate{position:fixed; inset:0; background:var(--bg); z-index:200; display:flex; align-items:center; justify-content:center;}
+#loginGate .box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:28px 26px; width:min(340px,90vw); box-shadow:var(--shadow)}
+#loginGate h2{font-size:1.05rem; margin-bottom:4px}
+#loginGate p.hint{margin-bottom:16px}
+#loginGate input{width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:.9rem; margin-bottom:10px}
+#loginGate .err{color:var(--sold); font-size:.82rem; margin-top:8px; min-height:1.2em}
+.ed-list{display:flex; flex-direction:column; gap:8px; margin:10px 0}
+.ed-row{border:1px solid var(--line); border-radius:10px; padding:8px 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:.84rem}
+.ed-row b{margin-right:auto}
 </style>
 </head>
 <body>
+
+<div id="loginGate">
+  <div class="box">
+    <h2>🦦 신해달 작품 아카이브</h2>
+    <p class="hint">Supabase 관리자 계정으로 로그인하세요.</p>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="이메일" autocomplete="username" required>
+      <input type="password" id="loginPassword" placeholder="비밀번호" autocomplete="current-password" required>
+      <button type="submit" class="btn primary" style="width:100%">로그인</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </div>
+</div>
+
 <header>
   <h1>신해달 작품 아카이브<small id="cnt"></small></h1>
   <div id="syncdot" title="데이터 소스"></div>
@@ -105,6 +130,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <button data-v="press">Press</button>
     <button data-v="settings">설정</button>
   </nav>
+  <button class="btn" id="btnLogout" style="margin-left:8px">로그아웃</button>
 </header>
 
 <div class="toolbar">
@@ -214,6 +240,18 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </form>
 </dialog>
 
+<dialog id="dlgEdition">
+  <div class="dlghead"><h2 id="edTitle">에디션 수정</h2><button class="btn" id="btnCloseEdition">✕</button></div>
+  <form id="editionForm" method="dialog">
+    <div class="dlgbody" id="edBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" id="btnDeleteEdition" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
+      <button type="button" class="btn" id="btnCancelEdition">취소</button>
+      <button type="submit" class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlgPressEdit">
   <div class="dlghead"><h2 id="peTitle">기사 등록</h2><button class="btn" id="btnClosePressEdit">✕</button></div>
   <form id="pressEditForm" method="dialog">
@@ -229,35 +267,51 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <div id="toast"></div>
 
 <script>
-const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec';
-const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
-const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
+const SB_URL='https://nprtlonrdwwsmewrxotl.supabase.co';
+const SB_ANON='sb_publishable_HhORDROnuBf8iqPbjZKfUg_XOEAJ4L5';
+const sb=supabase.createClient(SB_URL,SB_ANON);
+const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec'; // 전시/Press는 다음 라운드까지 구시트 유지
+const KIND_LABEL={artwork:'일반 작품',art_toy:'아트토이',event_reward:'이벤트 리워드'};
+const KIND_PREFIX={artwork:'HD',art_toy:'HDT',event_reward:'ER'};
+const STATE_LABEL={planned:'등록 예정',completed:'완성',archived:'보관'};
+const SALE_LABEL={available:'판매가능',reserved:'예약중',sold:'판매완료',nfs:'NFS(비매)'};
+const LABELS={work_no:'Artwork No.',kind:'작품 유형',title_en:'작품명(영문)',
+  caption_ko:'캡션(한글)',caption_en:'캡션(영문)',material_ko:'재료(한글)',material_en:'재료(영문)',
+  year:'연도',size_text:'크기',work_state:'작품 상태',list_price_krw:'기본 판매가',edition_size:'에디션 수',
+  publish_web:'홈페이지 공개',series_key:'시리즈 키',image_file:'이미지 참조',audio_master:'오디오 참조',internal_note:'비고'};
 
-let rows=[], lastList=[], view='gallery', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+let rows=[], lastList=[], view='gallery', current=null, isNew=false, revealRevenue=false, smallGrid=false;
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
 let sortDir=DIR_DEFAULT.state;
 const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
-const rowKey=r=>String(r.no||'').trim()||String(r.title||'').trim();
+const rowKey=r=>String(r.work_no||'').trim()||String(r.title_ko||'').trim();
 const isNewRow=r=>newKeys.includes(rowKey(r));
 function markNew(r){newKeys.push(rowKey(r));sessionStorage.setItem('haedal_new',JSON.stringify(newKeys))}
 const $=s=>document.querySelector(s);
-const api=()=>localStorage.getItem('haedal_api')||DEFAULT_API;
+const api=()=>localStorage.getItem('haedal_api')||DEFAULT_API; // exhibitions/press 전용(구 Apps Script, 다음 라운드까지)
 const token=()=>localStorage.getItem('haedal_token')||'';
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtWon(v){if(v===''||v==null||isNaN(Number(v)))return v||'';return Number(v).toLocaleString('ko-KR')+'원'}
-function soldState(r){
-  const s=String(r.sold||'').trim();
-  if(s==='●'||s==='O'||s==='o')return'sold';
-  if(s.toUpperCase()==='NFS')return'nfs';
-  if(s.replace(/\s/g,'')==='등록예정')return'planned';
-  return'avail';
+function fmtDiscount(v){if(v===''||v==null)return'';const n=Number(v);return isNaN(n)?'':Math.round(n*100)+'%'}
+/* 작품 하나의 판매현황 요약 — work_state가 planned면 그걸 우선, 그 외엔 editions 집계 */
+function saleSummary(r){
+  const eds=r.editions||[];
+  if(r.work_state==='planned')return{state:'planned',sold:0,total:r.edition_size||1};
+  const total=r.edition_size||eds.length||1;
+  const soldCount=eds.filter(e=>e.status==='sold').length;
+  const anyAvail=eds.some(e=>e.status==='available'||e.status==='reserved');
+  let state='avail';
+  if(eds.length&&eds.every(e=>e.status==='nfs'))state='nfs';
+  else if(eds.length&&soldCount>=total)state='sold';
+  else if(!anyAvail&&eds.length&&soldCount<total)state='avail';
+  return{state,sold:soldCount,total};
 }
-function soldLabel(st){return {sold:'판매완료',nfs:'NFS',planned:'등록 예정',avail:'판매가능'}[st]}
+function stateLabel(st){return {sold:'판매완료',nfs:'NFS',planned:'등록 예정',avail:'판매가능'}[st]}
 const STATE_RANK={avail:0,nfs:1,sold:2,planned:3};
 function imgUrl(r,thumb){
-  let v=String(r.image||'').trim();
+  let v=String(r.image_file||'').trim();
   if(!v)return'';
   if(/^https?:\/\//.test(v)){
     const m=v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
@@ -265,64 +319,57 @@ function imgUrl(r,thumb){
     return v;
   }
   if(/^drive:/.test(v))return`https://drive.google.com/thumbnail?id=${v.slice(6)}&sz=w${thumb?600:1200}`;
+  if(/^sb:/.test(v))return''; // Storage 업로드 미리보기는 다음 라운드(이미지 업로드 전환)에서 지원
   const file=v.split('/').pop();
   return thumb?`thumbs/${file.replace(/\.[a-z]+$/i,'')}.jpg`:`images/${file}`;
 }
 function toISO(v){ // '2026.03.21' | '2026-03-21' | Date-ish → 'YYYY-MM-DD' or ''
   const m=String(v||'').match(/(\d{4})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
-  return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';
+  return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:String(v||'').slice(0,10);
 }
 function uniqueVals(key){
   const set=[];
-  rows.forEach(r=>{const v=String(r[key]||'').trim();if(v&&v!=='-'&&!set.includes(v))set.push(v)});
+  rows.forEach(r=>{const v=String(r[key]||'').trim();if(v&&!set.includes(v))set.push(v)});
   return set;
-}
-function uniqueExLines(){
-  const set=[];
-  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{l=l.trim();if(l&&!set.includes(l))set.push(l)}));
-  return set;
-}
-const normEx=l=>String(l).replace(/\s+/g,' ').trim(); // 탭·공백 표기 차이 통일
-function allExNorm(){
-  const set=[];
-  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{const n=normEx(l);if(n&&!set.includes(n))set.push(n)}));
-  return set.sort().reverse(); // 날짜로 시작하므로 최신 전시부터
 }
 
 /* ---------- 데이터 로드 ---------- */
 async function load(){
   try{
-    const res=await fetch(api()+'?action=list&token='+encodeURIComponent(token())+'&t='+Date.now());
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'응답 오류');
-    rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';
+    const {data,error}=await sb.from('works')
+      .select('*, editions(*)')
+      .is('deleted_at',null)
+      .is('editions.deleted_at',null);
+    if(error)throw error;
+    rows=data||[];
+    rows.forEach(r=>{if(r.editions)r.editions.sort((a,b)=>(a.edition_number||0)-(b.edition_number||0))});
+    $('#syncdot').className='live';$('#syncdot').title='Supabase 실시간 연동 중';
   }catch(e){
     rows=[];$('#syncdot').className='';$('#syncdot').title='연결 실패';
-    toast('구글 시트 연결 실패: '+e.message+' — ↻ 버튼으로 다시 시도하세요');
+    toast('Supabase 연결 실패: '+e.message+' — ↻ 버튼으로 다시 시도하세요');
   }
   render();
 }
 
 /* ---------- 필터·정렬·렌더 ---------- */
 function filtered(){
-  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value, fe=$('#fEx').value;
+  const q=$('#q').value.trim().toLowerCase(), fy=$('#fYear').value, fs=$('#fSold').value;
   let list=rows.filter(r=>{
     if(fy&&String(r.year)!==fy)return false;
-    if(fs&&soldState(r)!==fs)return false;
-    if(fe&&!String(r.exhibitions||'').split('\n').some(l=>normEx(l)===fe))return false;
-    if(q){const hay=[r.no,r.title,r.owner,r.material,r.note,r.channel,r.caption].join(' ').toLowerCase();if(!hay.includes(q))return false}
+    if(fs&&saleSummary(r).state!==fs)return false;
+    if(q){const hay=[r.work_no,r.title_ko,r.title_en,r.material_ko,r.internal_note,r.caption_ko].join(' ').toLowerCase();if(!hay.includes(q))return false}
     return true;
   });
   const s=$('#sortBy').value;
   const sgn=sortDir==='asc'?1:-1; // 오름/내림 방향
-  const byNo=(a,b)=>{const an=String(a.no).trim(),bn=String(b.no).trim();
+  const byNo=(a,b)=>{const an=String(a.work_no).trim(),bn=String(b.work_no).trim();
     if(!an&&!bn)return 0;if(!an)return 1;if(!bn)return -1; // 번호 미부여는 항상 뒤로
     return sgn*an.localeCompare(bn)};
-  const byReg=(a,b)=>sgn*((a._row||0)-(b._row||0)); // 등록순 (내림=최근 등록 먼저)
+  const byReg=(a,b)=>sgn*(new Date(a.created_at||0)-new Date(b.created_at||0)); // 등록순 (내림=최근 등록 먼저)
   if(s==='no')list.sort(byNo);
-  else if(s==='title')list.sort((a,b)=>sgn*String(a.title).localeCompare(String(b.title),'ko'));
+  else if(s==='title')list.sort((a,b)=>sgn*String(a.title_ko||'').localeCompare(String(b.title_ko||''),'ko'));
   else if(s==='year')list.sort((a,b)=>sgn*((a.year||0)-(b.year||0))||byReg(a,b));
-  else list.sort((a,b)=>STATE_RANK[soldState(a)]-STATE_RANK[soldState(b)]||byReg(a,b)); // 상태 그룹은 고정, 그룹 내 등록순만 방향 적용
+  else list.sort((a,b)=>STATE_RANK[saleSummary(a).state]-STATE_RANK[saleSummary(b).state]||byReg(a,b)); // 상태 그룹은 고정, 그룹 내 등록순만 방향 적용
   // 이번 접속에서 등록한 작품은 항상 맨 앞 (stable sort라 나머지 순서 유지)
   list.sort((a,b)=>(isNewRow(b)?1:0)-(isNewRow(a)?1:0));
   return list;
@@ -331,9 +378,7 @@ function render(){
   const years=[...new Set(rows.map(r=>r.year).filter(Boolean))].sort();
   const sel=$('#fYear'),cur=sel.value;
   sel.innerHTML='<option value="">전체 연도</option>'+years.map(y=>`<option${String(y)===cur?' selected':''}>${y}</option>`).join('');
-  const exSel=$('#fEx'),exCur=exSel.value;
-  exSel.innerHTML='<option value="">전체 전시</option>'+allExNorm().map(l=>
-    `<option value="${esc(l)}"${l===exCur?' selected':''}>${esc(l.length>42?l.slice(0,42)+'…':l)}</option>`).join('');
+  $('#fEx').style.display='none'; // 전시 연동은 다음 라운드에서 복구
   const list=filtered();
   $('#cnt').textContent=` ${list.length}/${rows.length}점`;
   renderStats();
@@ -341,14 +386,9 @@ function render(){
   if(view==='table')renderTable(list);
 }
 function renderStats(){
-  const sold=rows.filter(r=>soldState(r)==='sold');
-  const avail=rows.filter(r=>soldState(r)==='avail');
-  // 누적판매액: 일반 작품은 판매완료 시 실거래가(없으면 판매가), 아트토이(수량 있는 작품)는 개당 가격 × 판매개수
-  const revenue=rows.reduce((a,r)=>{
-    const unit=Number(r.actual_price)||Number(r.price)||0;
-    if((r.qty??'')!=='')return a+unit*(Number(r.sold_qty)||0);
-    return soldState(r)==='sold'?a+unit:a;
-  },0);
+  const sold=rows.filter(r=>saleSummary(r).state==='sold');
+  const avail=rows.filter(r=>saleSummary(r).state==='avail');
+  const revenue=rows.reduce((a,r)=>a+(r.editions||[]).reduce((b,e)=>b+(e.status==='sold'?(Number(e.actual_price_krw)||Number(e.list_price_krw)||0):0),0),0);
   const fs=$('#fSold').value;
   $('#stats').innerHTML=`
     <div class="stat${fs===''?' on':''}" data-act="all"><span>전체 작품</span><b>${rows.length}점</b></div>
@@ -360,288 +400,242 @@ function renderGrid(list){
   lastList=list;
   $('#grid').className='grid'+(smallGrid?' small':'');
   $('#grid').innerHTML=list.length?list.map((r,i)=>{
-    const st=soldState(r),u=imgUrl(r,true);
+    const {state,sold,total}=saleSummary(r), u=imgUrl(r,true);
     return`<div class="card" data-idx="${i}">
       <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'">`:'<div class="noimg">🖼️</div>'}</div>
       <div class="meta">
-        <div class="no">${esc(r.no||'번호 미부여')}</div>
-        <div class="title">${esc(String(r.title).split('\n')[0])}</div>
-        <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}
-        <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}${r.qty!==''&&r.qty!=null?` · 판매 ${esc(r.sold_qty||0)}/${esc(r.qty)}`:''}</div>
+        <div class="no">${esc(r.work_no||'번호 미부여')}</div>
+        <div class="title">${esc(r.title_ko||'')}</div>
+        <span class="badge ${state}">${stateLabel(state)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}${r.publish_web?'':' <span class="badge nfs" title="홈페이지 비공개">🔒 비공개</span>'}
+        <div class="price">${fmtWon(r.list_price_krw)} · ${esc(r.year||'')} · ${esc(r.size_text||'')}${total>1?` · 판매 ${sold}/${total}`:''}</div>
       </div></div>`;
   }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
 }
 function renderTable(list){
   lastList=list;
   $('#tbody').innerHTML=list.map((r,i)=>{
-    const st=soldState(r);
+    const {state}=saleSummary(r);
+    const lastSold=(r.editions||[]).slice().reverse().find(e=>e.status==='sold');
     return`<tr data-idx="${i}">
-      <td>${esc(r.no||'—')}${isNewRow(r)?' <span class="badge new">NEW</span>':''}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${esc(r.year||'')}</td>
-      <td>${esc(r.size||'')}</td><td>${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)}</td>
-      <td><span class="badge ${st}">${soldLabel(st)}</span></td>
-      <td>${fmtWon(r.actual_price)}</td><td>${esc(r.sale_date||'')}</td><td>${esc(r.owner||'')}</td><td>${esc(r.channel||'')}</td><td class="wrap">${esc(r.note||'')}</td></tr>`;
+      <td>${esc(r.work_no||'—')}${isNewRow(r)?' <span class="badge new">NEW</span>':''}</td><td class="wrap">${esc(r.title_ko||'')}</td><td>${esc(r.year||'')}</td>
+      <td>${esc(r.size_text||'')}</td><td>${fmtWon(r.list_price_krw)}</td>
+      <td><span class="badge ${state}">${stateLabel(state)}</span></td>
+      <td>${lastSold?fmtWon(lastSold.actual_price_krw):''}</td><td>${lastSold?esc(lastSold.sale_date||''):''}</td><td>${lastSold?esc(lastSold.collector_name||''):''}</td><td>${lastSold?esc(lastSold.sales_channel||''):''}</td><td class="wrap">${esc(r.internal_note||'')}</td></tr>`;
   }).join('');
 }
 
-/* ---------- 상세 ---------- */
-function fmtDiscount(v){
-  if(v===''||v==null||v==='-')return v||'';
-  const n=Number(v);
-  return isNaN(n)?v:Math.round(n*100)+'%';
-}
+/* ---------- 상세 + 에디션 ---------- */
 function openDetail(r){
   current=r;if(!current)return;
-  $('#dNo').textContent=current.no||'번호 미부여 (등록 예정)';
+  $('#dNo').textContent=current.work_no||'번호 미부여 (등록 예정)';
   const u=imgUrl(current,false);
-  $('#btnDel').style.display=soldState(current)==='planned'?'':'none';
+  $('#btnDel').style.display='';
+  const fields=[
+    ['kind',KIND_LABEL[current.kind]||current.kind],['title_en',current.title_en],
+    ['caption_ko',current.caption_ko],['caption_en',current.caption_en],
+    ['material_ko',current.material_ko],['material_en',current.material_en],
+    ['year',current.year],['size_text',current.size_text],
+    ['work_state',STATE_LABEL[current.work_state]||current.work_state],
+    ['list_price_krw',fmtWon(current.list_price_krw)],['edition_size',current.edition_size],
+    ['series_key',current.series_key],['publish_web',current.publish_web?'공개':'비공개'],
+    ['internal_note',current.internal_note]
+  ].filter(([k,v])=>v!==''&&v!=null);
   $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
-    '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no'&&!(['qty','sold_qty'].includes(k)&&current[k]==='')).map(k=>{
-      let v=current[k];
-      if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
-      else if(k==='discount')v=esc(fmtDiscount(v));
-      else v=esc(v);
-      return`<dt>${LABELS[k]}</dt><dd>${v}</dd>`}).join('')+
-    '<dt id="dExAutoLabel" style="display:none">🗓 등록된 전시 (자동)</dt><dd id="dExAuto"></dd>'+
-    '</dl>';
+    '<dl class="kv">'+fields.map(([k,v])=>`<dt>${LABELS[k]||k}</dt><dd>${esc(v)}</dd>`).join('')+'</dl>'+
+    '<div style="display:flex;align-items:center;margin-top:16px;gap:8px">'+
+      '<strong>에디션 ('+(current.editions?current.editions.length:0)+'/'+(current.edition_size||1)+')</strong>'+
+      '<button type="button" class="btn" id="btnEdAdd" style="margin-left:auto">＋ 에디션 추가</button>'+
+    '</div>'+
+    '<div class="ed-list" id="edList"></div>';
+  renderEditionList();
+  $('#btnEdAdd').onclick=()=>openEditionForm({},true);
   dlgDetail.showModal();
   $('#dBody').scrollTop=0;
-  const no=current.no;
-  ensureEx().then(()=>{
-    if(current!==r)return; // 그 사이 다른 작품 열었으면 무시
-    const html=exAutoListInner(no);
-    if(html){ $('#dExAutoLabel').style.display=''; $('#dExAuto').innerHTML=html; }
-  }).catch(()=>{});
 }
+function renderEditionList(){
+  const eds=current.editions||[];
+  $('#edList').innerHTML=eds.length?eds.map((e,i)=>`
+    <div class="ed-row">
+      <b>#${e.edition_number??'-'}</b>
+      <span class="badge ${e.status==='available'?'avail':e.status==='sold'?'sold':e.status==='reserved'?'planned':'nfs'}">${SALE_LABEL[e.status]||e.status}</span>
+      <span>${fmtWon(e.actual_price_krw||e.list_price_krw)}</span>
+      ${e.collector_name?`<span class="hint">${esc(e.collector_name)}</span>`:''}
+      <button type="button" class="btn" data-ededit="${i}">✏️</button>
+    </div>`).join(''):'<div class="hint">등록된 에디션이 없습니다</div>';
+  document.querySelectorAll('#edList [data-ededit]').forEach(b=>b.onclick=()=>openEditionForm(eds[+b.dataset.ededit],false));
+}
+function openEditionForm(ed,neu){
+  const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  $('#edTitle').textContent=neu?'에디션 추가':`에디션 #${ed.edition_number} 수정`;
+  const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
+  const nextNum=neu?((current.editions||[]).reduce((m,e)=>Math.max(m,e.edition_number||0),0)+1):ed.edition_number;
+  $('#edBody').innerHTML=
+    F('에디션 번호',`<input name="edition_number" type="number" min="1" value="${esc(nextNum)}">`)+
+    F('판매상태',`<select name="status">${Object.entries(SALE_LABEL).map(([k,v])=>`<option value="${k}"${(ed.status||'available')===k?' selected':''}>${v}</option>`).join('')}</select>`)+
+    F('기본 판매가',`<input name="list_price_krw" class="comma" inputmode="numeric" value="${esc(fmtComma(ed.list_price_krw??current.list_price_krw))}">`)+
+    F('실거래가',`<input name="actual_price_krw" class="comma" inputmode="numeric" value="${esc(fmtComma(ed.actual_price_krw))}">`)+
+    F('할인률',`<input name="discount_rate" value="${esc(ed.discount_rate?Math.round(ed.discount_rate*100)+'%':'')}" placeholder="예: 20%">`,'백분율로 입력')+
+    F('결제방식',`<input name="payment_method" value="${esc(ed.payment_method)}">`)+
+    F('판매경로',`<input name="sales_channel" value="${esc(ed.sales_channel)}">`)+
+    F('소장자',`<input name="collector_name" value="${esc(ed.collector_name)}">`)+
+    F('판매일자',`<input name="sale_date" type="date" value="${toISO(ed.sale_date)}">`)+
+    F('작품인도일',`<input name="delivery_date" type="date" value="${toISO(ed.delivery_date)}">`)+
+    F('보증서 번호',`<input name="coa_no" value="${esc(ed.coa_no)}">`)+
+    F('비고',`<textarea name="internal_note">${esc(ed.internal_note)}</textarea>`);
+  document.querySelectorAll('#edBody input.comma').forEach(el=>el.addEventListener('input',()=>{
+    const raw=el.value.replace(/,/g,'');if(/^\d+$/.test(raw))el.value=Number(raw).toLocaleString('ko-KR');
+  }));
+  $('#btnDeleteEdition').style.display=neu?'none':'';
+  dlgEdition._editing=neu?null:ed;
+  dlgEdition.showModal();
+}
+$('#editionForm').onsubmit=async e=>{
+  e.preventDefault();
+  const g=n=>{const el=document.querySelector(`#edBody [name="${n}"]`);return el?el.value.trim():''};
+  const rec={work_id:current.id, edition_number:parseInt(g('edition_number'),10)||1, status:g('status'),
+    payment_method:g('payment_method')||null, sales_channel:g('sales_channel')||null,
+    collector_name:g('collector_name')||null, sale_date:g('sale_date')||null, delivery_date:g('delivery_date')||null,
+    coa_no:g('coa_no')||null, internal_note:g('internal_note')||null};
+  ['list_price_krw','actual_price_krw'].forEach(k=>{const raw=g(k).replace(/,/g,'');rec[k]=raw?Number(raw):null});
+  {const d=g('discount_rate').replace('%','');const n=parseFloat(d);rec.discount_rate=(d!==''&&!isNaN(n))?(n>1?n/100:n):null}
+  const editing=dlgEdition._editing;
+  try{
+    if(editing){
+      const{error}=await sb.from('editions').update(rec).eq('id',editing.id);
+      if(error)throw error;
+    }else{
+      const{error}=await sb.from('editions').insert(rec);
+      if(error)throw error;
+    }
+    toast('저장되었습니다');
+    dlgEdition.close();
+    await load();
+    const fresh=rows.find(x=>x.id===current.id);
+    if(fresh){openDetail(fresh);}
+  }catch(err){toast('오류: '+err.message)}
+};
+$('#btnDeleteEdition').onclick=async()=>{
+  const editing=dlgEdition._editing; if(!editing)return;
+  if(!confirm(`에디션 #${editing.edition_number}을(를) 삭제할까요?`))return;
+  try{
+    const{error}=await sb.from('editions').update({deleted_at:new Date().toISOString()}).eq('id',editing.id);
+    if(error)throw error;
+    toast('삭제되었습니다');
+    dlgEdition.close();
+    await load();
+    const fresh=rows.find(x=>x.id===current.id);
+    if(fresh){openDetail(fresh);}
+  }catch(e){toast('오류: '+e.message)}
+};
+$('#btnCloseEdition').onclick=()=>dlgEdition.close();
+$('#btnCancelEdition').onclick=()=>dlgEdition.close();
+dlgEdition.addEventListener('click',e=>{if(e.target===dlgEdition)dlgEdition.close()});
 
-/* ---------- 수정/등록 폼 ---------- */
-function suggestNo(yr,prefix){
+/* ---------- 작품 수정/등록 폼 ---------- */
+function suggestNo(yr,kind){
   yr=String(yr||new Date().getFullYear());
-  prefix=prefix||'HD'; // 'HD' 일반 작품, 'HDT' 아트토이, 'ER' 이벤트 리워드
+  const prefix=KIND_PREFIX[kind]||'HD';
   const re=new RegExp('^'+prefix+'-(\\d{4})-(\\d+)$');
-  const nums=rows.map(r=>{const m=String(r.no).trim().match(re);return m&&m[1]===yr?+m[2]:0});
+  const nums=rows.map(r=>{const m=String(r.work_no).trim().match(re);return m&&m[1]===yr?+m[2]:0});
   return `${prefix}-${yr}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`;
-}
-function prefixOf(no){
-  no=String(no||'').trim();
-  if(no.startsWith('HDT-'))return'HDT';
-  if(no.startsWith('ER-'))return'ER';
-  return'HD';
 }
 function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
   if(!vals.length)return'';
   return`<select class="pick" data-fill="${key}"><option value="">── 기존 값에서 선택 ──</option>${
-    vals.map((v,i)=>`<option value="${i}">${esc(v.split('\n')[0].slice(0,60))}${v.includes('\n')?' …':''}</option>`).join('')}</select>`;
+    vals.map((v,i)=>`<option value="${i}">${esc(v.slice(0,60))}</option>`).join('')}</select>`;
 }
 const PICK_VALS={};
 function openEdit(r,neu){
-  isNew=neu; exLines=String(r.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean);
-  PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size'); PICK_VALS.payment=uniqueVals('payment');
-  const exAll=uniqueExLines();
-  const tparts=String(r.title||'').split('\n');
-  const tko=tparts[0]||'', ten=tparts.slice(1).join('\n');
-  $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
+  isNew=neu;
+  PICK_VALS.material_ko=uniqueVals('material_ko'); PICK_VALS.size_text=uniqueVals('size_text');
+  $('#eTitle').textContent=neu?'새 작품 등록':`${r.work_no} 수정`;
 
   const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
   const curImg=imgUrl(r,true);
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
-  const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
-  const isExisting=!neu&&!!String(r.no).trim(); // 기존 작품 여부 (연도·유형 변경 시 자동 재채번을 막는 기준)
-  const curPrefix=prefixOf(r.no);
-  const loadCandidates=rows.filter(x=>String(x.title).trim()).slice()
-    .sort((a,b)=>String(a.title).split('\n')[0].localeCompare(String(b.title).split('\n')[0],'ko'));
   $('#eBody').innerHTML=
-    F('작품 유형',`<select name="notype"${isExisting?' disabled':''}>
-        <option value="HD"${curPrefix==='HD'?' selected':''}>일반 작품 (HD-)</option>
-        <option value="HDT"${curPrefix==='HDT'?' selected':''}>아트토이 (HDT-)</option>
-        <option value="ER"${curPrefix==='ER'?' selected':''}>이벤트 리워드 (ER-)</option>
-      </select>`, isExisting?'':'유형별로 따로 채번됩니다')+
-    (neu?F('기존 작품에서 불러오기',
-      `<select id="loadFrom"><option value="">── 작품명으로 불러오기 ──</option>${
-        loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
-      '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
-    F(LABELS.no,`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
-    F(LABELS.image,
-      `<div class="imgupload">
-        ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
-        <input type="file" id="fFile" accept="image/*" style="width:auto">
-      </div>
-      <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 선택하면 자동으로 드라이브에 업로드됩니다">`,
-      '사진 선택 → 구글드라이브 자동 저장. 파일명(저장소 images 폴더)이나 이미지 URL 직접 입력도 가능')+
-    F('작품명 (한글)',`<input name="title_ko" value="${esc(tko)}">`)+
-    F('작품명 (영문)',`<input name="title_en" value="${esc(ten)}">`)+
-    F(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`)+
-    F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
-    F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
+    F(LABELS.kind,`<select name="kind">${Object.entries(KIND_LABEL).map(([k,v])=>`<option value="${k}"${(r.kind||'artwork')===k?' selected':''}>${v} (${KIND_PREFIX[k]}-)</option>`).join('')}</select>`)+
+    F(LABELS.work_no,`<input name="work_no" value="${esc(r.work_no)}">`, neu?'비워두면 유형·연도 기준으로 자동 제안합니다':'다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
+    F(LABELS.image_file,
+      `${curImg?`<img src="${esc(curImg)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-bottom:6px">`:''}
+      <input name="image_file" value="${esc(r.image_file)}" placeholder="drive:파일ID">`,
+      '이미지 업로드 버튼은 다음 라운드(Storage 전환)에서 지원됩니다 — 지금은 참조값을 직접 입력하세요')+
+    F('작품명 (한글)',`<input name="title_ko" value="${esc(r.title_ko)}">`)+
+    F('작품명 (영문)',`<input name="title_en" value="${esc(r.title_en)}">`)+
+    F(LABELS.caption_ko,`<textarea name="caption_ko">${esc(r.caption_ko)}</textarea>`)+
+    F(LABELS.caption_en,`<textarea name="caption_en">${esc(r.caption_en)}</textarea>`)+
+    F(LABELS.material_ko,pickHTML('material_ko',PICK_VALS.material_ko)+`<input name="material_ko" value="${esc(r.material_ko)}">`)+
+    F(LABELS.material_en,`<input name="material_en" value="${esc(r.material_en)}">`)+
     F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
-    F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
-    F(LABELS.qty,`<input name="qty" type="number" min="0" value="${esc(r.qty)}">`,'아트토이 총 제작 수량','toyonly')+
-    F(LABELS.sold_qty,`<input name="sold_qty" type="number" min="0" value="${esc(r.sold_qty)}">`,'지금까지 판매된 개수','toyonly')+
-    F(LABELS.sold,`<select name="sold">
-        <option value=""${soldState(r)==='avail'?' selected':''}>판매가능</option>
-        <option value="●"${r.sold==='●'?' selected':''}>● 판매완료</option>
-        <option value="NFS"${String(r.sold).toUpperCase()==='NFS'?' selected':''}>NFS (비매)</option>
-        <option value="등록 예정"${soldState(r)==='planned'?' selected':''}>등록 예정</option>
-      </select>`)+
-    F(LABELS.discount,`<input name="discount" value="${esc(fmtPct(r.discount))}" placeholder="예: 20%">`,'백분율로 입력 (20% 또는 20)')+
-    F(LABELS.actual_price,`<input name="actual_price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.actual_price))}">`)+
-    F(LABELS.payment,pickHTML('payment',PICK_VALS.payment)+`<input name="payment" value="${esc(r.payment)}">`)+
-    F(LABELS.sale_date,`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`)+
-    F(LABELS.delivery_date,`<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`)+
-    F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
-    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
-    F(LABELS.exhibitions,
-      `<div id="exList"></div>
-       <div class="exadd">
-         <input type="date" id="exStart" title="시작일"><input type="date" id="exEnd" title="종료일">
-         <input type="text" id="exName" placeholder="전시명, 장소, 도시, 국가">
-         <button type="button" class="btn" id="exAddBtn">추가</button>
-       </div>
-       ${exAll.length?`<select class="pick" id="exPick" style="margin-top:6px"><option value="">── 기존 전시 이력에서 추가 ──</option>${exAll.map((v,i)=>`<option value="${i}">${esc(v.slice(0,70))}</option>`).join('')}</select>`:''}`,
-      '새 전시는 날짜 선택 후 전시명 입력 → [추가]')+
-    F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
+    F(LABELS.size_text,pickHTML('size_text',PICK_VALS.size_text)+`<input name="size_text" value="${esc(r.size_text)}">`)+
+    F(LABELS.work_state,`<select name="work_state">${Object.entries(STATE_LABEL).map(([k,v])=>`<option value="${k}"${(r.work_state||'planned')===k?' selected':''}>${v}</option>`).join('')}</select>`)+
+    F(LABELS.list_price_krw,`<input name="list_price_krw" class="comma" inputmode="numeric" value="${esc(fmtComma(r.list_price_krw))}">`)+
+    F(LABELS.edition_size,`<input name="edition_size" type="number" min="1" value="${esc(r.edition_size||1)}">`,neu?'총 에디션(제작) 수 — 유일 작품은 1. 등록 시 이 수만큼 에디션이 자동 생성됩니다':'기존 에디션 목록은 상세보기에서 개별 관리합니다')+
+    F(LABELS.series_key,`<input name="series_key" value="${esc(r.series_key)}">`,'같은 값을 쓰면 홈페이지에서 시리즈로 묶입니다')+
+    F(LABELS.publish_web,`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="publish_web" ${r.publish_web!==false?'checked':''} style="width:auto"> 홈페이지에 공개</label>`)+
+    F(LABELS.audio_master,`<input name="audio_master" value="${esc(r.audio_master)}">`)+
+    F(LABELS.internal_note,`<textarea name="internal_note">${esc(r.internal_note)}</textarea>`);
 
-  renderExList();
-  // 기존 값 선택 → 채우기
   document.querySelectorAll('#eBody select.pick[data-fill]').forEach(s=>s.onchange=()=>{
     if(s.value==='')return;
     const el=document.querySelector(`#eBody [name="${s.dataset.fill}"]`);
     el.value=PICK_VALS[s.dataset.fill][+s.value]; s.value='';
   });
-  const exPick=$('#exPick');
-  if(exPick){const all=exAll;exPick.onchange=()=>{if(exPick.value==='')return;const l=all[+exPick.value];if(!exLines.includes(l))exLines.unshift(l);renderExList();exPick.value=''}}
-  $('#exAddBtn').onclick=()=>{
-    const s=$('#exStart').value,e=$('#exEnd').value,n=$('#exName').value.trim();
-    if(!s||!n){toast('시작일과 전시명을 입력하세요');return}
-    const f=d=>d.replaceAll('-','.');
-    const line=e?`${f(s)} – ${e.slice(0,4)===s.slice(0,4)?f(e).slice(5):f(e)}  ${n}`:`${f(s)}  ${n}`;
-    exLines.unshift(line);renderExList();
-    $('#exStart').value='';$('#exEnd').value='';$('#exName').value='';
-  };
-  // 판매가격·실거래가 콤마 자동 표기
   document.querySelectorAll('#eBody input.comma').forEach(el=>el.addEventListener('input',()=>{
     const raw=el.value.replace(/,/g,'');
     if(/^\d+$/.test(raw))el.value=Number(raw).toLocaleString('ko-KR');
   }));
-  // 판매여부 변경: 등록 예정 ↔ 번호 부여 규칙
-  const soldSel=document.querySelector('#eBody [name=sold]');
-  const noEl=document.querySelector('#eBody [name=no]');
-  const typeSel=document.querySelector('#eBody [name=notype]');
-  soldSel.onchange=()=>{
-    if(soldSel.value==='등록 예정'){
-      if(!isExisting){noEl.value='';toast('등록 예정 작품은 번호가 부여되지 않습니다')}
-    }else if(!noEl.value.trim()){
-      noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
-      toast('작품번호 부여: '+noEl.value);
-    }
-  };
-  if(neu&&soldState(r)==='planned')noEl.value='';
-  // 연도·유형 변경 시 자동 채번 (신규 등록에서만, 등록 예정이 아닐 때)
-  const resuggest=()=>{
-    if(!isExisting&&soldSel.value!=='등록 예정')noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
-  };
-  // 수량·판매개수는 아트토이(또는 값이 이미 있는 작품)에만 표시
-  const updateToyRows=()=>{
-    const show=typeSel.value==='HDT'||(r.qty??'')!==''||(r.sold_qty??'')!=='';
-    document.querySelectorAll('#eBody .row.toyonly').forEach(d=>d.style.display=show?'':'none');
-  };
-  updateToyRows();
+  const kindSel=document.querySelector('#eBody [name=kind]');
+  const noEl=document.querySelector('#eBody [name=work_no]');
+  const resuggest=()=>{ if(neu&&!noEl.value.trim())noEl.value=suggestNo($('#fYearIn').value,kindSel.value); };
+  if(neu)resuggest();
   $('#fYearIn').oninput=resuggest;
-  typeSel.onchange=()=>{resuggest();updateToyRows()};
-  // 기존 작품에서 불러오기 (신규 등록 전용): 작품번호·사진을 제외한 모든 정보를 채움
-  const loadSel=$('#loadFrom');
-  if(loadSel)loadSel.onchange=()=>{
-    if(loadSel.value==='')return;
-    const src=loadCandidates[+loadSel.value];
-    loadSel.value='';
-    if(!src)return;
-    const q=n=>document.querySelector(`#eBody [name="${n}"]`);
-    const tp=String(src.title||'').split('\n');
-    q('title_ko').value=tp[0]||''; q('title_en').value=tp.slice(1).join('\n');
-    q('caption').value=src.caption||''; q('material').value=src.material||''; q('size').value=src.size||'';
-    $('#fYearIn').value=src.year||'';
-    q('price').value=fmtComma(src.price);
-    q('qty').value=src.qty||''; q('sold_qty').value=src.sold_qty||'';
-    q('sold').value=src.sold==='●'?'●':(String(src.sold).toUpperCase()==='NFS'?'NFS':(soldState(src)==='planned'?'등록 예정':''));
-    q('discount').value=fmtPct(src.discount);
-    q('actual_price').value=fmtComma(src.actual_price);
-    q('payment').value=src.payment||'';
-    q('sale_date').value=toISO(src.sale_date); q('delivery_date').value=toISO(src.delivery_date);
-    q('channel').value=src.channel||''; q('owner').value=src.owner||''; q('note').value=src.note||'';
-    exLines=String(src.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean); renderExList();
-    typeSel.value=prefixOf(src.no);
-    if(q('sold').value==='등록 예정')noEl.value='';
-    else noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
-    updateToyRows();
-    toast('작품 정보를 불러왔습니다 — 작품번호와 사진은 새로 입력하세요');
-  };
-  // 이미지 업로드
-  $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
+  kindSel.onchange=resuggest;
   dlgEdit.showModal();
   document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
-}
-function renderExList(){
-  $('#exList').innerHTML=exLines.map((l,i)=>`<div class="exline"><span>${esc(l)}</span><button type="button" data-exdel="${i}" title="삭제">✕</button></div>`).join('')||'<div class="hint">등록된 전시 이력이 없습니다</div>';
-  document.querySelectorAll('[data-exdel]').forEach(b=>b.onclick=()=>{exLines.splice(+b.dataset.exdel,1);renderExList()});
-}
-async function uploadImage(file){
-  if(!file)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
-  toast('이미지 압축 중…');
-  try{
-    const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
-    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataUrl});
-    const MAX=1600, sc=Math.min(1,MAX/Math.max(img.width,img.height));
-    const cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
-    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-    const jpeg=cv.toDataURL('image/jpeg',0.87);
-    const b64=jpeg.split(',')[1];
-    toast('드라이브에 업로드 중…');
-    const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'upload_image',token:token(),filename:no+'.jpg',mimeType:'image/jpeg',data:b64})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'업로드 실패');
-    $('#fImage').value='drive:'+j.id;
-    const p=$('#imgPrev');p.src=jpeg;p.style.display='';
-    toast('✅ 드라이브 업로드 완료');
-  }catch(e){toast('업로드 오류: '+e.message)}
 }
 
 /* ---------- 저장 ---------- */
 $('#editForm').onsubmit=async e=>{
   e.preventDefault();
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
-  const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value:''};
-  const rec={};
-  KEYS.forEach(k=>rec[k]=g(k));
-  const ko=g('title_ko').trim(), en=g('title_en').trim();
-  rec.title=en?ko+'\n'+en:ko;
-  rec.exhibitions=exLines.join('\n');
-  // 콤마 제거
-  ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
-  // 할인률: 20% | 20 → 0.2
-  {const d=String(rec.discount).trim().replace('%','');const n=parseFloat(d);
-   if(d!==''&&!isNaN(n))rec.discount=n>1?String(n/100):String(n)}
-  const planned=rec.sold==='등록 예정';
-  if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
-  if(!rec.title.trim()){toast('작품명을 입력하세요');return}
-  delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
-  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
-  // 다른 작품과 번호 중복 여부를 먼저 확인 (수정 시 번호를 직접 바꾼 경우 포함)
-  if(rec.no.trim()){
-    const dup=rows.find(x=>String(x.no).trim()===rec.no.trim()&&(isNew||x._row!==current._row));
-    if(dup){toast('이미 존재하는 작품번호입니다: '+rec.no.trim());return}
-  }
-  if(!isNew&&current&&current._row){
-    rec._row=current._row; // 번호 없는 행 수정용 위치 정보
-    rec._expect=String(current.title).split('\n')[0]; // 서버측 행 대조용 원래 제목
+  const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value.trim():''};
+  const gChk=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.checked:false};
+  const rec={
+    kind:g('kind'), work_no:g('work_no')||null,
+    title_ko:g('title_ko'), title_en:g('title_en')||null,
+    caption_ko:g('caption_ko')||null, caption_en:g('caption_en')||null,
+    material_ko:g('material_ko')||null, material_en:g('material_en')||null,
+    year:g('year')?parseInt(g('year'),10):null,
+    size_text:g('size_text')||null,
+    work_state:g('work_state'),
+    edition_size:parseInt(g('edition_size'),10)||1,
+    series_key:g('series_key')||null,
+    publish_web:gChk('publish_web'),
+    image_file:g('image_file')||null,
+    audio_master:g('audio_master')||null,
+    internal_note:g('internal_note')||null
+  };
+  {const raw=g('list_price_krw').replace(/,/g,''); rec.list_price_krw=raw?Number(raw):null;}
+  if(!rec.title_ko){toast('작품명(한글)을 입력하세요');return}
+  if(rec.work_no){
+    const dup=rows.find(x=>String(x.work_no).trim()===rec.work_no.trim()&&(isNew||x.id!==current.id));
+    if(dup){toast('이미 존재하는 작품번호입니다: '+rec.work_no);return}
   }
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'add':'update',token:token(),row:rec})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'저장 실패');
-    if(isNew)markNew(rec); // 이번 접속 동안 NEW 표시 + 맨 앞 배치
-    toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
+    if(isNew){
+      const{data,error}=await sb.from('works').insert(rec).select().single();
+      if(error)throw error;
+      markNew(data);
+      const eds=Array.from({length:rec.edition_size},(_,i)=>({work_id:data.id,edition_number:i+1,status:'available',list_price_krw:rec.list_price_krw}));
+      if(eds.length){const{error:e2}=await sb.from('editions').insert(eds); if(e2)throw e2;}
+      toast('작품이 등록되었습니다');
+    }else{
+      const{data,error}=await sb.from('works').update({...rec,version:(current.version||0)+1}).eq('id',current.id).eq('version',current.version).select();
+      if(error)throw error;
+      if(!data||!data.length){toast('⚠️ 다른 곳에서 먼저 수정되었습니다. 새로고침 후 다시 시도하세요');$('#btnSave').disabled=false;$('#btnSave').textContent='저장';return;}
+      toast('저장되었습니다');
+    }
     dlgEdit.close();await load();
   }catch(err){toast('오류: '+err.message)}
   $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
@@ -791,23 +785,23 @@ function initExPicker(){
   let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
   const syncHid=()=>{hid.value=sel.join(',');};
   const chip=no=>{
-    const w=rows.find(x=>String(x.no).trim()===no);
-    return`<span data-unpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
+    const w=rows.find(x=>String(x.work_no).trim()===no);
+    return`<span data-unpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title_ko:no)} ✕</span>`;
   };
   const card=w=>{
-    const no=String(w.no).trim(), on=sel.includes(no), u=imgUrl(w,true);
+    const no=String(w.work_no).trim(), on=sel.includes(no), u=imgUrl(w,true);
     return`<div data-pick="${esc(no)}" style="cursor:pointer;border:2px solid ${on?'var(--accent)':'var(--line)'};border-radius:8px;overflow:hidden;background:var(--card)">
       <div style="aspect-ratio:1/1;background:#f2f2f2 center/cover no-repeat;${u?`background-image:url('${u}')`:''}"></div>
       <div style="padding:5px 6px">
-        <div style="font-size:.72rem;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(w.title||'(제목 없음)')}</div>
+        <div style="font-size:.72rem;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(w.title_ko||'(제목 없음)')}</div>
         <div class="hint" style="font-size:.66rem">${esc(no)}</div>
       </div>
     </div>`;
   };
   const paint=()=>{
     const q=($('#exPickSearch').value||'').trim().toLowerCase();
-    const list=rows.filter(w=>String(w.no||'').trim())
-      .filter(w=>!q||String(w.title||'').toLowerCase().includes(q)||String(w.no||'').toLowerCase().includes(q));
+    const list=rows.filter(w=>String(w.work_no||'').trim())
+      .filter(w=>!q||String(w.title_ko||'').toLowerCase().includes(q)||String(w.work_no||'').toLowerCase().includes(q));
     $('#exPickSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 선택된 작품이 없습니다</span>';
     $('#exPickGrid').innerHTML=list.length?list.map(card).join(''):'<div class="hint" style="grid-column:1/-1">검색 결과가 없습니다</div>';
     document.querySelectorAll('#exPickGrid [data-pick]').forEach(el=>el.onclick=()=>{
@@ -930,14 +924,15 @@ $('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
 dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
 
 /* ---------- 엑셀 다운로드 ---------- */
+const XLSX_KEYS=['work_no','kind','title_ko','title_en','caption_ko','material_ko','year','size_text','work_state','list_price_krw','edition_size','publish_web','series_key','internal_note'];
 $('#btnXlsx').onclick=()=>{
-  const header=KEYS.map(k=>LABELS[k]);
-  const data=rows.map(r=>KEYS.map(k=>{
+  const header=XLSX_KEYS.map(k=>LABELS[k]||k);
+  const data=rows.map(r=>XLSX_KEYS.map(k=>{
     const v=r[k];
-    return(['price','actual_price','year','discount','qty','sold_qty'].includes(k)&&v!==''&&v!=null&&!isNaN(Number(v)))?Number(v):(v??'');
+    return(['year','list_price_krw','edition_size'].includes(k)&&v!==''&&v!=null&&!isNaN(Number(v)))?Number(v):(v??'');
   }));
   const ws=XLSX.utils.aoa_to_sheet([header,...data]);
-  ws['!cols']=KEYS.map(k=>({wch:['caption','exhibitions','note','title'].includes(k)?46:k==='no'?13:12}));
+  ws['!cols']=XLSX_KEYS.map(k=>({wch:['caption_ko','internal_note','title_ko'].includes(k)?46:k==='work_no'?13:12}));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'작품 아카이브');
   XLSX.writeFile(wb,`신해달_작품아카이브_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -981,20 +976,20 @@ $('#stats').onclick=e=>{
 $('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
 $('#btnDel').onclick=async()=>{
   if(!current)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
-  const t=String(current.title).split('\n')[0];
-  if(!confirm(`'${t}' 작품을 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  const t=current.title_ko||current.work_no;
+  if(!confirm(`'${t}' 작품을 삭제할까요?\n소프트 삭제라 DB에서 복구 가능합니다.`))return;
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'delete',token:token(),no:current.no,_row:current._row,expect:t})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'삭제 실패');
+    const{error}=await sb.from('works').update({deleted_at:new Date().toISOString()}).eq('id',current.id);
+    if(error)throw error;
     toast('삭제되었습니다');
     dlgDetail.close();await load();
   }catch(e){toast('오류: '+e.message)}
 };
 $('#btnAdd').onclick=()=>{
   const yr=new Date().getFullYear();
-  openEdit(Object.fromEntries(KEYS.map(k=>[k,k==='no'?suggestNo(yr):k==='year'?yr:''])),true);
+  openEdit({kind:'artwork',work_no:'',title_ko:'',title_en:'',caption_ko:'',caption_en:'',
+    material_ko:'',material_en:'',year:yr,size_text:'',work_state:'planned',list_price_krw:'',
+    edition_size:1,series_key:'',publish_web:true,image_file:'',audio_master:'',internal_note:''},true);
 };
 $('#btnSize').onclick=()=>{smallGrid=!smallGrid;$('#btnSize').textContent=smallGrid?'▤ 크게보기':'▦ 작게보기';render()};
 $('#btnCloseDetail').onclick=()=>dlgDetail.close();
@@ -1008,8 +1003,31 @@ updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 $('#setApi').value=localStorage.getItem('haedal_api')||'';$('#setToken').value=token();
-load();
-loadPress();
+
+/* ---------- 인증 (Supabase Auth) ---------- */
+let booted=false;
+function boot(){
+  if(booted)return; booted=true;
+  load();
+  loadPress();
+}
+$('#loginForm').onsubmit=async e=>{
+  e.preventDefault();
+  const email=$('#loginEmail').value.trim(), password=$('#loginPassword').value;
+  $('#loginErr').textContent='';
+  const btn=e.target.querySelector('button[type=submit]'); btn.disabled=true;
+  const{error}=await sb.auth.signInWithPassword({email,password});
+  btn.disabled=false;
+  if(error){$('#loginErr').textContent=error.message;return}
+  $('#loginGate').style.display='none';
+  boot();
+};
+$('#btnLogout').onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+(async function checkSession(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){ $('#loginGate').style.display='none'; boot(); }
+  else{ $('#loginGate').style.display='flex'; }
+})();
 </script>
 </body>
 </html>

@@ -478,7 +478,8 @@ async function saveExhibitionToDb(row, neu, cur){
     venue_en: textOrNull(row.venue_en),
     poster_url: textOrNull(row.poster_url),
     map_url: textOrNull(row.map_url),
-    featured_work_nos: textOrNull(row.featured_work_nos)
+    featured_work_nos: textOrNull(row.featured_work_nos),
+    about_selected: !!row.about_selected
   };
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -743,6 +744,7 @@ async function load(){
         title_en: e.title_en || '', venue_en: e.venue_en || '',
         poster_url: e.poster_url || '', map_url: e.map_url || '',
         featured_work_nos: e.featured_work_nos || '',
+        about_selected: !!e.about_selected,
         work_nos: members.join(','),
         _id: e.id, _version: e.version
       };
@@ -1261,6 +1263,7 @@ function exFormHtml(r,isNew){
     '사진을 선택하면 자동으로 업로드됩니다. 홈페이지 "Now on View" 카드의 배경 이미지로 흐릿하게 깔립니다')}
   ${F('찾아오는 길 (네이버맵 URL)',`<input name="map_url" value="${esc(r.map_url||'')}" placeholder="https://naver.me/… 또는 https://map.naver.com/…">`,'비워두면 홈페이지 카드에 이 링크가 노출되지 않습니다')}
   ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+  ${F('About 페이지 노출',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="about_selected"${r.about_selected?' checked':''}> 이 전시를 About "Selected Exhibitions"에 직접 노출</label>`,'체크된 전시가 하나라도 있으면 그 전시들만 표시되고, 하나도 없으면 최근 전시가 자동으로 표시됩니다')}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
     <button type="button" class="btn" id="btnExBack">← 목록</button>
@@ -1388,6 +1391,7 @@ function renderExForm(r,isNew){
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
     row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();
     row.venue_en = (($('#exBody [name=venue_en]')||{}).value||'').trim();
+    row.about_selected = !!(($('#exBody [name=about_selected]')||{}).checked);
     const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
     try{
       await saveExhibitionToDb(row, isNew, r);

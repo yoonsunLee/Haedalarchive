@@ -473,7 +473,6 @@ async function saveExhibitionToDb(row, neu, cur){
     start_date: dateOrNull(row.start_date),
     end_date: dateOrNull(row.end_date),
     type: KO_TO_EX_TYPE[String(row.type||'').trim()] || 'group',
-    docent_url: textOrNull(row.docent_url),
     note_public_ko: textOrNull(row.note_public),
     title_en: textOrNull(row.title_en),
     venue_en: textOrNull(row.venue_en),
@@ -740,7 +739,7 @@ async function load(){
         id: e.exhibition_no, title: e.title_ko, venue: e.venue_ko || '',
         start_date: e.start_date || '', end_date: e.end_date || '',
         type: EX_TYPE_KO[e.type] || e.type,
-        docent_url: e.docent_url || '', note_public: e.note_public_ko || '',
+        note_public: e.note_public_ko || '',
         title_en: e.title_en || '', venue_en: e.venue_en || '',
         poster_url: e.poster_url || '', map_url: e.map_url || '',
         featured_work_nos: e.featured_work_nos || '',
@@ -1204,7 +1203,7 @@ function exAutoListInner(no){
   if(!list.length)return'';
   return list.map(r=>`<div style="margin-bottom:4px">
       <strong>${esc(r.title)}</strong>${exBadge(r)}<br>
-      <span class="hint">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.docent_url?' · 🎧':''}</span>
+      <span class="hint">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}</span>
     </div>`).join('');
 }
 function exBadge(r){
@@ -1228,7 +1227,6 @@ function exListHtml(){
       </div>
       <div class="hint" style="margin-top:4px">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.type?' · '+esc(r.type):''}</div>
       ${r.work_nos?`<div class="hint" style="margin-top:2px">출품작: ${esc(r.work_nos)}</div>`:''}
-      ${r.docent_url?`<div class="hint" style="margin-top:2px">🎧 ${esc(r.docent_url)}</div>`:''}
       <div style="display:flex;gap:6px;margin-top:8px">
         <button class="btn" data-exedit="${esc(r.id)}">✏️ 수정</button>
         <button class="btn" data-exdel="${esc(r.id)}">🗑 삭제</button>
@@ -1254,7 +1252,6 @@ function exFormHtml(r,isNew){
     <div id="exFeatSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <div id="exFeatGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,
     '위 출품작 중 홈 화면 "Now on View" 카드에 보여줄 작품을 최대 5개까지 고르세요. 비워두면 출품작 선택 순서대로 앞의 5개가 자동 노출됩니다')}
-  ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
   ${F('포스터 이미지',
     `<div class="imgupload">
       <img class="imgpreview" id="exPosterPrev" style="display:none">
@@ -1386,7 +1383,7 @@ function renderExForm(r,isNew){
   $('#exPosterFile').onchange=()=>uploadExPoster($('#exPosterFile').files[0], r.id);
   $('#btnExSave').onclick=async()=>{
     const g=n=>$('#exBody [name='+n+']').value.trim();
-    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url'),featured_work_nos:g('featured_work_nos')};
+    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url'),featured_work_nos:g('featured_work_nos')};
     if(!row.title)return toast('전시명을 입력하세요');
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
     row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();

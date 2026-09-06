@@ -476,7 +476,9 @@ async function saveExhibitionToDb(row, neu, cur){
     docent_url: textOrNull(row.docent_url),
     note_public_ko: textOrNull(row.note_public),
     title_en: textOrNull(row.title_en),
-    venue_en: textOrNull(row.venue_en)
+    venue_en: textOrNull(row.venue_en),
+    poster_url: textOrNull(row.poster_url),
+    map_url: textOrNull(row.map_url)
   };
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -739,6 +741,7 @@ async function load(){
         type: EX_TYPE_KO[e.type] || e.type,
         docent_url: e.docent_url || '', note_public: e.note_public_ko || '',
         title_en: e.title_en || '', venue_en: e.venue_en || '',
+        poster_url: e.poster_url || '', map_url: e.map_url || '',
         work_nos: members.join(','),
         _id: e.id, _version: e.version
       };
@@ -1216,7 +1219,9 @@ function exFormHtml(r,isNew){
   return `
   ${F('전시 ID',`<input name="id" value="${esc(r.id||'')}" ${isNew?'placeholder="비우면 자동 생성"':'readonly'}>`)}
   ${F('전시명 *',`<input name="title" value="${esc(r.title||'')}">`)}
+  ${F('전시명 (영문)',`<input name="title_en" value="${esc(r.title_en||'')}">`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 제목이 대신 표시됩니다')}
   ${F('장소',`<input name="venue" value="${esc(r.venue||'')}">`)}
+  ${F('장소 (영문)',`<input name="venue_en" value="${esc(r.venue_en||'')}">`,'비워두면 한글 장소가 대신 표시됩니다')}
   ${F('시작일',`<input type="date" name="start_date" value="${esc(r.start_date||'')}">`)}
   ${F('종료일',`<input type="date" name="end_date" value="${esc(r.end_date||'')}">`)}
   ${F('출품작 선택',`<input type="hidden" name="work_nos" value="${esc(r.work_nos||'')}">
@@ -1224,6 +1229,8 @@ function exFormHtml(r,isNew){
     <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
     <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 선택한 순서대로 홈페이지 전시 모드에 노출됩니다')}
   ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
+  ${F('포스터 이미지 URL',`<input name="poster_url" value="${esc(r.poster_url||'')}" placeholder="https://…">`,'홈페이지 "Now on View" 카드의 배경 이미지로 흐릿하게 깔립니다')}
+  ${F('찾아오는 길 (네이버맵 URL)',`<input name="map_url" value="${esc(r.map_url||'')}" placeholder="https://naver.me/… 또는 https://map.naver.com/…">`,'비워두면 홈페이지 카드에 이 링크가 노출되지 않습니다')}
   ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
@@ -1294,7 +1301,7 @@ function renderExForm(r,isNew){
   $('#btnExBack').onclick=()=>renderExList();
   $('#btnExSave').onclick=async()=>{
     const g=n=>$('#exBody [name='+n+']').value.trim();
-    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public')};
+    const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url')};
     if(!row.title)return toast('전시명을 입력하세요');
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
     row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();
@@ -1309,7 +1316,7 @@ function renderExForm(r,isNew){
   };
 }
 /* ---------- Press ---------- */
-const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note','link_type','linked_exhibition_id'];
+const PRESS_KEYS=['no','outlet','date','title','title_en','url','quote','quote_en','image','note','link_type','linked_exhibition_id'];
 const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
 let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
 
@@ -1354,8 +1361,10 @@ function openPressEdit(r,neu){
     F(PRESS_LABELS.outlet,`<input name="outlet" value="${esc(r.outlet)}" placeholder="예: 코리안투데이">`)+
     F(PRESS_LABELS.date,`<input name="date" type="date" value="${toISO(r.date)}">`)+
     F(PRESS_LABELS.title,`<input name="title" value="${esc(r.title)}">`)+
+    F('기사 제목 (영문)',`<input name="title_en" value="${esc(r.title_en||'')}">`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 제목이 대신 표시됩니다')+
     F(PRESS_LABELS.url,`<input name="url" value="${esc(r.url)}" placeholder="https://…">`)+
     F(PRESS_LABELS.quote,`<textarea name="quote" placeholder="기사에서 고른 인상적인 한 줄">${esc(r.quote)}</textarea>`)+
+    F('인용구 (영문)',`<textarea name="quote_en" placeholder="Quote translated into English">${esc(r.quote_en||'')}</textarea>`,'비워두면 영문 모드에서 인용구가 표시되지 않습니다')+
     F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
     F('연결 대상',`<select name="link_type">
         <option value=""${!r.link_type?' selected':''}>없음</option>
@@ -1375,8 +1384,6 @@ $('#pressEditForm').onsubmit=async e=>{
   const g=n=>{const el=document.querySelector(`#peBody [name="${n}"]`);return el?el.value.trim():''};
   const rec={};PRESS_KEYS.forEach(k=>rec[k]=g(k));
   if(!pressIsNew)rec.no=pressCurrent.no; // 수정 시 번호는 읽기전용 필드값 그대로
-  rec.title_en = pressCurrent && !pressIsNew ? pressCurrent.title_en : '';
-  rec.quote_en = pressCurrent && !pressIsNew ? pressCurrent.quote_en : '';
   try{
     await savePressToDb(rec, pressIsNew, pressCurrent);
     toast(pressIsNew?'기사가 등록되었습니다':'저장되었습니다');

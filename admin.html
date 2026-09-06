@@ -1129,6 +1129,26 @@ async function uploadImage(file){
     toast('✅ 업로드 완료');
   }catch(e){toast('업로드 오류: '+e.message)}
 }
+async function uploadExPoster(file, exId){
+  if(!file)return;
+  toast('이미지 압축 중…');
+  try{
+    const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataUrl});
+    const MAX=1600, sc=Math.min(1,MAX/Math.max(img.width,img.height));
+    const cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+    const jpeg=cv.toDataURL('image/jpeg',0.87);
+    toast('업로드 중…');
+    const path='exhibitions/'+(exId||'new')+'/'+Date.now()+'.jpg';
+    const blob=await (await fetch(jpeg)).blob();
+    const up=await sb.storage.from('artwork-masters').upload(path, blob, { contentType:'image/jpeg', upsert:false });
+    if(up.error) throw up.error;
+    $('#exBody [name=poster_url]').value='sb:'+path;
+    const p=$('#exPosterPrev');p.src=jpeg;p.style.display='';
+    toast('✅ 업로드 완료');
+  }catch(e){toast('업로드 오류: '+e.message)}
+}
 
 /* ---------- 저장 ---------- */
 $('#editForm').onsubmit=async e=>{
@@ -1229,7 +1249,13 @@ function exFormHtml(r,isNew){
     <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
     <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 선택한 순서대로 홈페이지 전시 모드에 노출됩니다')}
   ${F('도슨트 URL',`<input name="docent_url" value="${esc(r.docent_url||'')}">`,'QR 도슨트 페이지 주소 (있으면 홈페이지에 🎧 링크 노출)')}
-  ${F('포스터 이미지 URL',`<input name="poster_url" value="${esc(r.poster_url||'')}" placeholder="https://…">`,'홈페이지 "Now on View" 카드의 배경 이미지로 흐릿하게 깔립니다')}
+  ${F('포스터 이미지',
+    `<div class="imgupload">
+      <img class="imgpreview" id="exPosterPrev" style="display:none">
+      <input type="file" id="exPosterFile" accept="image/*" style="width:auto">
+    </div>
+    <input type="hidden" name="poster_url" value="${esc(r.poster_url||'')}">`,
+    '사진을 선택하면 자동으로 업로드됩니다. 홈페이지 "Now on View" 카드의 배경 이미지로 흐릿하게 깔립니다')}
   ${F('찾아오는 길 (네이버맵 URL)',`<input name="map_url" value="${esc(r.map_url||'')}" placeholder="https://naver.me/… 또는 https://map.naver.com/…">`,'비워두면 홈페이지 카드에 이 링크가 노출되지 않습니다')}
   ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
@@ -1299,6 +1325,15 @@ function renderExForm(r,isNew){
   $('#exBody').innerHTML=exFormHtml(r,isNew);
   initExPicker();
   $('#btnExBack').onclick=()=>renderExList();
+  const posterVal=String(r.poster_url||'').trim();
+  if(posterVal.indexOf('sb:')===0){
+    sb.storage.from('artwork-masters').createSignedUrl(posterVal.slice(3), 3600).then(res=>{
+      if(res.data&&res.data.signedUrl){const p=$('#exPosterPrev');p.src=res.data.signedUrl;p.style.display='';}
+    });
+  }else if(posterVal){
+    const p=$('#exPosterPrev');p.src=posterVal;p.style.display='';
+  }
+  $('#exPosterFile').onchange=()=>uploadExPoster($('#exPosterFile').files[0], r.id);
   $('#btnExSave').onclick=async()=>{
     const g=n=>$('#exBody [name='+n+']').value.trim();
     const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public'),poster_url:g('poster_url'),map_url:g('map_url')};

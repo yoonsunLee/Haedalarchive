@@ -14,32 +14,39 @@
 const SHEET_ID = '14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU'; // 신해달 작품 아카이브 DB
 const BACKUP_FOLDER_ID = '1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4';    // 드라이브 '신해달 작품 아카이브' 폴더
 const IMAGES_FOLDER_ID = '14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH';    // 드라이브 images 폴더
-const PORTFOLIO_FOLDER_ID = '12W3G1HMwhbpcHS8uNijNutN3TdEeLJqq'; // 드라이브 portfolio 폴더
-const TOKEN = 'shinhaedal'; // ★★ 나만 아는 값으로 관리 중 — 바꾸지 마세요 ★★
+const TOKEN = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
 
+// audio_master/transcript_ko/transcript_en은 시트에 U~W열로 컬럼을 추가한 뒤에만 실제로 채워짐
+// title_en/caption_en/material_en은 X~Z열 (없어도 읽기/쓰기 자체는 안전 — 빈 값으로 처리됨)
 const KEYS = ['no','image','title','caption','material','size','year','price','sold',
   'discount','actual_price','payment','sale_date','delivery_date','channel','owner',
-  'exhibitions','note','qty','sold_qty'];
+  'exhibitions','note','qty','sold_qty','audio_master','transcript_ko','transcript_en',
+  'title_en','caption_en','material_en'];
 
 // 토큰 없이 조회할 때(=홈페이지·외부) 공개되는 필드. 판매가격(price)은 비공개 방침.
-const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','sold','exhibitions'];
+const PUBLIC_KEYS = ['no','image','title','caption','material','size','year','exhibitions',
+  'title_en','caption_en','material_en'];
 
-// 전시 시트 (없으면 자동 생성)
+// 전시 시트 (없으면 자동 생성) — title_en/venue_en은 J~K열
 const EX_SHEET = 'exhibitions';
-const EX_KEYS = ['id','title','venue','start_date','end_date','work_nos','docent_url','type','note_public'];
+const EX_KEYS = ['id','title','venue','start_date','end_date','work_nos','docent_url','type','note_public',
+  'title_en','venue_en'];
 
-// Press(기사) 시트 (없으면 자동 생성)
+// Press(기사) 시트 (없으면 자동 생성) — title_en/quote_en은 I~J열
 const PRESS_SHEET = 'Press';
-const PRESS_KEYS = ['no','outlet','date','title','url','quote','image','note'];
+const PRESS_KEYS = ['no','outlet','date','title','url','quote','image','note','title_en','quote_en'];
 
 function sheet_() {
-  return SpreadsheetApp.openById(SHEET_ID).getSheets()[0];
+  const sh = SpreadsheetApp.openById(SHEET_ID).getSheets()[0];
+  ensureColumns_(sh, KEYS, LABELS_WORK);
+  return sh;
 }
 
 function exSheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = ss.getSheetByName(EX_SHEET);
   if (!sh) { sh = ss.insertSheet(EX_SHEET); sh.appendRow(EX_KEYS); }
+  ensureColumns_(sh, EX_KEYS, LABELS_EX);
   return sh;
 }
 
@@ -47,6 +54,7 @@ function pressSheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = ss.getSheetByName(PRESS_SHEET);
   if (!sh) { sh = ss.insertSheet(PRESS_SHEET); sh.appendRow(PRESS_KEYS); }
+  ensureColumns_(sh, PRESS_KEYS, LABELS_PRESS);
   return sh;
 }
 
@@ -73,6 +81,68 @@ function readRows_(sh, keys, dateFmt, withRow) {
   return rows;
 }
 
+// 자동 생성되는 컬럼의 표시 이름. 여기 없는 키는 키 이름을 그대로 헤더로 쓴다.
+// title_en처럼 시트마다 뜻이 다른 키가 있으므로 시트별로 나눠 둔다
+// (한 벌로 공유하면 전시 시트에 '작품명(영문)'이 붙는 식의 혼동이 생긴다).
+const LABELS_WORK = {
+  audio_master: '오디오 원본', transcript_ko: '대본(한글)', transcript_en: '대본(영문)',
+  title_en: '작품명(영문)', caption_en: '캡션(영문)', material_en: '재료(영문)'
+};
+const LABELS_EX    = { title_en: '전시명(영문)', venue_en: '장소(영문)' };
+const LABELS_PRESS = { title_en: '기사제목(영문)', quote_en: '인용(영문)' };
+
+// 2026-09-05에 시트별 구분 없이 붙였던 라벨. 전시/Press 시트에 '작품명(영문)'이 잘못 들어갔다.
+// 이 값들만 자동 정정 대상으로 삼는다(사람이 직접 지은 헤더는 덮어쓰지 않도록).
+const MISLABELED_ = ['작품명(영문)'];
+
+/**
+ * 공용: 시트 컬럼 수가 KEYS보다 모자라면 자동으로 늘리고 비어있는 헤더만 채운다.
+ *
+ * 이 매핑은 헤더 이름이 아니라 '위치'로 동작하기 때문에, 사람이 시트에서 컬럼을 직접
+ * 추가하다가 순서를 틀리거나 중간에 끼워넣으면 기존 데이터가 통째로 밀려 어긋난다.
+ * 그래서 컬럼 생성은 사람이 아니라 이 함수가 담당한다.
+ * 이미 값이 있는 헤더는 절대 덮어쓰지 않는다(기존 한글 헤더 보존).
+ */
+function ensureColumns_(sh, keys, labels) {
+  labels = labels || {};
+  const need = keys.length;
+  const maxCols = sh.getMaxColumns();
+  if (maxCols < need) sh.insertColumnsAfter(maxCols, need - maxCols);
+  const header = sh.getRange(1, 1, 1, need).getValues()[0];
+  let changed = false;
+  for (let j = 0; j < need; j++) {
+    const cur = String(header[j] === null || header[j] === undefined ? '' : header[j]).trim();
+    const want = labels[keys[j]] || keys[j];
+    // 비어있으면 채운다. 또한 이 스크립트가 예전에 잘못 붙인 라벨이면 올바른 이름으로 정정한다
+    // (사람이 직접 지은 헤더는 건드리지 않기 위해, 정정 대상은 아래 목록으로 한정).
+    const isStaleAutoLabel = cur !== '' && cur !== want && MISLABELED_.indexOf(cur) !== -1;
+    if (cur === '' || isStaleAutoLabel) {
+      header[j] = want;
+      changed = true;
+    }
+  }
+  if (changed) sh.getRange(1, 1, 1, need).setValues([header]);
+}
+
+/**
+ * 공용: 기존 행 값을 보존하며 보내온 필드만 갱신한다.
+ *
+ * 이 함수가 없으면(=예전처럼 행 전체를 통째로 setValues 하면) 화면이 모르는 컬럼이
+ * 전부 ''로 지워진다. 실제로 관리자 화면의 KEYS는 sold_qty까지인데 백엔드 KEYS에는
+ * audio_master, transcript_ko, transcript_en, title_en, caption_en, material_en이
+ * 더 있어서, 작품을 한 번 수정하면 그 컬럼들이 조용히 날아가는 사고가 났다.
+ *
+ * 규칙: req.row에 키가 아예 없으면(undefined) = 화면이 그 필드를 모르는 것 → 기존값 유지.
+ *       빈 문자열('')이 왔으면 = 사용자가 의도적으로 지운 것 → 그대로 반영.
+ */
+function mergeRow_(sh, rowIndex, keys, incoming) {
+  const existing = sh.getRange(rowIndex, 1, 1, keys.length).getValues()[0];
+  return keys.map(function(k, j) {
+    if (incoming[k] === undefined) return existing[j] === undefined ? '' : existing[j];
+    return incoming[k];
+  });
+}
+
 /** 공용: id/no가 첫 컬럼인 시트에서 행 위치 찾기 (없으면 -1) */
 function findByFirstCol_(sh, val) {
   const values = sh.getDataRange().getValues();
@@ -81,25 +151,8 @@ function findByFirstCol_(sh, val) {
   return -1;
 }
 
-/** 조회: GET ?action=portfolio */
-function portfolioInfo_() {
-  const files = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).getFilesByType(MimeType.PDF);
-  let latest = null;
-  while (files.hasNext()) {
-    const f = files.next();
-    if (!latest || f.getLastUpdated() > latest.getLastUpdated()) latest = f;
-  }
-  if (!latest) return { ok: true, exists: false };
-  return {
-    ok: true, exists: true, id: latest.getId(), name: latest.getName(),
-    size: Math.round(latest.getSize() / 1048576 * 10) / 10,
-    updated: Utilities.formatDate(latest.getLastUpdated(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm')
-  };
-}
-
 /**
  * 조회
- *  GET ?action=portfolio                → 포트폴리오 PDF 정보
  *  GET ?sheet=exhibitions               → 전시 목록 (전 필드 공개 설계)
  *  GET ?sheet=press                     → Press(기사) 목록 (전 필드 공개 설계)
  *  GET ?action=list                     → 공개 필드만 (홈페이지 동기화용)
@@ -108,7 +161,6 @@ function portfolioInfo_() {
 function doGet(e) {
   try {
     const p = (e && e.parameter) || {};
-    if (p.action === 'portfolio') return json_(portfolioInfo_());
     if (p.sheet === 'exhibitions') {
       return json_({ ok: true, rows: readRows_(exSheet_(), EX_KEYS, 'yyyy-MM-dd', false) });
     }
@@ -172,7 +224,7 @@ function doPost(e) {
         const dup = findRow(no);
         if (dup !== -1 && dup !== r) return json_({ ok: false, error: '이미 존재하는 작품번호입니다: ' + no });
       }
-      sh.getRange(r, 1, 1, KEYS.length).setValues([KEYS.map(function(k){ return req.row[k] === undefined ? '' : req.row[k]; })]);
+      sh.getRange(r, 1, 1, KEYS.length).setValues([mergeRow_(sh, r, KEYS, req.row)]);
     } else if (req.action === 'delete') {
       const no = String(req.no || '').trim();
       let r = no ? findRow(no) : -1;
@@ -202,7 +254,7 @@ function doPost(e) {
       const id = String((req.row && req.row.id) || '').trim();
       const r = findByFirstCol_(sh2, id);
       if (r === -1) return json_({ ok: false, error: '수정할 전시를 찾을 수 없습니다: ' + id });
-      sh2.getRange(r, 1, 1, EX_KEYS.length).setValues([EX_KEYS.map(function(k){ return req.row[k] === undefined ? '' : req.row[k]; })]);
+      sh2.getRange(r, 1, 1, EX_KEYS.length).setValues([mergeRow_(sh2, r, EX_KEYS, req.row)]);
     } else if (req.action === 'ex_delete') {
       const sh2 = exSheet_();
       const id = String(req.id || '').trim();
@@ -225,19 +277,13 @@ function doPost(e) {
       const no = String((req.row && req.row.no) || '').trim();
       const r = findByFirstCol_(sh2, no);
       if (r === -1) return json_({ ok: false, error: '수정할 기사를 찾을 수 없습니다: ' + no });
-      sh2.getRange(r, 1, 1, PRESS_KEYS.length).setValues([PRESS_KEYS.map(function(k){ return req.row[k] === undefined ? '' : req.row[k]; })]);
+      sh2.getRange(r, 1, 1, PRESS_KEYS.length).setValues([mergeRow_(sh2, r, PRESS_KEYS, req.row)]);
     } else if (req.action === 'press_delete') {
       const sh2 = pressSheet_();
       const no = String(req.no || '').trim();
       const r = findByFirstCol_(sh2, no);
       if (r === -1) return json_({ ok: false, error: '삭제할 기사를 찾을 수 없습니다: ' + no });
       sh2.deleteRow(r);
-    } else if (req.action === 'upload_portfolio') {
-      const bytes = Utilities.base64Decode(req.data);
-      const blob = Utilities.newBlob(bytes, 'application/pdf', req.filename || ('portfolio_' + Date.now() + '.pdf'));
-      const file = DriveApp.getFolderById(PORTFOLIO_FOLDER_ID).createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      return json_(portfolioInfo_());
     } else if (req.action === 'link_image') {
       const no = String(req.no || '').trim();
       const r = findRow(no);
@@ -252,6 +298,21 @@ function doPost(e) {
       const file = DriveApp.getFolderById(IMAGES_FOLDER_ID).createFile(blob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       return json_({ ok: true, id: file.getId() });
+    } else if (req.action === 'publish') {
+      // 홈페이지 발행 트리거 — GitHub repository_dispatch로 shinhaedal 저장소의
+      // publish.yml(작품 발행 파이프라인)을 즉시 실행시킨다.
+      const ghToken = PropertiesService.getScriptProperties().getProperty('GITHUB_PAT');
+      if (!ghToken) return json_({ ok: false, error: 'GITHUB_PAT가 스크립트 속성에 설정되지 않았습니다' });
+      const resp = UrlFetchApp.fetch('https://api.github.com/repos/yoonsunLee/shinhaedal/dispatches', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { Authorization: 'Bearer ' + ghToken, Accept: 'application/vnd.github+json' },
+        payload: JSON.stringify({ event_type: 'archive-publish' }),
+        muteHttpExceptions: true
+      });
+      const code = resp.getResponseCode();
+      if (code !== 204) return json_({ ok: false, error: 'GitHub 요청 실패 (' + code + '): ' + resp.getContentText() });
+      return json_({ ok: true });
     } else {
       return json_({ ok: false, error: '알 수 없는 action: ' + req.action });
     }

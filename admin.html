@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>신해달 작품 아카이브</title>
+<title>신해달 작품 아카이브 (Supabase)</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<meta name="robots" content="noindex,nofollow,noarchive">
 <style>
 :root{
   --bg:#f7f5f1; --card:#ffffff; --ink:#1e2430; --sub:#6b7280; --line:#e5e1d8;
@@ -113,6 +115,20 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </style>
 </head>
 <body>
+
+<div id="loginGate" style="position:fixed;inset:0;z-index:9999;background:#f7f5f1;display:flex;align-items:center;justify-content:center">
+  <form id="loginForm" style="background:#fff;border:1px solid #e5e1d8;border-radius:14px;padding:28px 26px;width:min(360px,92vw);box-shadow:0 1px 3px rgba(30,36,48,.08),0 4px 16px rgba(30,36,48,.06)">
+    <div style="font-size:1.05rem;font-weight:600;margin-bottom:4px">신해달 작품 아카이브</div>
+    <div style="font-size:.82rem;color:#6b7280;margin-bottom:18px">관리자 로그인</div>
+    <label style="display:block;font-size:.8rem;color:#6b7280;margin-bottom:4px">이메일</label>
+    <input id="loginEmail" type="email" autocomplete="username" required style="width:100%;padding:9px 11px;border:1px solid #e5e1d8;border-radius:8px;margin-bottom:12px;font-size:.9rem">
+    <label style="display:block;font-size:.8rem;color:#6b7280;margin-bottom:4px">비밀번호</label>
+    <input id="loginPw" type="password" autocomplete="current-password" required style="width:100%;padding:9px 11px;border:1px solid #e5e1d8;border-radius:8px;margin-bottom:16px;font-size:.9rem">
+    <button type="submit" id="loginBtn" style="width:100%;padding:10px;border:none;border-radius:8px;background:#1a3c5e;color:#fff;font-size:.9rem;cursor:pointer">로그인</button>
+    <div id="loginMsg" style="font-size:.8rem;color:#b0453a;margin-top:10px;min-height:1.2em"></div>
+  </form>
+</div>
+
 <div class="app">
 <nav class="sidebar">
   <div class="sidebar-brand">🦦 신해달 아카이브</div>
@@ -199,22 +215,16 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
   <section id="vSettings" hidden>
     <div class="settings-box">
-      <h3>⚙️ 구글 시트 연동 설정</h3>
-      <p>구글 시트 연동 API가 내장되어 있어 조회는 자동으로 연결됩니다.<br>
-      <b>입력·수정을 하려면 이 기기에서 한 번 수정 비밀번호를 저장하세요.</b> URL 칸은 API를 재배포한 경우에만 바꾸면 됩니다.</p>
-      <div class="row">
-        <label>Apps Script 웹앱 URL (…/exec 로 끝나는 주소)</label>
-        <input id="setApi" placeholder="기본 내장 API 사용 중">
-      </div>
-      <div class="row">
-        <label>수정 비밀번호</label>
-        <input id="setToken" type="password" placeholder="Apps Script의 TOKEN과 동일하게">
-      </div>
-      <button class="btn primary" id="btnSaveSet">저장 후 연결 테스트</button>
+      <h3>⚙️ 계정</h3>
+      <p>이제 공유 비밀번호 대신 <b>내 계정으로 로그인</b>합니다.
+      로그인하지 않으면 데이터를 한 줄도 읽을 수 없습니다.</p>
+      <p style="margin:10px 0"><b id="setWho">확인 중…</b></p>
+      <button class="btn" id="btnCheckConn">연결 확인</button>
+      <button class="btn" id="btnLogout" style="color:var(--sold)">로그아웃</button>
       <p style="margin-top:16px" id="setStatus"></p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📰 Press 탭</h3>
-      <p>같은 스프레드시트의 <b>"Press"</b> 탭에 기사를 저장합니다 (탭이 없으면 첫 등록 시 자동으로 만들어져요).</p>
+      <p>언론 보도를 기록합니다. 홈페이지 Press 페이지에 그대로 반영됩니다.</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📁 바로가기</h3>
       <p>
@@ -260,7 +270,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <div id="toast"></div>
 
 <script>
-const DEFAULT_API='https://script.google.com/macros/s/AKfycbxpI_YNIOKVfk76Z_dVVN1oHlfnGfO0EJ9xEub2IxHOnNtdFKquHQDT8Xayzv1umQto/exec';
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
@@ -272,8 +281,365 @@ const rowKey=r=>String(r.no||'').trim()||String(r.title||'').trim();
 const isNewRow=r=>newKeys.includes(rowKey(r));
 function markNew(r){newKeys.push(rowKey(r));sessionStorage.setItem('haedal_new',JSON.stringify(newKeys))}
 const $=s=>document.querySelector(s);
-const api=()=>localStorage.getItem('haedal_api')||DEFAULT_API;
-const token=()=>localStorage.getItem('haedal_token')||'';
+/* ---------- Supabase 연결 ----------
+   anon(publishable) 키는 공개돼도 되는 값이다. 실제 보호는 RLS가 한다:
+   로그인하지 않으면 어떤 테이블도 읽거나 쓸 수 없다. */
+const SB_URL = 'https://nprtlonrdwwsmewrxotl.supabase.co';
+const SB_KEY = 'sb_publishable_HhORDROnuBf8iqPbjZKfUg_XOEAJ4L5';
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+});
+
+
+/* ---------- 쓰기 계층 ----------
+   화면은 여전히 '납작한 한 줄'을 다루지만, 저장할 때는 works와 editions로 나눠 넣는다.
+   판매·소장 정보는 works가 아니라 editions에 있다는 점이 핵심이다. */
+
+function numOrNull(v){
+  var s = String(v == null ? '' : v).replace(/,/g, '').trim();
+  if(s === '' || s === '-') return null;
+  return /^\d+$/.test(s) ? Number(s) : null;
+}
+function rateOrNull(v){
+  var s = String(v == null ? '' : v).trim().replace('%','');
+  if(s === '' || s === '-') return null;
+  var n = parseFloat(s);
+  if(isNaN(n)) return null;
+  if(n > 1) n = n / 100;
+  return (n >= 0 && n <= 1) ? Math.round(n * 1000) / 1000 : null;
+}
+function dateOrNull(v){
+  var s = String(v == null ? '' : v).trim();
+  if(!s || s === '-') return null;
+  var m = s.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/);
+  if(!m) return null;
+  var mo = +m[2], d = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return m[1] + '-' + ('0'+mo).slice(-2) + '-' + ('0'+d).slice(-2);
+}
+function textOrNull(v){
+  var s = String(v == null ? '' : v).trim();
+  return s === '' ? null : s;
+}
+/* 크기 원문은 그대로 두고, 뽑을 수 있으면 수치도 채운다. 'A1 (59.4 × 84.1)'는 괄호 안에서. */
+function parseSize(v){
+  var s = String(v == null ? '' : v).trim();
+  if(!s) return { text:null, w:null, h:null, d:null };
+  var target = s, paren = s.match(/\(([^)]*)\)/);
+  if(paren && /[×xX*]/.test(paren[1])) target = paren[1];
+  var parts = target.split(/\s*[×xX*]\s*/).map(function(x){ return x.trim(); });
+  var nums = [];
+  for(var i=0;i<parts.length;i++){
+    if(/^\d+(\.\d+)?$/.test(parts[i])) nums.push(parseFloat(parts[i]));
+    else { nums = []; break; }
+  }
+  if(nums.length === 2) return { text:s, w:nums[0], h:nums[1], d:null };
+  if(nums.length === 3) return { text:s, w:nums[0], h:nums[1], d:nums[2] };
+  return { text:s, w:null, h:null, d:null };
+}
+var SOLD_TO_STATUS = { '●':'sold', 'NFS':'nfs', '':'available' };
+
+/* 납작한 폼 값 → works 컬럼 */
+function recToWork(rec){
+  var sz = parseSize(rec.size);
+  var planned = String(rec.sold||'').trim() === '등록 예정';
+  return {
+    work_no: String(rec.no||'').trim(),
+    title_ko: String(rec.title||'').trim(),
+    title_en: textOrNull(rec.title_en),
+    caption_ko: textOrNull(rec.caption),
+    caption_en: textOrNull(rec.caption_en),
+    material_ko: textOrNull(rec.material),
+    material_en: textOrNull(rec.material_en),
+    year: numOrNull(rec.year),
+    size_text: sz.text, width_cm: sz.w, height_cm: sz.h, depth_cm: sz.d,
+    list_price_krw: numOrNull(rec.price),
+    internal_note: textOrNull(rec.note),
+    image_file: textOrNull(rec.image),
+    edition_size: Math.max(1, numOrNull(rec.qty) || 1),
+    work_state: planned ? 'planned' : 'completed'
+  };
+}
+/* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
+function recToEdition(rec){
+  var mark = String(rec.sold||'').trim();
+  return {
+    status: SOLD_TO_STATUS[mark] || 'available',
+    actual_price_krw: numOrNull(rec.actual_price),
+    discount_rate: rateOrNull(rec.discount),
+    payment_method: textOrNull(rec.payment),
+    sales_channel: textOrNull(rec.channel),
+    collector_name: textOrNull(rec.owner),
+    sale_date: dateOrNull(rec.sale_date),
+    delivery_date: dateOrNull(rec.delivery_date)
+  };
+}
+
+/* 저장 중 다른 곳에서 같은 행이 바뀌었으면 덮어쓰지 않고 멈춘다.
+   version은 트리거가 자동으로 올린다. */
+function conflictError(){
+  return new Error('이 작품이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+
+async function saveWorkToDb(rec, neu, cur){
+  var w = recToWork(rec);
+  if(!w.work_no && !(String(rec.sold||'').trim()==='등록 예정'))
+    throw new Error('작품번호를 입력하세요');
+  if(!w.title_ko) throw new Error('작품명을 입력하세요');
+
+  if(neu){
+    var ins = await sb.from('works').insert(w).select('id').single();
+    if(ins.error){
+      if(String(ins.error.message||'').indexOf('duplicate') >= 0)
+        throw new Error('이미 존재하는 작품번호입니다: ' + w.work_no);
+      throw ins.error;
+    }
+    var e = recToEdition(rec);
+    e.work_id = ins.data.id; e.edition_number = 1;
+    var ei = await sb.from('editions').insert(e);
+    if(ei.error) throw ei.error;
+    return;
+  }
+
+  // 수정: version이 그대로일 때만 반영된다(그 사이 바뀌었으면 0행 → 충돌)
+  var upd = await sb.from('works').update(w)
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0) throw conflictError();
+
+  var eds = cur._editions || [];
+  if(eds.length === 1){
+    // 유일작: 폼의 판매 정보가 그 한 점의 정보다
+    var eu = await sb.from('editions').update(recToEdition(rec))
+      .eq('id', eds[0].id).eq('version', eds[0].version).select('id');
+    if(eu.error) throw eu.error;
+    if(!eu.data || eu.data.length === 0) throw conflictError();
+  }
+  // 에디션이 여러 점이면 이 폼으로 건드리지 않는다(점마다 소장자·가격이 다르므로).
+  // 에디션 편집은 아래 전용 패널에서 한다.
+}
+
+async function softDeleteWork(cur){
+  var upd = await sb.from('works')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0) throw conflictError();
+}
+
+/* ---------- 전시 / Press 쓰기 ---------- */
+var KO_TO_EX_TYPE = { '개인전':'solo', '단체전':'group', '기획전':'curated',
+                      '아트페어':'art_fair', '특별전':'special', '팝업':'popup' };
+
+/* 전시의 출품작 목록은 이제 쉼표 문자열이 아니라 관계 테이블이다.
+   화면은 여전히 작품번호 목록을 주므로, 여기서 관계로 바꿔 넣는다. */
+async function syncExhibitionWorks(exId, workNos){
+  var wanted = String(workNos||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+
+  var wq = await sb.from('works').select('id, work_no').is('deleted_at', null);
+  if(wq.error) throw wq.error;
+  var idByNo = {}; (wq.data||[]).forEach(function(w){ idByNo[w.work_no] = w.id; });
+
+  var unknown = wanted.filter(function(n){ return !idByNo[n]; });
+  if(unknown.length) throw new Error('없는 작품번호: ' + unknown.join(', '));
+
+  var cq = await sb.from('exhibition_works').select('work_id').eq('exhibition_id', exId);
+  if(cq.error) throw cq.error;
+  var have = (cq.data||[]).map(function(r){ return r.work_id; });
+  var want = wanted.map(function(n){ return idByNo[n]; });
+
+  var toAdd = want.filter(function(id){ return have.indexOf(id) < 0; });
+  var toDel = have.filter(function(id){ return want.indexOf(id) < 0; });
+
+  if(toAdd.length){
+    var ins = await sb.from('exhibition_works').insert(toAdd.map(function(id, i){
+      return { exhibition_id: exId, work_id: id, display_order: have.length + i };
+    }));
+    if(ins.error) throw ins.error;
+  }
+  for(var i=0;i<toDel.length;i++){
+    var d = await sb.from('exhibition_works').delete()
+      .eq('exhibition_id', exId).eq('work_id', toDel[i]);
+    if(d.error) throw d.error;
+  }
+}
+
+async function saveExhibitionToDb(row, neu, cur){
+  var payload = {
+    exhibition_no: String(row.id||'').trim() || null,
+    title_ko: String(row.title||'').trim(),
+    venue_ko: textOrNull(row.venue),
+    start_date: dateOrNull(row.start_date),
+    end_date: dateOrNull(row.end_date),
+    type: KO_TO_EX_TYPE[String(row.type||'').trim()] || 'group',
+    docent_url: textOrNull(row.docent_url),
+    note_public_ko: textOrNull(row.note_public),
+    title_en: textOrNull(row.title_en),
+    venue_en: textOrNull(row.venue_en)
+  };
+  if(!payload.title_ko) throw new Error('전시명을 입력하세요');
+
+  var exId;
+  if(neu){
+    if(!payload.exhibition_no){
+      // EX-연도-일련번호 자동 채번
+      var yr = (payload.start_date || new Date().toISOString()).slice(0,4);
+      var ex = await sb.from('exhibitions').select('exhibition_no')
+                       .like('exhibition_no', 'EX-' + yr + '-%');
+      if(ex.error) throw ex.error;
+      var mx = 0;
+      (ex.data||[]).forEach(function(r){
+        var m = String(r.exhibition_no).match(/-(\d+)$/);
+        if(m) mx = Math.max(mx, parseInt(m[1], 10));
+      });
+      payload.exhibition_no = 'EX-' + yr + '-' + ('0' + (mx+1)).slice(-2);
+    }
+    var ins = await sb.from('exhibitions').insert(payload).select('id').single();
+    if(ins.error){
+      if(String(ins.error.message||'').indexOf('duplicate') >= 0)
+        throw new Error('이미 존재하는 전시 ID입니다: ' + payload.exhibition_no);
+      throw ins.error;
+    }
+    exId = ins.data.id;
+  }else{
+    var upd = await sb.from('exhibitions').update(payload)
+      .eq('id', cur._id).eq('version', cur._version).select('id');
+    if(upd.error) throw upd.error;
+    if(!upd.data || upd.data.length === 0)
+      throw new Error('이 전시가 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+    exId = cur._id;
+  }
+  await syncExhibitionWorks(exId, row.work_nos);
+}
+
+/* 전시도 소프트 삭제. 출품 관계는 함께 정리한다(전시가 없어지면 그 관계도 의미가 없다). */
+async function softDeleteExhibition(cur){
+  var d = await sb.from('exhibition_works').delete().eq('exhibition_id', cur._id);
+  if(d.error) throw d.error;
+  var upd = await sb.from('exhibitions')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0)
+    throw new Error('이 전시가 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+
+async function savePressToDb(rec, neu, cur){
+  var payload = {
+    press_no: String(rec.no||'').trim() || null,
+    outlet_ko: String(rec.outlet||'').trim(),
+    published_date: dateOrNull(rec.date),
+    title_ko: String(rec.title||'').trim(),
+    title_en: textOrNull(rec.title_en),
+    quote_ko: textOrNull(rec.quote),
+    quote_en: textOrNull(rec.quote_en),
+    url: textOrNull(rec.url),
+    image_source_url: textOrNull(rec.image),
+    byline: textOrNull(rec.note)
+  };
+  if(!payload.title_ko) throw new Error('기사 제목을 입력하세요');
+  if(!payload.outlet_ko) throw new Error('매체명을 입력하세요');
+  if(payload.url && !/^https?:\/\//i.test(payload.url))
+    throw new Error('기사 링크는 http(s)로 시작해야 합니다');
+
+  if(neu){
+    if(!payload.press_no){
+      var yr = (payload.published_date || new Date().toISOString()).slice(0,4);
+      var pq = await sb.from('press').select('press_no').like('press_no', 'PR-' + yr + '-%');
+      if(pq.error) throw pq.error;
+      var mx = 0;
+      (pq.data||[]).forEach(function(r){
+        var m = String(r.press_no).match(/-(\d+)$/);
+        if(m) mx = Math.max(mx, parseInt(m[1], 10));
+      });
+      payload.press_no = 'PR-' + yr + '-' + ('00' + (mx+1)).slice(-3);
+    }
+    var ins = await sb.from('press').insert(payload);
+    if(ins.error){
+      if(String(ins.error.message||'').indexOf('duplicate') >= 0)
+        throw new Error('이미 존재하는 번호입니다: ' + payload.press_no);
+      throw ins.error;
+    }
+    return;
+  }
+  var upd = await sb.from('press').update(payload)
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0)
+    throw new Error('이 기사가 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+
+async function softDeletePress(cur){
+  var upd = await sb.from('press')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0)
+    throw new Error('이 기사가 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+
+
+
+const EX_TYPE_KO = { solo:'개인전', group:'단체전', curated:'기획전',
+                     art_fair:'아트페어', special:'특별전', popup:'팝업' };
+const SOLD_MARK = { sold:'●', nfs:'NFS', available:'', reserved:'' };
+
+/* 옛 화면 코드가 기대하는 납작한 행 모양으로 되돌린다.
+   판매 정보는 editions로 내려갔으므로 여기서 다시 합쳐 준다.
+
+   status는 여기서 다시 계산하지 않고 works_status 뷰가 준 값(effective_status)을 쓴다.
+   같은 판정을 두 곳에서 하면 반드시 어긋난다 — 실제로 처음엔 '첫 판매 에디션'을
+   대표로 삼는 바람에 3점 중 1점이 남은 아트토이가 '판매완료'로 표시됐다. */
+function flattenWork(w, exText, statusRow){
+  var eds = (w.editions || []).filter(function(e){ return !e.deleted_at; })
+                              .sort(function(a,b){ return a.edition_number - b.edition_number; });
+  var sold = eds.filter(function(e){ return e.status === 'sold'; });
+  var lead = sold[0] || eds[0] || {};
+  var eff = (statusRow && statusRow.effective_status) || 'available';
+  var soldMark = (w.work_state === 'planned') ? '등록 예정' : (SOLD_MARK[eff] || '');
+  return {
+    no: w.work_no,
+    image: w.image_file || '',
+    title: w.title_ko || '',
+    title_en: w.title_en || '',
+    caption: w.caption_ko || '',
+    caption_en: w.caption_en || '',
+    material: w.material_ko || '',
+    material_en: w.material_en || '',
+    size: w.size_text || '',
+    year: w.year == null ? '' : String(w.year),
+    price: w.list_price_krw == null ? '' : String(w.list_price_krw),
+    sold: soldMark,
+    discount: lead.discount_rate == null ? '' : String(lead.discount_rate),
+    actual_price: lead.actual_price_krw == null ? '' : String(lead.actual_price_krw),
+    payment: lead.payment_method || '',
+    sale_date: lead.sale_date || '',
+    delivery_date: lead.delivery_date || '',
+    channel: lead.sales_channel || '',
+    owner: eds.filter(function(e){ return e.collector_name; })
+              .map(function(e){ return e.collector_name; }).join(', '),
+    exhibitions: exText || '',
+    note: w.internal_note || '',
+    qty: w.edition_size > 1 ? String(w.edition_size) : '',
+    sold_qty: w.edition_size > 1 ? String(sold.length) : '',
+    audio_master: w.audio_master || '',
+    transcript_ko: w.transcript_ko || '',
+    transcript_en: w.transcript_en || '',
+    _id: w.id, _version: w.version, _editions: eds,
+    _publish_web: w.publish_web, _kind: w.kind
+  };
+}
+
+/* 전시 이력 텍스트는 이제 손으로 쓰지 않고 exhibition_works에서 만든다.
+   (작가 결정 2026-09-05 — 정식 명칭으로 통일되고 전시 등록만 하면 자동 반영) */
+function buildExText(exList){
+  return exList.map(function(e){
+    var s  = String(e.start_date || '').replace(/-/g, '.');
+    var en = String(e.end_date || '').slice(5).replace(/-/g, '.');
+    var venue = e.venue_ko ? ', ' + e.venue_ko : '';
+    return s + ' – ' + en + '  ' + e.title_ko + venue;
+  }).join('\n');
+}
 
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -287,18 +653,33 @@ function soldState(r){
 }
 function soldLabel(st){return {sold:'판매완료',nfs:'NFS',planned:'등록 예정',avail:'판매가능'}[st]}
 const STATE_RANK={avail:0,nfs:1,sold:2,planned:3};
+var SIGNED_CACHE={};
 function imgUrl(r,thumb){
-  let v=String(r.image||'').trim();
-  if(!v)return'';
-  if(/^https?:\/\//.test(v)){
-    const m=v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
-    if(m)return`https://drive.google.com/thumbnail?id=${m[1]}&sz=w${thumb?600:1200}`;
-    return v;
-  }
-  if(/^drive:/.test(v))return`https://drive.google.com/thumbnail?id=${v.slice(6)}&sz=w${thumb?600:1200}`;
-  const file=v.split('/').pop();
-  return thumb?`thumbs/${file.replace(/\.[a-z]+$/i,'')}.jpg`:`images/${file}`;
+  // Drive에 있는 기존 사진과 Storage에 올린 새 사진을 함께 다룬다.
+  // 'sb:' 는 비공개 버킷이라 서명 주소가 필요한데, 그건 load()에서 미리 받아 캐시에 넣어둔다.
+  var v=String(r.image||'').trim();
+  if(!v) return '';
+  if(v.indexOf('sb:')===0) return SIGNED_CACHE[v.slice(3)]||'';
+  var m=v.match(/^drive:(.+)$/);
+  if(m) return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w'+(thumb?400:1600);
+  if(/^https?:\/\//.test(v)) return v;
+  return 'images/'+v;
 }
+/* Storage에 있는 이미지들의 서명 주소를 한꺼번에 받아둔다(유효기간 1시간). */
+async function primeSignedUrls(list){
+  var keys=[];
+  (list||[]).forEach(function(r){
+    var v=String(r.image||'').trim();
+    if(v.indexOf('sb:')===0 && !SIGNED_CACHE[v.slice(3)]) keys.push(v.slice(3));
+  });
+  if(!keys.length) return;
+  var res=await sb.storage.from('artwork-masters').createSignedUrls(keys, 3600);
+  if(res.error){ console.warn('서명 주소 발급 실패', res.error); return; }
+  (res.data||[]).forEach(function(d){
+    if(d.path && d.signedUrl) SIGNED_CACHE[d.path]=d.signedUrl;
+  });
+}
+var SIGNED_CACHE={};
 function toISO(v){ // '2026.03.21' | '2026-03-21' | Date-ish → 'YYYY-MM-DD' or ''
   const m=String(v||'').match(/(\d{4})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
   return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';
@@ -323,14 +704,54 @@ function allExNorm(){
 /* ---------- 데이터 로드 ---------- */
 async function load(){
   try{
-    const res=await fetch(api()+'?action=list&token='+encodeURIComponent(token())+'&t='+Date.now());
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'응답 오류');
-    rows=j.rows;$('#syncdot').className='live';$('#syncdot').title='구글 시트 실시간 연동 중';
-    ensureEx().catch(()=>{}); // Needs Attention의 전시 임박 체크용, 실패해도 나머지 화면은 정상 동작
+    var r = await Promise.all([
+      sb.from('works').select('*, editions(*)').is('deleted_at', null),
+      sb.from('exhibitions').select('*').is('deleted_at', null),
+      sb.from('exhibition_works').select('exhibition_id, work_id'),
+      sb.from('works_status').select('*')      // 판매상태 판정은 DB 뷰가 단독으로 담당
+    ]);
+    var wq = r[0], xq = r[1], lq = r[2], sq = r[3];
+    if(wq.error) throw wq.error;
+    if(xq.error) throw xq.error;
+    if(lq.error) throw lq.error;
+    if(sq.error) throw sq.error;
+    var statusById = {}; (sq.data || []).forEach(function(s){ statusById[s.id] = s; });
+
+    var exById = {}, worksById = {};
+    (xq.data || []).forEach(function(e){ exById[e.id] = e; });
+    (wq.data || []).forEach(function(w){ worksById[w.id] = w; });
+
+    var exOfWork = {}, worksOfEx = {};
+    (lq.data || []).forEach(function(l){
+      (exOfWork[l.work_id] = exOfWork[l.work_id] || []).push(exById[l.exhibition_id]);
+      (worksOfEx[l.exhibition_id] = worksOfEx[l.exhibition_id] || []).push(worksById[l.work_id]);
+    });
+
+    exRows = (xq.data || []).map(function(e){
+      var members = (worksOfEx[e.id] || []).filter(Boolean).map(function(w){ return w.work_no; });
+      return {
+        id: e.exhibition_no, title: e.title_ko, venue: e.venue_ko || '',
+        start_date: e.start_date || '', end_date: e.end_date || '',
+        type: EX_TYPE_KO[e.type] || e.type,
+        docent_url: e.docent_url || '', note_public: e.note_public_ko || '',
+        title_en: e.title_en || '', venue_en: e.venue_en || '',
+        work_nos: members.join(','),
+        _id: e.id, _version: e.version
+      };
+    });
+    exLoaded = true;
+
+    rows = (wq.data || []).map(function(w){
+      var list = (exOfWork[w.id] || []).filter(Boolean).sort(function(a,b){
+        return String(b.start_date||'').localeCompare(String(a.start_date||''));
+      });
+      return flattenWork(w, buildExText(list), statusById[w.id]);
+    });
+    await primeSignedUrls(rows);
+    $('#syncdot').className='live'; $('#syncdot').title='Supabase 연동 중';
   }catch(e){
-    rows=[];$('#syncdot').className='';$('#syncdot').title='연결 실패';
-    toast('구글 시트 연결 실패: '+e.message+' — ↻ 버튼으로 다시 시도하세요');
+    rows=[]; $('#syncdot').className=''; $('#syncdot').title='연결 실패';
+    toast('Supabase 연결 실패: '+(e.message||e)+' — ↻ 버튼으로 다시 시도하세요');
   }
   render();
 }
@@ -481,7 +902,7 @@ function openDetail(r){
   current=r;if(!current)return;
   $('#dNo').textContent=current.no||'번호 미부여 (등록 예정)';
   const u=imgUrl(current,false);
-  $('#btnDel').style.display=soldState(current)==='planned'?'':'none';
+  $('#btnDel').style.display='';  // 소프트 삭제라 되살릴 수 있어 항상 노출
   $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
     '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no'&&!(['qty','sold_qty'].includes(k)&&current[k]==='')).map(k=>{
       let v=current[k];
@@ -677,7 +1098,6 @@ function renderExList(){
 }
 async function uploadImage(file){
   if(!file)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   toast('이미지 압축 중…');
   try{
     const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
@@ -687,72 +1107,58 @@ async function uploadImage(file){
     cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
     const jpeg=cv.toDataURL('image/jpeg',0.87);
     const b64=jpeg.split(',')[1];
-    toast('드라이브에 업로드 중…');
+    toast('업로드 중…');
     const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'upload_image',token:token(),filename:no+'.jpg',mimeType:'image/jpeg',data:b64})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'업로드 실패');
-    $('#fImage').value='drive:'+j.id;
+    // 기존 18장은 Drive에 그대로 두고, 새로 올리는 사진만 Supabase Storage로 간다.
+    // image_file 값의 접두사로 어느 쪽인지 구분한다: 'drive:ID' 또는 'sb:경로'
+    const path = no + '/' + Date.now() + '.jpg';
+    const blob = await (await fetch(jpeg)).blob();
+    const up = await sb.storage.from('artwork-masters')
+      .upload(path, blob, { contentType:'image/jpeg', upsert:false });
+    if(up.error) throw up.error;
+    $('#fImage').value='sb:'+path;
     const p=$('#imgPrev');p.src=jpeg;p.style.display='';
-    toast('✅ 드라이브 업로드 완료');
+    toast('✅ 업로드 완료');
   }catch(e){toast('업로드 오류: '+e.message)}
 }
 
 /* ---------- 저장 ---------- */
 $('#editForm').onsubmit=async e=>{
   e.preventDefault();
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   const g=n=>{const el=document.querySelector(`#eBody [name="${n}"]`);return el?el.value:''};
   const rec={};
   KEYS.forEach(k=>rec[k]=g(k));
-  // 한글/영문 제목을 각자의 컬럼에 나눠 저장한다(예전처럼 한 칸에 합치지 않는다).
-  // title에 남아있던 줄바꿈 영문은 title_en으로 옮겨지며 자연스럽게 정리된다.
   const ko=g('title_ko').trim(), en=g('title_en').trim();
   rec.title=ko;
   rec.title_en=en;
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
-  rec.exhibitions=exLines.join('\n');
-  // 콤마 제거
+  rec.exhibitions='';            // 전시 이력은 전시 화면에서 관리한다(자동 생성)
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
-  // 할인률: 20% | 20 → 0.2
-  {const d=String(rec.discount).trim().replace('%','');const n=parseFloat(d);
-   if(d!==''&&!isNaN(n))rec.discount=n>1?String(n/100):String(n)}
-  const planned=rec.sold==='등록 예정';
-  if(!rec.no.trim()&&!planned){toast('작품번호를 입력하세요 (등록 예정만 번호 생략 가능)');return}
-  if(!rec.title.trim()){toast('작품명을 입력하세요');return}
-  delete rec.notype; // 채번 도우미용 필드, 시트에는 저장하지 않음
-  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
-  // 다른 작품과 번호 중복 여부를 먼저 확인 (수정 시 번호를 직접 바꾼 경우 포함)
-  if(rec.no.trim()){
-    const dup=rows.find(x=>String(x.no).trim()===rec.no.trim()&&(isNew||x._row!==current._row));
-    if(dup){toast('이미 존재하는 작품번호입니다: '+rec.no.trim());return}
-  }
-  if(!isNew&&current&&current._row){
-    rec._row=current._row; // 번호 없는 행 수정용 위치 정보
-    rec._expect=String(current.title).split('\n')[0]; // 서버측 행 대조용 원래 제목
-  }
+  delete rec.notype;
+  if(rec.no.trim()&&!/^(?:HDT?|ER)-\d{4}-\d{3}$/.test(rec.no.trim()))
+    toast('참고: 작품번호가 HD(T)/ER-YYYY-NNN 형식이 아닙니다');
+
   $('#btnSave').disabled=true;$('#btnSave').textContent='저장 중…';
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'add':'update',token:token(),row:rec})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'저장 실패');
-    if(isNew)markNew(rec); // 이번 접속 동안 NEW 표시 + 맨 앞 배치
+    await saveWorkToDb(rec, isNew, current);
+    if(isNew)markNew(rec);
     toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
-    dlgEdit.close();await load();
-  }catch(err){toast('오류: '+err.message)}
-  $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+    dlgEdit.close();
+    await load();
+  }catch(err){
+    toast('저장 실패: '+(err.message||err));
+  }finally{
+    $('#btnSave').disabled=false;$('#btnSave').textContent='저장';
+  }
 };
 
 /* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */
 let exRows=[];
 let exLoaded=false;
 async function loadEx(){
-  const res=await fetch(api()+'?sheet=exhibitions&t='+Date.now());
-  const j=await res.json();
-  if(!j.ok)throw new Error(j.error||'응답 오류');
-  exRows=j.rows||[];
-  exLoaded=true;
+  // 전시는 load()에서 작품과 함께 읽는다(관계를 같이 풀어야 하므로).
+  if(!exLoaded) await load();
 }
 async function ensureEx(){ if(!exLoaded) await loadEx(); }
 /** 특정 작품번호가 포함된 전시들을 최신순으로 반환 */
@@ -832,12 +1238,11 @@ function renderExList(){
   });
   document.querySelectorAll('#exBody [data-exdel]').forEach(b=>b.onclick=async()=>{
     const r=exRows.find(x=>String(x.id)===b.dataset.exdel); if(!r)return;
-    if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+    if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.`))return;
     try{
-      const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'ex_delete',token:token(),id:r.id})});
-      const j=await res.json(); if(!j.ok)throw new Error(j.error||'삭제 실패');
-      toast('🗑 전시가 삭제되었습니다'); await loadEx(); renderExList();
-    }catch(e){toast('삭제 오류: '+e.message)}
+      await softDeleteExhibition(r);
+      toast('🗑 전시가 삭제되었습니다'); exLoaded=false; await load(); renderExList();
+    }catch(e){toast('삭제 오류: '+(e.message||e))}
   });
 }
 function initExPicker(){
@@ -886,13 +1291,14 @@ function renderExForm(r,isNew){
     const row={id:g('id'),title:g('title'),venue:g('venue'),start_date:g('start_date'),end_date:g('end_date'),work_nos:g('work_nos'),docent_url:g('docent_url'),type:g('type'),note_public:g('note_public')};
     if(!row.title)return toast('전시명을 입력하세요');
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
+    row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();
+    row.venue_en = (($('#exBody [name=venue_en]')||{}).value||'').trim();
     const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
     try{
-      const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:isNew?'ex_add':'ex_update',token:token(),row:row})});
-      const j=await res.json(); if(!j.ok)throw new Error(j.error||'저장 실패');
+      await saveExhibitionToDb(row, isNew, r);
       toast(isNew?'✅ 전시가 등록되었습니다':'✅ 전시가 수정되었습니다');
-      await loadEx(); renderExList();
-    }catch(e){toast('저장 오류: '+e.message)}
+      exLoaded=false; await load(); renderExList();
+    }catch(e){toast('저장 오류: '+(e.message||e))}
     finally{saveBtn.disabled=false;}
   };
 }
@@ -903,13 +1309,18 @@ let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
 
 async function loadPress(){
   try{
-    const res=await fetch(api()+'?sheet=press&t='+Date.now());
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'응답 오류');
-    pressRows=j.rows;
+    var q = await sb.from('press').select('*').is('deleted_at', null);
+    if(q.error) throw q.error;
+    pressRows = (q.data||[]).map(function(p){
+      return { no:p.press_no, outlet:p.outlet_ko, date:p.published_date||'',
+               title:p.title_ko, url:p.url||'', quote:p.quote_ko||'',
+               image:p.image_source_url||'', note:p.byline||'',
+               title_en:p.title_en||'', quote_en:p.quote_en||'',
+               _id:p.id, _version:p.version };
+    });
   }catch(e){
     pressRows=[];
-    toast('Press 시트 연결 실패: '+e.message);
+    toast('Press 불러오기 실패: '+(e.message||e));
   }
   renderPressList();
 }
@@ -945,31 +1356,25 @@ function openPressEdit(r,neu){
 }
 $('#pressEditForm').onsubmit=async e=>{
   e.preventDefault();
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   const g=n=>{const el=document.querySelector(`#peBody [name="${n}"]`);return el?el.value.trim():''};
   const rec={};PRESS_KEYS.forEach(k=>rec[k]=g(k));
-  rec.date=rec.date?rec.date.replaceAll('-','.'):'';
-  if(!rec.title){toast('기사 제목을 입력하세요');return}
   if(!pressIsNew)rec.no=pressCurrent.no; // 수정 시 번호는 읽기전용 필드값 그대로
+  rec.title_en = pressCurrent && !pressIsNew ? pressCurrent.title_en : '';
+  rec.quote_en = pressCurrent && !pressIsNew ? pressCurrent.quote_en : '';
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:pressIsNew?'press_add':'press_update',token:token(),row:rec})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'저장 실패');
+    await savePressToDb(rec, pressIsNew, pressCurrent);
     toast(pressIsNew?'기사가 등록되었습니다':'저장되었습니다');
     dlgPressEdit.close();await loadPress();
-  }catch(err){toast('오류: '+err.message)}
+  }catch(err){toast('오류: '+(err.message||err))}
 };
 $('#btnDeletePress').onclick=async()=>{
   if(!pressCurrent||pressIsNew)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
-  if(!confirm(`'${pressCurrent.title}' 기사를 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  if(!confirm(`'${pressCurrent.title}' 기사를 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.`))return;
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'press_delete',token:token(),no:pressCurrent.no})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'삭제 실패');
-    toast('삭제되었습니다');
+    await softDeletePress(pressCurrent);
+    toast('🗑 기사가 삭제되었습니다');
     dlgPressEdit.close();await loadPress();
-  }catch(e){toast('오류: '+e.message)}
+  }catch(err){toast('삭제 오류: '+(err.message||err))}
 };
 $('#pressTbody').onclick=e=>{const tr=e.target.closest('tr[data-idx]');if(tr)openPressEdit(lastPressList[+tr.dataset.idx],false)};
 $('#btnPressAdd').onclick=()=>openPressEdit(Object.fromEntries(PRESS_KEYS.map(k=>[k,''])),true);
@@ -995,27 +1400,41 @@ $('#btnXlsx').onclick=()=>{
 };
 
 /* ---------- 설정 ---------- */
-$('#btnSaveSet').onclick=async()=>{
-  const u=$('#setApi').value.trim(),t=$('#setToken').value;
-  localStorage.setItem('haedal_api',u);localStorage.setItem('haedal_token',t);
+showWho();
+$('#btnCheckConn').onclick=async()=>{
   const st=$('#setStatus');
   st.textContent='연결 확인 중…';
   try{
-    const r=await fetch(api()+'?action=list&token='+encodeURIComponent(token()));const j=await r.json();
-    st.textContent=j.ok?`✅ 연결 성공 — 시트에서 ${j.rows.length}점을 불러왔습니다.`:'⚠️ 응답 오류: '+(j.error||'');
-  }catch(e){st.textContent='❌ 연결 실패: '+e.message}
-  load();
+    const q=await sb.from('works').select('work_no',{count:'exact',head:true}).is('deleted_at',null);
+    if(q.error) throw q.error;
+    st.textContent=`✅ 연결 정상 — 작품 ${q.count}점`;
+  }catch(e){ st.textContent='❌ 연결 실패: '+(e.message||e); }
 };
+$('#btnLogout').onclick=async()=>{
+  if(!confirm('로그아웃할까요?'))return;
+  await sb.auth.signOut();
+  location.reload();
+};
+async function showWho(){
+  try{
+    const u=await sb.auth.getUser();
+    $('#setWho').textContent=(u.data&&u.data.user)?('로그인: '+u.data.user.email):'로그인 정보 없음';
+  }catch(e){ $('#setWho').textContent='로그인 정보 없음'; }
+}
+
 
 $('#btnPublish').onclick=async()=>{
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'publish',token:token()})});
-    const j=await res.json();
-    st.textContent=j.ok?'✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.':('❌ '+(j.error||'실패'));
-  }catch(e){st.textContent='❌ 오류: '+e.message}
+    // GitHub 토큰은 브라우저에 둘 수 없어 Edge Function이 대신 호출한다.
+    const {data, error} = await sb.functions.invoke('publish', { body:{} });
+    if(error) throw error;
+    if(data && data.ok === false) throw new Error(data.error||'실패');
+    st.textContent='✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.';
+  }catch(e){
+    st.textContent='❌ 오류: '+(e.message||e);
+  }
 };
 
 /* ---------- 이벤트 ---------- */
@@ -1052,16 +1471,13 @@ $('#stats').onclick=e=>{
 $('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
 $('#btnDel').onclick=async()=>{
   if(!current)return;
-  if(!token()){toast('설정 탭에서 수정 비밀번호를 먼저 저장하세요');return}
-  const t=String(current.title).split('\n')[0];
-  if(!confirm(`'${t}' 작품을 삭제할까요?\n삭제하면 시트에서 행이 제거되며 되돌릴 수 없습니다.`))return;
+  const t=String(current.title||'').split('\n')[0];
+  if(!confirm(`'${t}' 작품을 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.`))return;
   try{
-    const res=await fetch(api(),{method:'POST',body:JSON.stringify({action:'delete',token:token(),no:current.no,_row:current._row,expect:t})});
-    const j=await res.json();
-    if(!j.ok)throw new Error(j.error||'삭제 실패');
-    toast('삭제되었습니다');
+    await softDeleteWork(current);
+    toast('🗑 작품이 삭제되었습니다');
     dlgDetail.close();await load();
-  }catch(e){toast('오류: '+e.message)}
+  }catch(err){toast('삭제 오류: '+(err.message||err))}
 };
 $('#btnAdd').onclick=()=>{
   const yr=new Date().getFullYear();
@@ -1078,9 +1494,52 @@ $('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();re
 updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
-$('#setApi').value=localStorage.getItem('haedal_api')||'';$('#setToken').value=token();
-load();
 loadPress();
+
+/* ---------- 로그인 게이트 ----------
+   RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.
+   따라서 화면 부팅 자체를 세션 확보 이후로 미룬다. */
+(function(){
+  var gate = document.getElementById('loginGate');
+  var form = document.getElementById('loginForm');
+  var msg  = document.getElementById('loginMsg');
+  var btn  = document.getElementById('loginBtn');
+  var booted = false;
+
+  function boot(session){
+    gate.style.display = 'none';
+    if(booted) return;
+    booted = true;
+    var who = document.querySelector('.sidebar-brand');
+    if(who && session && session.user) who.title = session.user.email;
+    load();
+  }
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    msg.textContent = '';
+    btn.disabled = true; btn.textContent = '로그인 중…';
+    try{
+      var res = await sb.auth.signInWithPassword({
+        email: document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPw').value
+      });
+      if(res.error) throw res.error;
+      boot(res.data.session);
+    }catch(err){
+      msg.textContent = (err && err.message === 'Invalid login credentials')
+        ? '이메일 또는 비밀번호가 맞지 않습니다'
+        : ('로그인 실패: ' + (err && err.message ? err.message : err));
+    }finally{
+      btn.disabled = false; btn.textContent = '로그인';
+    }
+  });
+
+  // 이미 로그인돼 있으면 바로 통과
+  sb.auth.getSession().then(function(r){
+    if(r.data && r.data.session) boot(r.data.session);
+  });
+})();
 </script>
 </body>
 </html>

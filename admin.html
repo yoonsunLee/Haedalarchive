@@ -355,6 +355,7 @@ function recToWork(rec){
     size_text: sz.text, width_cm: sz.w, height_cm: sz.h, depth_cm: sz.d,
     list_price_krw: numOrNull(rec.price),
     internal_note: textOrNull(rec.note),
+    series_key: textOrNull(rec.series),
     image_file: textOrNull(rec.image),
     edition_size: Math.max(1, numOrNull(rec.qty) || 1),
     work_state: planned ? 'planned' : 'completed'
@@ -535,7 +536,9 @@ async function savePressToDb(rec, neu, cur){
     quote_en: textOrNull(rec.quote_en),
     url: textOrNull(rec.url),
     image_source_url: textOrNull(rec.image),
-    byline: textOrNull(rec.note)
+    byline: textOrNull(rec.note),
+    link_type: textOrNull(rec.link_type),
+    linked_exhibition_id: rec.link_type === 'exhibition' ? textOrNull(rec.linked_exhibition_id) : null
   };
   if(!payload.title_ko) throw new Error('기사 제목을 입력하세요');
   if(!payload.outlet_ko) throw new Error('매체명을 입력하세요');
@@ -619,6 +622,7 @@ function flattenWork(w, exText, statusRow){
     owner: eds.filter(function(e){ return e.collector_name; })
               .map(function(e){ return e.collector_name; }).join(', '),
     exhibitions: exText || '',
+    series: w.series_key || '',
     note: w.internal_note || '',
     qty: w.edition_size > 1 ? String(w.edition_size) : '',
     sold_qty: w.edition_size > 1 ? String(sold.length) : '',
@@ -1011,6 +1015,7 @@ function openEdit(r,neu){
        </div>
        ${exAll.length?`<select class="pick" id="exPick" style="margin-top:6px"><option value="">── 기존 전시 이력에서 추가 ──</option>${exAll.map((v,i)=>`<option value="${i}">${esc(v.slice(0,70))}</option>`).join('')}</select>`:''}`,
       '새 전시는 날짜 선택 후 전시명 입력 → [추가]')+
+    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 홈페이지 작품 상세에서 "시리즈 작품"으로 묶여 표시됩니다. 비워두면 묶이지 않습니다')+
     F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
 
   renderExList();
@@ -1133,6 +1138,7 @@ $('#editForm').onsubmit=async e=>{
   rec.title_en=en;
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
+  rec.series=g('series');
   rec.exhibitions='';            // 전시 이력은 전시 화면에서 관리한다(자동 생성)
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
   delete rec.notype;
@@ -1303,7 +1309,7 @@ function renderExForm(r,isNew){
   };
 }
 /* ---------- Press ---------- */
-const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note'];
+const PRESS_KEYS=['no','outlet','date','title','url','quote','image','note','link_type','linked_exhibition_id'];
 const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
 let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
 
@@ -1316,6 +1322,7 @@ async function loadPress(){
                title:p.title_ko, url:p.url||'', quote:p.quote_ko||'',
                image:p.image_source_url||'', note:p.byline||'',
                title_en:p.title_en||'', quote_en:p.quote_en||'',
+               link_type:p.link_type||'', linked_exhibition_id:p.linked_exhibition_id||'',
                _id:p.id, _version:p.version };
     });
   }catch(e){
@@ -1350,6 +1357,15 @@ function openPressEdit(r,neu){
     F(PRESS_LABELS.url,`<input name="url" value="${esc(r.url)}" placeholder="https://…">`)+
     F(PRESS_LABELS.quote,`<textarea name="quote" placeholder="기사에서 고른 인상적인 한 줄">${esc(r.quote)}</textarea>`)+
     F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
+    F('연결 대상',`<select name="link_type">
+        <option value=""${!r.link_type?' selected':''}>없음</option>
+        <option value="exhibition"${r.link_type==='exhibition'?' selected':''}>전시 연결</option>
+        <option value="brand_shop"${r.link_type==='brand_shop'?' selected':''}>브랜드샵 연결</option>
+      </select>
+      <select name="linked_exhibition_id" style="margin-top:6px">
+        <option value="">── 전시 선택 (연결 대상이 "전시 연결"일 때만) ──</option>
+        ${exRows.map(e=>`<option value="${esc(e._id)}"${r.linked_exhibition_id===e._id?' selected':''}>${esc(e.title)} (${esc(e.id)})</option>`).join('')}
+      </select>`,'홈페이지 기사 카드의 "전시 작품 보기"/"브랜드 샵" 링크가 여기 연결한 대상을 가리킵니다')+
     F(PRESS_LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
   $('#btnDeletePress').style.display=neu?'none':'';
   dlgPressEdit.showModal();

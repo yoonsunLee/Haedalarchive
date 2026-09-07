@@ -89,12 +89,6 @@ form textarea{resize:vertical; min-height:56px}
 form select.pick{margin-bottom:4px; color:var(--sub)}
 .hint{font-size:.75rem; color:var(--sub); margin-top:2px}
 .formfoot{display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line)}
-.exline{display:flex; align-items:flex-start; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:5px 8px; margin-bottom:4px; font-size:.82rem}
-.exline span{flex:1; white-space:pre-wrap}
-.exline button{border:none; background:none; color:var(--sold); cursor:pointer; font-size:.9rem; padding:0 2px}
-.exadd{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px}
-.exadd input[type=date]{width:auto; flex:0 0 auto}
-.exadd input[type=text]{flex:1; min-width:120px}
 .imgupload{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
 .imgpreview{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line)}
 .settings-box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; max-width:640px; margin:0 auto; box-shadow:var(--shadow)}
@@ -271,9 +265,9 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <script>
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
-const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'출품 기록 (수기 메모)',note:'비고',qty:'수량',sold_qty:'판매개수'};
+const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'전시 이력 (자동)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
-let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false, exLines=[];
+let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
 let sortDir=DIR_DEFAULT.state;
 const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
@@ -696,11 +690,6 @@ function uniqueVals(key){
   rows.forEach(r=>{const v=String(r[key]||'').trim();if(v&&v!=='-'&&!set.includes(v))set.push(v)});
   return set;
 }
-function uniqueExLines(){
-  const set=[];
-  rows.forEach(r=>String(r.exhibitions||'').split('\n').forEach(l=>{l=l.trim();if(l&&!set.includes(l))set.push(l)}));
-  return set;
-}
 const normEx=l=>String(l).replace(/\s+/g,' ').trim(); // 탭·공백 표기 차이 통일
 function allExNorm(){
   const set=[];
@@ -953,9 +942,8 @@ function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
 }
 const PICK_VALS={};
 function openEdit(r,neu){
-  isNew=neu; exLines=String(r.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  isNew=neu;
   PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size'); PICK_VALS.payment=uniqueVals('payment');
-  const exAll=uniqueExLines();
   // 영문 제목은 이제 title_en 전용 컬럼에 저장한다. 다만 예전에 등록된 작품은
   // title 한 칸에 "한글\n영문"으로 합쳐져 있어서, 그런 행은 아래처럼 분리해 읽는다.
   const tparts=String(r.title||'').split('\n');
@@ -1013,34 +1001,21 @@ function openEdit(r,neu){
     F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
     F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
     F(LABELS.exhibitions,
-      `<div id="exList"></div>
-       <div class="exadd">
-         <input type="date" id="exStart" title="시작일"><input type="date" id="exEnd" title="종료일">
-         <input type="text" id="exName" placeholder="전시명, 장소, 도시, 국가">
-         <button type="button" class="btn" id="exAddBtn">추가</button>
-       </div>
-       ${exAll.length?`<select class="pick" id="exPick" style="margin-top:6px"><option value="">── 기존 전시 이력에서 추가 ──</option>${exAll.map((v,i)=>`<option value="${i}">${esc(v.slice(0,70))}</option>`).join('')}</select>`:''}`,
-      '새 전시는 날짜 선택 후 전시명 입력 → [추가]')+
+      `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
+       <div class="hint">전시 연결(추가·해제)은 <b>Exhibitions</b> 탭의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
     F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 홈페이지 작품 상세에서 "시리즈 작품"으로 묶여 표시됩니다. 비워두면 묶이지 않습니다')+
     F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
 
-  renderExList();
+  ensureEx().then(()=>{
+    const html=exAutoListInner(r.no);
+    $('#exAutoWork').innerHTML=html||'<div class="hint">등록된 전시 이력이 없습니다</div>';
+  }).catch(()=>{ $('#exAutoWork').innerHTML='<div class="hint">전시 이력을 불러오지 못했습니다</div>'; });
   // 기존 값 선택 → 채우기
   document.querySelectorAll('#eBody select.pick[data-fill]').forEach(s=>s.onchange=()=>{
     if(s.value==='')return;
     const el=document.querySelector(`#eBody [name="${s.dataset.fill}"]`);
     el.value=PICK_VALS[s.dataset.fill][+s.value]; s.value='';
   });
-  const exPick=$('#exPick');
-  if(exPick){const all=exAll;exPick.onchange=()=>{if(exPick.value==='')return;const l=all[+exPick.value];if(!exLines.includes(l))exLines.unshift(l);renderExList();exPick.value=''}}
-  $('#exAddBtn').onclick=()=>{
-    const s=$('#exStart').value,e=$('#exEnd').value,n=$('#exName').value.trim();
-    if(!s||!n){toast('시작일과 전시명을 입력하세요');return}
-    const f=d=>d.replaceAll('-','.');
-    const line=e?`${f(s)} – ${e.slice(0,4)===s.slice(0,4)?f(e).slice(5):f(e)}  ${n}`:`${f(s)}  ${n}`;
-    exLines.unshift(line);renderExList();
-    $('#exStart').value='';$('#exEnd').value='';$('#exName').value='';
-  };
   // 판매가격·실거래가 콤마 자동 표기
   document.querySelectorAll('#eBody input.comma').forEach(el=>el.addEventListener('input',()=>{
     const raw=el.value.replace(/,/g,'');
@@ -1091,7 +1066,6 @@ function openEdit(r,neu){
     q('payment').value=src.payment||'';
     q('sale_date').value=toISO(src.sale_date); q('delivery_date').value=toISO(src.delivery_date);
     q('channel').value=src.channel||''; q('owner').value=src.owner||''; q('note').value=src.note||'';
-    exLines=String(src.exhibitions||'').split('\n').map(l=>l.trim()).filter(Boolean); renderExList();
     typeSel.value=prefixOf(src.no);
     if(q('sold').value==='등록 예정')noEl.value='';
     else noEl.value=suggestNo($('#fYearIn').value,typeSel.value);
@@ -1102,10 +1076,6 @@ function openEdit(r,neu){
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
   document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
-}
-function renderExList(){
-  $('#exList').innerHTML=exLines.map((l,i)=>`<div class="exline"><span>${esc(l)}</span><button type="button" data-exdel="${i}" title="삭제">✕</button></div>`).join('')||'<div class="hint">등록된 전시 이력이 없습니다</div>';
-  document.querySelectorAll('[data-exdel]').forEach(b=>b.onclick=()=>{exLines.splice(+b.dataset.exdel,1);renderExList()});
 }
 async function uploadImage(file){
   if(!file)return;

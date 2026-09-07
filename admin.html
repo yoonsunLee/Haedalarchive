@@ -275,12 +275,19 @@ let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=f
    (탭 전환은 데이터 손실이 없어 굳이 히스토리에 안 걸음 — 다이얼로그 열린 채로 뒤로가기 누르면
    입력 중이던 내용이 통째로 날아가며 사이트 밖으로 튕겨나가는 게 실제로 아픈 지점) */
 var suppressDialogHistoryPop=false;
+var exFormOpen=false; // <dialog>가 아니라 #exBody를 통째로 바꿔치기하는 전시 수정 화면용 플래그
 function pushDialogHistory(){ history.pushState({dlgOpen:true}, ''); }
 window.addEventListener('popstate', function(){
   var openDlg=document.querySelector('dialog[open]');
   if(openDlg){
     suppressDialogHistoryPop=true;
     openDlg.close();
+    suppressDialogHistoryPop=false;
+    return;
+  }
+  if(exFormOpen){
+    suppressDialogHistoryPop=true;
+    renderExList();
     suppressDialogHistoryPop=false;
   }
 });
@@ -1268,6 +1275,8 @@ async function openEx(){
   catch(e){ $('#exBody').innerHTML='<div class="hint">불러오기 오류: '+esc(e.message)+'</div>'; }
 }
 function renderExList(){
+  if(exFormOpen && !suppressDialogHistoryPop) history.back();
+  exFormOpen=false;
   $('#exBody').innerHTML=exListHtml();
   $('#btnExAdd').onclick=()=>renderExForm({},true);
   document.querySelectorAll('#exBody [data-exedit]').forEach(b=>b.onclick=()=>{
@@ -1363,6 +1372,8 @@ function initExFeaturedPicker(){
   syncHid(); paint();
 }
 function renderExForm(r,isNew){
+  exFormOpen=true;
+  pushDialogHistory();
   $('#exBody').innerHTML=exFormHtml(r,isNew);
   initExPicker();
   initExFeaturedPicker();
@@ -1543,6 +1554,10 @@ $('#btnPublish').onclick=async()=>{
 /* ---------- 이벤트 ---------- */
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
+  // 전시 수정 화면을 열어둔 채로 다른 탭으로 바로 넘어가면 플래그가 남아
+  // popstate가 엉뚱하게 반응할 수 있어 여기서 정리한다(히스토리 엔트리 자체는
+  // 그냥 버려둬도 무해 — popstate가 만나도 열린 게 없으면 아무 것도 안 함).
+  if(b.dataset.v!=='exhibitions') exFormOpen=false;
   section=b.dataset.v;
   $('#vWorks').hidden=section!=='works';
   $('#vExhibitions').hidden=section!=='exhibitions';

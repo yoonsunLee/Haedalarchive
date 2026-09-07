@@ -1236,7 +1236,7 @@ function exListHtml(){
 }
 function exFormHtml(r,isNew){
   const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
-  const types=['개인전','그룹전','아트페어','기타'];
+  const types=Object.keys(KO_TO_EX_TYPE); // 저장/표시에 쓰는 매핑과 같은 출처를 써서 라벨이 다시 어긋나지 않게 한다
   return `
   ${F('전시 ID',`<input name="id" value="${esc(r.id||'')}" ${isNew?'placeholder="비우면 자동 생성"':'readonly'}>`)}
   ${F('전시명 *',`<input name="title" value="${esc(r.title||'')}">`)}

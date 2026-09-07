@@ -136,6 +136,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <header>
   <h1>신해달 작품 아카이브<small id="cnt"></small></h1>
   <div id="syncdot" title="데이터 소스"></div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
+    <span id="publishStatus" class="hint"></span>
+    <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
+  </div>
 </header>
 
 <div class="toolbar" id="worksToolbar">
@@ -198,9 +202,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <section id="vWebsite" hidden>
     <div class="settings-box">
       <h3>🚀 홈페이지에 반영</h3>
-      <p>작품·전시·Press를 다 입력하셨으면 눌러주세요. 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
-      <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
-      <p style="margin-top:8px" id="publishStatus"></p>
+      <p>작품·전시·Press를 다 입력하셨으면, 화면 상단의 <b>🚀 홈페이지에 반영</b> 버튼을 눌러주세요 (어느 탭에 있든 항상 보입니다). 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🔗 바로가기</h3>
       <p><a href="https://yoonsunlee.github.io/shinhaedal/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
@@ -268,6 +270,24 @@ const KEYS=['no','image','title','caption','material','size','year','price','sol
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'전시 이력 (자동)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
 let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
+
+/* ---------- 모바일 뒤로가기가 사이트를 통째로 나가버리지 않도록: 다이얼로그만 히스토리에 걸기 ----------
+   (탭 전환은 데이터 손실이 없어 굳이 히스토리에 안 걸음 — 다이얼로그 열린 채로 뒤로가기 누르면
+   입력 중이던 내용이 통째로 날아가며 사이트 밖으로 튕겨나가는 게 실제로 아픈 지점) */
+var suppressDialogHistoryPop=false;
+function pushDialogHistory(){ history.pushState({dlgOpen:true}, ''); }
+window.addEventListener('popstate', function(){
+  var openDlg=document.querySelector('dialog[open]');
+  if(openDlg){
+    suppressDialogHistoryPop=true;
+    openDlg.close();
+    suppressDialogHistoryPop=false;
+  }
+});
+document.addEventListener('close', function(e){
+  if(e.target.tagName!=='DIALOG')return;
+  if(!suppressDialogHistoryPop && history.state && history.state.dlgOpen) history.back();
+}, true);
 const DIR_DEFAULT={state:'desc',no:'asc',title:'asc',year:'desc'}; // 기준별 기본 방향
 let sortDir=DIR_DEFAULT.state;
 const newKeys=JSON.parse(sessionStorage.getItem('haedal_new')||'[]'); // 이번 접속에서 등록한 작품 (다음 접속엔 초기화)
@@ -912,6 +932,7 @@ function openDetail(r){
     '<dt id="dExAutoLabel" style="display:none">🗓 등록된 전시 (자동)</dt><dd id="dExAuto"></dd>'+
     '</dl>';
   dlgDetail.showModal();
+  pushDialogHistory();
   $('#dBody').scrollTop=0;
   const no=current.no;
   ensureEx().then(()=>{
@@ -1075,6 +1096,7 @@ function openEdit(r,neu){
   // 이미지 업로드
   $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
   dlgEdit.showModal();
+  pushDialogHistory();
   document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
 }
 async function uploadImage(file){
@@ -1434,6 +1456,7 @@ function openPressEdit(r,neu){
     F(PRESS_LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
   $('#btnDeletePress').style.display=neu?'none':'';
   dlgPressEdit.showModal();
+  pushDialogHistory();
 }
 $('#pressEditForm').onsubmit=async e=>{
   e.preventDefault();
@@ -1503,6 +1526,7 @@ async function showWho(){
 
 
 $('#btnPublish').onclick=async()=>{
+  if(!confirm('홈페이지에 반영할까요?\n전체 사이트가 다시 만들어지며 1~2분 정도 걸립니다.'))return;
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
   try{
@@ -1547,7 +1571,16 @@ $('#stats').onclick=e=>{
   $('#fSold').value=act==='all'?'':act;
   render();
 };
-$('#btnEdit').onclick=()=>{dlgDetail.close();openEdit(current,false)};
+$('#btnEdit').onclick=()=>{
+  // 다이얼로그를 다이얼로그로 바로 교체하는 흐름이라, close 리스너의 history.back()과
+  // 곧바로 이어지는 openEdit의 pushDialogHistory()가 경합하지 않도록 여기서만 억제한다.
+  // 또한 close 직후 같은 틱에서 바로 showModal()하면 크로미움이 새로 연 다이얼로그를
+  // 도로 닫아버리는 경합이 있어(dialog+pushState 상호작용), 한 틱 미뤄서 연다.
+  suppressDialogHistoryPop=true;
+  dlgDetail.close();
+  suppressDialogHistoryPop=false;
+  setTimeout(function(){ openEdit(current,false); }, 20);
+};
 $('#btnDel').onclick=async()=>{
   if(!current)return;
   const t=String(current.title||'').split('\n')[0];

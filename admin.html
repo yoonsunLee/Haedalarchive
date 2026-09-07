@@ -1215,9 +1215,51 @@ function exBadge(r){
   if(s&&s>today)return pill('#2f4260','#9cc8ee','예정');
   return pill('#e8e8e8','#888','종료');
 }
+/** 연도별 개인전/단체전/아트페어/기타 횟수 + 합계 요약 테이블 */
+function exStatsHtml(){
+  if(!exRows.length)return'';
+  const byYear={};
+  exRows.forEach(r=>{
+    const y=String(r.start_date||'').slice(0,4)||'미상';
+    const s=byYear[y]=byYear[y]||{solo:0,group:0,art_fair:0,etc:0,total:0};
+    if(r.type==='개인전')s.solo++;
+    else if(r.type==='단체전')s.group++;
+    else if(r.type==='아트페어')s.art_fair++;
+    else s.etc++;
+    s.total++;
+  });
+  const years=Object.keys(byYear).sort();
+  const totals=years.reduce((a,y)=>{
+    a.solo+=byYear[y].solo; a.group+=byYear[y].group; a.art_fair+=byYear[y].art_fair; a.etc+=byYear[y].etc; a.total+=byYear[y].total;
+    return a;
+  },{solo:0,group:0,art_fair:0,etc:0,total:0});
+  const cell='padding:5px 10px;text-align:right';
+  const row=(label,s,strong)=>`<tr${strong?' style="border-top:2px solid var(--line);font-weight:700"':' style="border-top:1px solid var(--line)"'}>
+    <td style="padding:5px 10px;text-align:left">${esc(label)}</td>
+    <td style="${cell}">${s.solo}</td><td style="${cell}">${s.group}</td>
+    <td style="${cell}">${s.art_fair}</td><td style="${cell}">${s.etc}</td>
+    <td style="${cell};font-weight:700">${s.total}</td>
+  </tr>`;
+  return `
+  <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px;overflow-x:auto">
+    <div style="font-weight:600;margin-bottom:8px">📊 연도별 전시 현황</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.86rem;white-space:nowrap">
+      <thead><tr>
+        <th style="padding:5px 10px;text-align:left">연도</th>
+        <th style="${cell}">개인전</th><th style="${cell}">단체전</th>
+        <th style="${cell}">아트페어</th><th style="${cell}">기타</th><th style="${cell}">합계</th>
+      </tr></thead>
+      <tbody>
+        ${years.map(y=>row(y,byYear[y],false)).join('')}
+        ${row('합계',totals,true)}
+      </tbody>
+    </table>
+  </div>`;
+}
 function exListHtml(){
   const rows=exRows.slice().sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
   return `
+  ${exStatsHtml()}
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn primary" id="btnExAdd">＋ 전시 등록</button></div>
   ${rows.length?'':'<div class="hint">등록된 전시가 없습니다. 전시를 등록하면 홈페이지 Now 섹션에 자동 반영됩니다.</div>'}
   ${rows.map(r=>`

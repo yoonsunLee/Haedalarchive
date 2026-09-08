@@ -379,7 +379,11 @@ function recToWork(rec){
     series_key: textOrNull(rec.series),
     image_file: textOrNull(rec.image),
     edition_size: Math.max(1, numOrNull(rec.qty) || 1),
-    work_state: planned ? 'planned' : 'completed'
+    work_state: planned ? 'planned' : 'completed',
+    audio_master: textOrNull(rec.audio_master),
+    transcript_ko: textOrNull(rec.transcript_ko),
+    transcript_en: textOrNull(rec.transcript_en),
+    docent_enabled: !!rec.docent_enabled
   };
 }
 /* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
@@ -1032,12 +1036,32 @@ function openEdit(r,neu){
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>Exhibitions</b> 탭의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
     F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 홈페이지 작품 상세에서 "시리즈 작품"으로 묶여 표시됩니다. 비워두면 묶이지 않습니다')+
+    F('도슨트',
+      `<label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:10px">
+         <input type="checkbox" name="docent_enabled" style="width:auto"${r.docent_enabled?' checked':''}> 홈페이지에 도슨트 노출
+       </label>
+       <div class="imgupload">
+         <audio id="docentPrev" controls style="display:none;height:32px"></audio>
+         <input type="file" id="fDocentFile" accept="audio/*" style="width:auto">
+       </div>
+       <input name="audio_master" id="fDocentAudio" value="${esc(r.audio_master||'')}" placeholder="오디오 파일을 선택하면 자동으로 업로드됩니다">
+       <textarea name="transcript_ko" placeholder="대본 (한글)" style="margin-top:8px">${esc(r.transcript_ko||'')}</textarea>
+       <textarea name="transcript_en" placeholder="대본 (영문, 비우면 한글만 표시)" style="margin-top:8px">${esc(r.transcript_en||'')}</textarea>`,
+      '오디오가 없어도 대본만 저장할 수 있지만, 홈페이지 도슨트 재생 버튼은 오디오가 있어야 나타납니다. 노출 체크가 꺼져 있으면 발행 시 홈페이지에 전혀 반영되지 않습니다')+
     F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
 
   ensureEx().then(()=>{
     const html=exAutoListInner(r.no);
     $('#exAutoWork').innerHTML=html||'<div class="hint">등록된 전시 이력이 없습니다</div>';
   }).catch(()=>{ $('#exAutoWork').innerHTML='<div class="hint">전시 이력을 불러오지 못했습니다</div>'; });
+  // 기존 도슨트 오디오 미리듣기 (sb: 저장분만 서명 URL 필요, drive: 저장분은 없음)
+  const audioVal=String(r.audio_master||'').trim();
+  if(audioVal.indexOf('sb:')===0){
+    sb.storage.from('artwork-masters').createSignedUrl(audioVal.slice(3), 3600).then(res=>{
+      if(res.data&&res.data.signedUrl){const a=$('#docentPrev');a.src=res.data.signedUrl;a.style.display='';}
+    });
+  }
+  $('#fDocentFile').onchange=()=>uploadDocentAudio($('#fDocentFile').files[0]);
   // 기존 값 선택 → 채우기
   document.querySelectorAll('#eBody select.pick[data-fill]').forEach(s=>s.onchange=()=>{
     if(s.value==='')return;
@@ -1131,6 +1155,21 @@ async function uploadImage(file){
     toast('✅ 업로드 완료');
   }catch(e){toast('업로드 오류: '+e.message)}
 }
+async function uploadDocentAudio(file){
+  if(!file)return;
+  toast('업로드 중…');
+  try{
+    const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
+    const ext=(file.name.split('.').pop()||'mp3').toLowerCase();
+    const path=no+'/docent-'+Date.now()+'.'+ext;
+    const up=await sb.storage.from('artwork-masters')
+      .upload(path, file, { contentType:file.type||'audio/mpeg', upsert:false });
+    if(up.error) throw up.error;
+    $('#fDocentAudio').value='sb:'+path;
+    const a=$('#docentPrev'); a.src=URL.createObjectURL(file); a.style.display='';
+    toast('✅ 업로드 완료 — 저장을 눌러야 최종 반영됩니다');
+  }catch(e){toast('업로드 오류: '+e.message)}
+}
 async function uploadExPoster(file, exId){
   if(!file)return;
   toast('이미지 압축 중…');
@@ -1164,6 +1203,10 @@ $('#editForm').onsubmit=async e=>{
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
   rec.series=g('series');
+  rec.audio_master=g('audio_master');
+  rec.transcript_ko=g('transcript_ko');
+  rec.transcript_en=g('transcript_en');
+  rec.docent_enabled=!!(($('#eBody [name=docent_enabled]')||{}).checked);
   rec.exhibitions='';            // 전시 이력은 전시 화면에서 관리한다(자동 생성)
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
   delete rec.notype;

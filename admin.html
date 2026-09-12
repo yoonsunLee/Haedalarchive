@@ -112,7 +112,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .settings-box .row{display:flex; flex-direction:column; gap:4px; margin-bottom:14px}
 .settings-box label{font-size:.83rem; color:var(--sub)}
 .settings-box input{padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink)}
-#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
+#toast{position:fixed; inset:auto; margin:0; border:none; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
 #toast.show{opacity:.95}
 .empty{text-align:center; color:var(--sub); padding:60px 0}
 @media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
@@ -278,7 +278,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </form>
 </dialog>
 
-<div id="toast"></div>
+<div id="toast" popover="manual"></div>
 
 <script>
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
@@ -736,7 +736,16 @@ function buildExText(exList){
   }).join('\n');
 }
 
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+function toast(m){
+  const t=$('#toast');
+  t.textContent=m;
+  // dialog(작품 수정창)는 항상 최상위 레이어라 popover로 승격해야 그 위에 뜬다
+  if(t.showPopover && !t.matches(':popover-open')){ try{ t.showPopover(); }catch(e){} }
+  t.classList.add('show');
+  clearTimeout(t._h); clearTimeout(t._hp);
+  t._h=setTimeout(()=>t.classList.remove('show'),2600);
+  t._hp=setTimeout(()=>{ if(t.hidePopover){ try{ t.hidePopover(); }catch(e){} } },2860);
+}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtWon(v){if(v===''||v==null||isNaN(Number(v)))return v||'';return Number(v).toLocaleString('ko-KR')+'원'}
 function soldState(r){

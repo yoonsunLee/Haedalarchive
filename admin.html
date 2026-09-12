@@ -566,7 +566,8 @@ async function savePressToDb(rec, neu, cur){
     image_source_url: textOrNull(rec.image),
     byline: textOrNull(rec.note),
     link_type: textOrNull(rec.link_type),
-    linked_exhibition_id: rec.link_type === 'exhibition' ? textOrNull(rec.linked_exhibition_id) : null
+    linked_exhibition_id: rec.link_type === 'exhibition' ? textOrNull(rec.linked_exhibition_id) : null,
+    type: rec.featured ? 'feature' : 'mention'
   };
   if(!payload.title_ko) throw new Error('기사 제목을 입력하세요');
   if(!payload.outlet_ko) throw new Error('매체명을 입력하세요');
@@ -1504,6 +1505,7 @@ async function loadPress(){
                image:p.image_source_url||'', note:p.byline||'',
                title_en:p.title_en||'', quote_en:p.quote_en||'',
                link_type:p.link_type||'', linked_exhibition_id:p.linked_exhibition_id||'',
+               featured:p.type==='feature',
                _id:p.id, _version:p.version };
     });
   }catch(e){
@@ -1540,6 +1542,9 @@ function openPressEdit(r,neu){
     F(PRESS_LABELS.quote,`<textarea name="quote" placeholder="기사에서 고른 인상적인 한 줄">${esc(r.quote)}</textarea>`)+
     F('인용구 (영문)',`<textarea name="quote_en" placeholder="Quote translated into English">${esc(r.quote_en||'')}</textarea>`,'비워두면 영문 모드에서 인용구가 표시되지 않습니다')+
     F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
+    F('대표 기사',`<label style="display:flex;align-items:center;gap:8px;font-weight:400">
+        <input type="checkbox" name="featured"${r.featured?' checked':''}> Press 페이지 맨 위 대표 자리에 표시
+      </label>`,'여러 기사를 체크해도 그중 하나만 쓰입니다. 아무것도 체크하지 않으면 최신 기사가 자동으로 대표 자리에 표시됩니다')+
     F('연결 대상',`<select name="link_type">
         <option value=""${!r.link_type?' selected':''}>없음</option>
         <option value="exhibition"${r.link_type==='exhibition'?' selected':''}>전시 연결</option>
@@ -1558,6 +1563,7 @@ $('#pressEditForm').onsubmit=async e=>{
   e.preventDefault();
   const g=n=>{const el=document.querySelector(`#peBody [name="${n}"]`);return el?el.value.trim():''};
   const rec={};PRESS_KEYS.forEach(k=>rec[k]=g(k));
+  rec.featured=!!document.querySelector('#peBody [name="featured"]')?.checked;
   if(!pressIsNew)rec.no=pressCurrent.no; // 수정 시 번호는 읽기전용 필드값 그대로
   try{
     await savePressToDb(rec, pressIsNew, pressCurrent);

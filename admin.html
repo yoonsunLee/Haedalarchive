@@ -54,6 +54,7 @@ main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
 .card:hover{transform:translateY(-2px)}
 .card .imgbox{aspect-ratio:1; background:linear-gradient(135deg,#dfe7ee,#c9d6e2); display:flex; align-items:center; justify-content:center; overflow:hidden}
 .card .imgbox img{width:100%; height:100%; object-fit:cover}
+.card .imgbox img.is-portrait{object-fit:contain} /* 세로로 긴 사진은 정사각형 카드 안에서 위아래를 자르지 않고 레터박스로 보여준다 */
 .card .imgbox .noimg{font-size:2rem; opacity:.4}
 .card .meta{padding:10px 12px 12px}
 .card .no{font-size:.72rem; color:var(--sub); letter-spacing:.04em}
@@ -80,6 +81,9 @@ dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
 .dlghead h2{font-size:1rem; margin-right:auto}
 .dlgbody{padding:18px; max-height:72vh; overflow-y:auto}
 .detailimg{width:100%; max-height:380px; object-fit:contain; border-radius:10px; background:#eee; margin-bottom:14px}
+.detail-photos{margin-bottom:14px}
+.detail-photos-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:2px}
+.detail-photo-thumb{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line); background:#eee; flex:0 0 auto}
 .kv{display:grid; grid-template-columns:96px 1fr; gap:6px 12px; font-size:.9rem}
 .kv dt{color:var(--sub)} .kv dd{white-space:pre-wrap; word-break:break-word}
 form .row{display:grid; grid-template-columns:110px 1fr; gap:8px 12px; align-items:start; margin-bottom:9px}
@@ -683,7 +687,7 @@ const SOLD_MARK = { sold:'●', nfs:'NFS', available:'', reserved:'' };
    status는 여기서 다시 계산하지 않고 works_status 뷰가 준 값(effective_status)을 쓴다.
    같은 판정을 두 곳에서 하면 반드시 어긋난다 — 실제로 처음엔 '첫 판매 에디션'을
    대표로 삼는 바람에 3점 중 1점이 남은 아트토이가 '판매완료'로 표시됐다. */
-function flattenWork(w, exText, statusRow){
+function flattenWork(w, exText, statusRow, photoCount){
   var eds = (w.editions || []).filter(function(e){ return !e.deleted_at; })
                               .sort(function(a,b){ return a.edition_number - b.edition_number; });
   var sold = eds.filter(function(e){ return e.status === 'sold'; });
@@ -721,7 +725,7 @@ function flattenWork(w, exText, statusRow){
     transcript_en: w.transcript_en || '',
     docent_enabled: !!w.docent_enabled,
     _id: w.id, _version: w.version, _editions: eds,
-    _publish_web: w.publish_web, _kind: w.kind
+    _publish_web: w.publish_web, _kind: w.kind, _photoCount: photoCount || 0
   };
 }
 
@@ -807,14 +811,17 @@ async function load(){
       sb.from('works').select('*, editions(*)').is('deleted_at', null),
       sb.from('exhibitions').select('*').is('deleted_at', null),
       sb.from('exhibition_works').select('exhibition_id, work_id'),
-      sb.from('works_status').select('*')      // 판매상태 판정은 DB 뷰가 단독으로 담당
+      sb.from('works_status').select('*'),     // 판매상태 판정은 DB 뷰가 단독으로 담당
+      sb.from('work_photos').select('work_id')
     ]);
-    var wq = r[0], xq = r[1], lq = r[2], sq = r[3];
+    var wq = r[0], xq = r[1], lq = r[2], sq = r[3], pq = r[4];
     if(wq.error) throw wq.error;
     if(xq.error) throw xq.error;
     if(lq.error) throw lq.error;
     if(sq.error) throw sq.error;
     var statusById = {}; (sq.data || []).forEach(function(s){ statusById[s.id] = s; });
+    var photoCountByWork = {};
+    (pq.data || []).forEach(function(p){ photoCountByWork[p.work_id] = (photoCountByWork[p.work_id] || 0) + 1; });
 
     var exById = {}, worksById = {};
     (xq.data || []).forEach(function(e){ exById[e.id] = e; });
@@ -847,7 +854,7 @@ async function load(){
       var list = (exOfWork[w.id] || []).filter(Boolean).sort(function(a,b){
         return String(b.start_date||'').localeCompare(String(a.start_date||''));
       });
-      return flattenWork(w, buildExText(list), statusById[w.id]);
+      return flattenWork(w, buildExText(list), statusById[w.id], photoCountByWork[w.id] || 0);
     });
     await primeSignedUrls(rows);
     $('#syncdot').className='live'; $('#syncdot').title='Supabase 연동 중';
@@ -973,7 +980,7 @@ function renderGrid(list){
   $('#grid').innerHTML=list.length?list.map((r,i)=>{
     const st=soldState(r),u=imgUrl(r,true);
     return`<div class="card" data-idx="${i}">
-      <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'">`:'<div class="noimg">🖼️</div>'}</div>
+      <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'" onload="if(this.naturalHeight>this.naturalWidth*1.15)this.classList.add('is-portrait')">`:'<div class="noimg">🖼️</div>'}</div>
       <div class="meta">
         <div class="no">${esc(r.no||'번호 미부여')}</div>
         <div class="title">${esc(String(r.title).split('\n')[0])}</div>
@@ -1006,6 +1013,7 @@ function openDetail(r){
   const u=imgUrl(current,false);
   $('#btnDel').style.display='';  // 소프트 삭제라 되살릴 수 있어 항상 노출
   $('#dBody').innerHTML=(u?`<img class="detailimg" src="${esc(u)}" onerror="this.remove()">`:'')+
+    '<div id="dPhotos" class="detail-photos"></div>'+
     '<dl class="kv">'+KEYS.filter(k=>k!=='image'&&k!=='no'&&!(['qty','sold_qty'].includes(k)&&current[k]==='')).map(k=>{
       let v=current[k];
       if(['price','actual_price'].includes(k)&&v!=='Artist Archive')v=esc(fmtWon(v));
@@ -1023,6 +1031,26 @@ function openDetail(r){
     const html=exAutoListInner(no);
     if(html){ $('#dExAutoLabel').style.display=''; $('#dExAuto').innerHTML=html; }
   }).catch(()=>{});
+  renderDetailPhotos(current._id, r);
+}
+/** 상세보기 팝업의 상세사진 미리보기(읽기 전용). 편집은 '수정' 화면에서 한다. */
+async function renderDetailPhotos(workId, r){
+  const box=$('#dPhotos');
+  if(!workId){ box.innerHTML=''; return; }
+  const res=await sb.from('work_photos').select('*').eq('work_id', workId).order('sort_order');
+  if(current!==r) return; // 그 사이 다른 작품 열었으면 무시
+  if(res.error || !res.data || !res.data.length){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="hint" style="margin-bottom:6px">상세 사진 '+res.data.length+'장</div>'+
+    '<div class="detail-photos-row">'+res.data.map(p=>
+      `<img class="detail-photo-thumb" data-path="${esc(p.image_file)}" alt="">`
+    ).join('')+'</div>';
+  res.data.forEach(function(p){
+    signedUrlFor(p.image_file).then(function(u){
+      if(!u || current!==r) return;
+      const img=box.querySelector('img[data-path="'+CSS.escape(p.image_file)+'"]');
+      if(img) img.src=u;
+    });
+  });
 }
 
 /* ---------- 수정/등록 폼 ---------- */

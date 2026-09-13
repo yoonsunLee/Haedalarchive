@@ -52,10 +52,11 @@ main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
 .grid.small{grid-template-columns:repeat(auto-fill,minmax(115px,1fr)); gap:8px}
 .card{background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; box-shadow:var(--shadow); transition:transform .12s}
 .card:hover{transform:translateY(-2px)}
-.card .imgbox{aspect-ratio:1; background:linear-gradient(135deg,#dfe7ee,#c9d6e2); display:flex; align-items:center; justify-content:center; overflow:hidden}
+.card .imgbox{position:relative; aspect-ratio:1; background:linear-gradient(135deg,#dfe7ee,#c9d6e2); display:flex; align-items:center; justify-content:center; overflow:hidden}
 .card .imgbox img{width:100%; height:100%; object-fit:cover}
 .card .imgbox img.is-portrait{object-fit:contain} /* 세로로 긴 사진은 정사각형 카드 안에서 위아래를 자르지 않고 레터박스로 보여준다 */
 .card .imgbox .noimg{font-size:2rem; opacity:.4}
+.card .imgbox .photocount{position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.65); color:#fff; font-size:.68rem; line-height:1.3; padding:2px 7px; border-radius:10px; pointer-events:none}
 .card .meta{padding:10px 12px 12px}
 .card .no{font-size:.72rem; color:var(--sub); letter-spacing:.04em}
 .card .title{font-size:.92rem; font-weight:600; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
@@ -980,7 +981,7 @@ function renderGrid(list){
   $('#grid').innerHTML=list.length?list.map((r,i)=>{
     const st=soldState(r),u=imgUrl(r,true);
     return`<div class="card" data-idx="${i}">
-      <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'" onload="if(this.naturalHeight>this.naturalWidth*1.15)this.classList.add('is-portrait')">`:'<div class="noimg">🖼️</div>'}</div>
+      <div class="imgbox">${u?`<img src="${esc(u)}" loading="lazy" onerror="this.outerHTML='<div class=noimg>🖼️</div>'" onload="if(this.naturalHeight>this.naturalWidth*1.15)this.classList.add('is-portrait')">`:'<div class="noimg">🖼️</div>'}${r._photoCount?`<span class="photocount">+${r._photoCount}</span>`:''}</div>
       <div class="meta">
         <div class="no">${esc(r.no||'번호 미부여')}</div>
         <div class="title">${esc(String(r.title).split('\n')[0])}</div>

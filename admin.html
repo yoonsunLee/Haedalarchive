@@ -150,6 +150,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="exhibitions">Exhibitions</button>
   <button data-v="press">Press</button>
   <button data-v="homevideos">홈 영상</button>
+  <button data-v="feecalc">수수료 계산</button>
   <button data-v="website">Website</button>
   <button data-v="settings">Settings</button>
 </nav>
@@ -230,6 +231,27 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="tablewrap"><table>
       <thead><tr><th>순서</th><th>이름(관리용)</th><th>연결 작품</th><th>공개</th><th>테마</th></tr></thead>
       <tbody id="hvTbody"></tbody>
+    </table></div>
+  </section>
+
+  <section id="vFeeCalc" hidden>
+    <div class="toolbar" id="feeToolbar" style="padding:0 0 12px; flex-wrap:wrap; gap:14px">
+      <input type="search" id="fcq" placeholder="작품명·번호 검색…" style="flex:1 1 220px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem">
+        <input type="checkbox" id="fcCard"> 카드수수료 적용
+        <input type="number" id="fcCardPct" value="3.5" step="0.1" min="0" max="100" style="width:60px">%
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.88rem">
+        <input type="checkbox" id="fcTax" checked> 원천징수 적용
+        <input type="number" id="fcTaxPct" value="3.3" step="0.1" min="0" max="100" style="width:60px">%
+      </label>
+      <button class="btn" id="btnFeeReload" title="새로고침">↻</button>
+    </div>
+    <p class="hint" style="margin:0 0 12px">계산 순서: 판매가에서 카드수수료(체크 시) → 남은 금액을 수수료율로 갤러리·작가가 분배
+      → 작가 몫에서 원천징수(체크 시) 순으로 뗀 최종 실수령액입니다. 판매가는 Works 탭의 "판매가격"을 그대로 씁니다.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>작품No.</th><th>작품명</th><th>판매가</th><th>10%</th><th>20%</th><th>30%</th><th>40%</th><th>50%</th></tr></thead>
+      <tbody id="fcTbody"></tbody>
     </table></div>
   </section>
 
@@ -2028,6 +2050,62 @@ $('#btnCloseHvEdit').onclick=()=>dlgHvEdit.close();
 $('#btnCancelHvEdit').onclick=()=>dlgHvEdit.close();
 dlgHvEdit.addEventListener('click',e=>{if(e.target===dlgHvEdit)dlgHvEdit.close()});
 
+/* ---------- 수수료 계산 ----------
+   계산 순서(작가 확정, 2026-09-14):
+   판매가 -> 카드수수료(체크 시, 판매가 전체 기준) 차감 -> 남은 금액을 수수료율로
+   갤러리/작가가 분배 -> 작가 몫에서 원천징수(체크 시) 차감 = 최종 실수령액. */
+const FEE_TIERS=[10,20,30,40,50];
+let feeRows=[];
+
+async function loadFeeCalc(){
+  try{
+    var q=await sb.from('works').select('id, work_no, title_ko, list_price_krw').is('deleted_at', null);
+    if(q.error) throw q.error;
+    feeRows=(q.data||[]).map(function(w){
+      return { no:w.work_no, title:w.title_ko, price:w.list_price_krw };
+    }).sort(function(a,b){ return String(a.no||'').localeCompare(String(b.no||'')) });
+  }catch(e){
+    feeRows=[];
+    toast('수수료 계산용 작품 불러오기 실패: '+(e.message||e));
+  }
+  renderFeeCalc();
+}
+function krw(n){
+  if(n==null||isNaN(n))return '—';
+  return Math.round(n).toLocaleString('ko-KR')+'원';
+}
+function computeNet(price, tierPct){
+  if(price==null||isNaN(price))return null;
+  var v=price;
+  if($('#fcCard').checked){
+    var cardPct=parseFloat($('#fcCardPct').value)||0;
+    v=v*(1-cardPct/100);
+  }
+  v=v*(1-tierPct/100); // 남은 금액을 수수료율로 분배 — 이 값이 작가 몫
+  if($('#fcTax').checked){
+    var taxPct=parseFloat($('#fcTaxPct').value)||0;
+    v=v*(1-taxPct/100);
+  }
+  return v;
+}
+function renderFeeCalc(){
+  var q=($('#fcq').value||'').trim().toLowerCase();
+  var list=feeRows.filter(function(r){
+    if(!q)return true;
+    return [r.no,r.title].join(' ').toLowerCase().includes(q);
+  });
+  $('#fcTbody').innerHTML=list.length?list.map(function(r){
+    var cells=FEE_TIERS.map(function(t){ return '<td>'+krw(computeNet(r.price,t))+'</td>' }).join('');
+    return '<tr><td>'+esc(r.no||'')+'</td><td>'+esc(r.title||'')+'</td><td>'+krw(r.price)+'</td>'+cells+'</tr>';
+  }).join(''):'<tr><td colspan="8" class="empty">작품이 없습니다</td></tr>';
+}
+$('#fcq').oninput=renderFeeCalc;
+$('#fcCard').onchange=renderFeeCalc;
+$('#fcCardPct').oninput=renderFeeCalc;
+$('#fcTax').onchange=renderFeeCalc;
+$('#fcTaxPct').oninput=renderFeeCalc;
+$('#btnFeeReload').onclick=()=>{loadFeeCalc();toast('새로고침')};
+
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{
   const header=KEYS.map(k=>LABELS[k]);
@@ -2094,6 +2172,7 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
   $('#vHomeVideos').hidden=section!=='homevideos';
+  $('#vFeeCalc').hidden=section!=='feecalc';
   $('#vWebsite').hidden=section!=='website';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
@@ -2101,6 +2180,7 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
   if(section==='homevideos')renderHomeVideosList();
+  if(section==='feecalc')renderFeeCalc();
 });
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
@@ -2156,6 +2236,7 @@ $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 loadPress();
 loadHomeVideos();
+loadFeeCalc();
 
 /* ---------- 로그인 게이트 ----------
    RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.

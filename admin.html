@@ -149,6 +149,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="works" class="on">Works</button>
   <button data-v="exhibitions">Exhibitions</button>
   <button data-v="press">Press</button>
+  <button data-v="homevideos">홈 영상</button>
   <button data-v="website">Website</button>
   <button data-v="settings">Settings</button>
 </nav>
@@ -219,6 +220,19 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </table></div>
   </section>
 
+  <section id="vHomeVideos" hidden>
+    <div class="toolbar" style="padding:0 0 12px">
+      <button class="btn" id="btnHvReload" title="새로고침">↻</button>
+      <button class="btn primary" id="btnHvAdd">＋ 영상 등록</button>
+    </div>
+    <p class="hint" style="margin:0 0 12px">홈페이지 첫 화면에 최대 3개까지 순서대로 표시됩니다. 영상 파일 하나만 올리면
+      모바일용 저용량 사본과 포스터 이미지는 반영할 때 자동으로 만들어집니다.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>순서</th><th>이름(관리용)</th><th>연결 작품</th><th>공개</th><th>테마</th></tr></thead>
+      <tbody id="hvTbody"></tbody>
+    </table></div>
+  </section>
+
   <section id="vWebsite" hidden>
     <div class="settings-box">
       <h3>🚀 홈페이지에 반영</h3>
@@ -278,6 +292,18 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="formfoot">
       <button type="button" class="btn" id="btnDeletePress" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
       <button type="button" class="btn" id="btnCancelPressEdit">취소</button>
+      <button type="submit" class="btn primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgHvEdit">
+  <div class="dlghead"><h2 id="hvTitle">영상 등록</h2><button class="btn" id="btnCloseHvEdit">✕</button></div>
+  <form id="hvEditForm" method="dialog">
+    <div class="dlgbody" id="hvBody"></div>
+    <div class="formfoot">
+      <button type="button" class="btn" id="btnDeleteHv" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
+      <button type="button" class="btn" id="btnCancelHvEdit">취소</button>
       <button type="submit" class="btn primary">저장</button>
     </div>
   </form>
@@ -1864,6 +1890,144 @@ $('#btnClosePressEdit').onclick=()=>dlgPressEdit.close();
 $('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
 dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
 
+/* ---------- 홈 영상 ---------- */
+let hvRows=[], hvWorksRows=[], hvCurrent=null, hvIsNew=false;
+
+async function loadHomeVideos(){
+  try{
+    var [vq, wq] = await Promise.all([
+      sb.from('home_videos').select('*').is('deleted_at', null).order('sort_order'),
+      sb.from('works').select('id, work_no, title_ko').is('deleted_at', null).order('work_no')
+    ]);
+    if(vq.error) throw vq.error;
+    if(wq.error) throw wq.error;
+    hvWorksRows = wq.data || [];
+    hvRows = (vq.data||[]).map(function(v){
+      return { name:v.name||'', video_master:v.video_master||'', work_id:v.work_id||'',
+               bg_color:v.bg_color||'#000000', ui_theme:v.ui_theme||'dark',
+               sort_order:v.sort_order||0, is_public:!!v.is_public,
+               mobile_image_fallback:!!v.mobile_image_fallback,
+               _id:v.id, _version:v.version };
+    });
+  }catch(e){
+    hvRows=[];
+    toast('홈 영상 불러오기 실패: '+(e.message||e));
+  }
+  renderHomeVideosList();
+}
+function renderHomeVideosList(){
+  var list=hvRows.slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)});
+  window._hvList=list;
+  $('#hvTbody').innerHTML=list.length?list.map(function(r,i){
+    var w=hvWorksRows.find(function(x){return x.id===r.work_id});
+    return '<tr data-idx="'+i+'"><td>'+esc(r.sort_order)+'</td><td>'+esc(r.name||'(이름 없음)')+'</td>'+
+      '<td>'+(w?esc(w.work_no):'—')+'</td>'+
+      '<td>'+(r.is_public?'공개':'비공개')+'</td>'+
+      '<td>'+(r.ui_theme==='light'?'밝은 배경용':'어두운 배경용')+'</td></tr>';
+  }).join(''):'<tr><td colspan="5" class="empty">등록된 영상이 없습니다</td></tr>';
+}
+async function uploadHomeVideo(file){
+  if(!file)return;
+  toast('영상 업로드 중… (파일이 크면 시간이 걸릴 수 있어요)');
+  try{
+    var ext=(file.name.split('.').pop()||'mp4').toLowerCase();
+    var path='home-videos/'+Date.now()+'.'+ext;
+    var up=await sb.storage.from('artwork-masters')
+      .upload(path, file, { contentType:file.type||'video/mp4', upsert:false });
+    if(up.error) throw up.error;
+    $('#hvBody [name=video_master]').value='sb:'+path;
+    $('#hvVideoName').textContent='✅ '+file.name;
+    toast('✅ 업로드 완료 — 저장을 눌러야 최종 반영됩니다');
+  }catch(e){toast('업로드 오류: '+e.message)}
+}
+function openHvEdit(r,neu){
+  hvIsNew=neu; hvCurrent=r;
+  $('#hvTitle').textContent=neu?'영상 등록':'영상 수정';
+  var F=(label,inner,hint)=>'<div class="row"><label>'+label+'</label><div>'+inner+(hint?'<div class="hint">'+hint+'</div>':'')+'</div></div>';
+  $('#hvBody').innerHTML=
+    F('영상 파일',
+      '<input type="file" accept="video/*" id="hvFileInput">'+
+      '<input type="hidden" name="video_master" value="'+esc(r.video_master||'')+'">'+
+      '<div id="hvVideoName" class="hint">'+(r.video_master?'✅ 기존 영상 있음 (다시 선택하면 교체됩니다)':'')+'</div>',
+      '16:9로 찍은 원본 그대로 올리면 됩니다. 모바일용 사본과 포스터는 반영할 때 자동 생성됩니다')+
+    F('이름 (관리용)', '<input name="name" value="'+esc(r.name||'')+'" placeholder="예: 아트토이 자개 회전">', '홈페이지에는 노출되지 않고 이 목록에서만 보여요')+
+    F('연결 작품', '<select name="work_id"><option value=""'+(!r.work_id?' selected':'')+'>연결 안 함</option>'+
+      hvWorksRows.map(function(w){return '<option value="'+esc(w.id)+'"'+(r.work_id===w.id?' selected':'')+'>'+esc(w.title_ko||'')+' ('+esc(w.work_no)+')</option>'}).join('')+
+      '</select>', '영상 위에 "작품 보기" 배지가 뜨고, 눌렀을 때 이 작품으로 이동합니다')+
+    F('영상 배경색', '<input type="color" name="bg_color" value="'+esc(r.bg_color||'#000000')+'" style="width:60px;height:36px;padding:2px">', '영상 비율과 화면 비율이 안 맞을 때 남는 여백을 채우는 색이에요. 영상 배경색과 비슷하게 맞추면 자연스러워요')+
+    F('버튼·배지 테마', '<select name="ui_theme">'+
+      '<option value="dark"'+(r.ui_theme!=='light'?' selected':'')+'>어두운 배경용 (밝은 글씨)</option>'+
+      '<option value="light"'+(r.ui_theme==='light'?' selected':'')+'>밝은 배경용 (어두운 글씨)</option>'+
+      '</select>', '영상이 전체적으로 밝으면 "밝은 배경용"을 선택하세요')+
+    F('순서', '<input type="number" name="sort_order" value="'+esc(r.sort_order||0)+'" style="width:80px">', '숫자가 작을수록 먼저 재생됩니다. 최대 3개까지만 홈페이지에 쓰여요')+
+    F('공개', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
+      '<input type="checkbox" name="is_public"'+(r.is_public?' checked':'')+'> 홈페이지에 공개'+
+      '</label>', '체크 해제하면 홈페이지는 원래 이미지 화면으로 돌아갑니다');
+  $('#btnDeleteHv').style.display=neu?'none':'';
+  $('#hvVideoName').textContent='';
+  dlgHvEdit.showModal();
+  pushDialogHistory();
+  $('#hvFileInput').onchange=e=>uploadHomeVideo(e.target.files[0]);
+}
+async function saveHomeVideoToDb(rec, neu, cur){
+  var payload = {
+    name: String(rec.name||'').trim() || null,
+    video_master: String(rec.video_master||'').trim() || null,
+    work_id: String(rec.work_id||'').trim() || null,
+    bg_color: String(rec.bg_color||'#000000').trim(),
+    ui_theme: String(rec.ui_theme||'dark').trim(),
+    sort_order: parseInt(rec.sort_order,10) || 0,
+    is_public: !!rec.is_public
+  };
+  if(payload.is_public && !payload.video_master)
+    throw new Error('공개하려면 영상 파일을 먼저 업로드하세요');
+  if(neu){
+    var ins = await sb.from('home_videos').insert(payload);
+    if(ins.error) throw ins.error;
+    return;
+  }
+  var upd = await sb.from('home_videos').update(payload)
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0)
+    throw new Error('이 영상이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+async function softDeleteHomeVideo(cur){
+  var upd = await sb.from('home_videos')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', cur._id).eq('version', cur._version).select('id');
+  if(upd.error) throw upd.error;
+  if(!upd.data || upd.data.length === 0)
+    throw new Error('이 영상이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+}
+$('#hvEditForm').onsubmit=async e=>{
+  e.preventDefault();
+  var g=n=>{var el=document.querySelector('#hvBody [name="'+n+'"]');return el?el.value.trim():''};
+  var rec={ name:g('name'), video_master:g('video_master'), work_id:g('work_id'),
+             bg_color:g('bg_color'), ui_theme:g('ui_theme'), sort_order:g('sort_order') };
+  rec.is_public=!!document.querySelector('#hvBody [name="is_public"]')?.checked;
+  try{
+    await saveHomeVideoToDb(rec, hvIsNew, hvCurrent);
+    toast(hvIsNew?'영상이 등록되었습니다':'저장되었습니다');
+    dlgHvEdit.close();await loadHomeVideos();
+  }catch(err){toast('오류: '+(err.message||err))}
+};
+$('#btnDeleteHv').onclick=async()=>{
+  if(!hvCurrent||hvIsNew)return;
+  if(!confirm('\''+(hvCurrent.name||'이름 없는 영상')+'\' 영상을 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.'))return;
+  try{
+    await softDeleteHomeVideo(hvCurrent);
+    toast('🗑 영상이 삭제되었습니다');
+    dlgHvEdit.close();await loadHomeVideos();
+  }catch(err){toast('삭제 오류: '+(err.message||err))}
+};
+$('#hvTbody').onclick=e=>{var tr=e.target.closest('tr[data-idx]');if(tr)openHvEdit(window._hvList[+tr.dataset.idx],false)};
+$('#btnHvAdd').onclick=()=>openHvEdit({name:'',video_master:'',work_id:'',bg_color:'#000000',ui_theme:'dark',sort_order:(hvRows.length?Math.max.apply(null,hvRows.map(function(r){return r.sort_order||0}))+1:1),is_public:false},true);
+$('#btnHvReload').onclick=()=>{loadHomeVideos();toast('새로고침')};
+$('#btnCloseHvEdit').onclick=()=>dlgHvEdit.close();
+$('#btnCancelHvEdit').onclick=()=>dlgHvEdit.close();
+dlgHvEdit.addEventListener('click',e=>{if(e.target===dlgHvEdit)dlgHvEdit.close()});
+
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{
   const header=KEYS.map(k=>LABELS[k]);
@@ -1929,12 +2093,14 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   $('#vWorks').hidden=section!=='works';
   $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
+  $('#vHomeVideos').hidden=section!=='homevideos';
   $('#vWebsite').hidden=section!=='website';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section==='works')render();
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
+  if(section==='homevideos')renderHomeVideosList();
 });
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
@@ -1989,6 +2155,7 @@ updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 loadPress();
+loadHomeVideos();
 
 /* ---------- 로그인 게이트 ----------
    RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.

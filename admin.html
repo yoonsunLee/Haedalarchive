@@ -265,6 +265,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="settings-box">
       <h3>🚀 홈페이지에 반영</h3>
       <p>작품·전시·Press를 다 입력하셨으면, 화면 상단의 <b>🚀 홈페이지에 반영</b> 버튼을 눌러주세요 (어느 탭에 있든 항상 보입니다). 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
+      <p style="color:var(--sold)"><b>⚠️ 이 버튼을 안 눌러도, 매일 자정에 자동으로 한 번씩 반영됩니다.</b> "공개"로 체크해둔 작품·영상은 버튼을 누르지 않았더라도 늦어도 다음날 자동으로 홈페이지에 나갑니다. 아직 준비 안 된 것은 반드시 "공개" 체크를 꺼두세요.</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🔗 바로가기</h3>
       <p><a href="https://yoonsunlee.github.io/shinhaedal/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
@@ -1988,9 +1989,12 @@ function openHvEdit(r,neu){
       '<option value="light"'+(r.ui_theme==='light'?' selected':'')+'>밝은 배경용 (어두운 글씨)</option>'+
       '</select>', '영상이 전체적으로 밝으면 "밝은 배경용"을 선택하세요')+
     F('순서', '<input type="number" name="sort_order" value="'+esc(r.sort_order||0)+'" style="width:80px">', '숫자가 작을수록 먼저 재생됩니다. 최대 3개까지만 홈페이지에 쓰여요')+
+    F('모바일에서', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
+      '<input type="checkbox" name="mobile_image_fallback"'+(r.mobile_image_fallback?' checked':'')+'> 모바일에서는 영상 대신 원래 이미지 화면 보여주기'+
+      '</label>', '영상이 모바일 화면에 잘 안 맞거나 데이터가 부담될 때 체크하세요. PC에서는 그대로 영상이 나옵니다')+
     F('공개', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
       '<input type="checkbox" name="is_public"'+(r.is_public?' checked':'')+'> 홈페이지에 공개'+
-      '</label>', '체크 해제하면 홈페이지는 원래 이미지 화면으로 돌아갑니다');
+      '</label>', '이 영상을 홈페이지 후보에서 제외합니다. 공개된 영상이 하나도 안 남으면 원래 이미지 화면으로 돌아가고, 다른 공개 영상이 남아있으면 그 영상들만으로 계속 재생됩니다.');
   $('#btnDeleteHv').style.display=neu?'none':'';
   $('#hvVideoName').textContent='';
   dlgHvEdit.showModal();
@@ -2005,7 +2009,8 @@ async function saveHomeVideoToDb(rec, neu, cur){
     bg_color: String(rec.bg_color||'#000000').trim(),
     ui_theme: String(rec.ui_theme||'dark').trim(),
     sort_order: parseInt(rec.sort_order,10) || 0,
-    is_public: !!rec.is_public
+    is_public: !!rec.is_public,
+    mobile_image_fallback: !!rec.mobile_image_fallback
   };
   if(payload.is_public && !payload.video_master)
     throw new Error('공개하려면 영상 파일을 먼저 업로드하세요');
@@ -2034,6 +2039,7 @@ $('#hvEditForm').onsubmit=async e=>{
   var rec={ name:g('name'), video_master:g('video_master'), work_id:g('work_id'),
              bg_color:g('bg_color'), ui_theme:g('ui_theme'), sort_order:g('sort_order') };
   rec.is_public=!!document.querySelector('#hvBody [name="is_public"]')?.checked;
+  rec.mobile_image_fallback=!!document.querySelector('#hvBody [name="mobile_image_fallback"]')?.checked;
   try{
     await saveHomeVideoToDb(rec, hvIsNew, hvCurrent);
     toast(hvIsNew?'영상이 등록되었습니다':'저장되었습니다');

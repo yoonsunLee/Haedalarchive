@@ -1,64 +1,41 @@
 # 🦦 신해달 작가 작품 아카이브
 
-엑셀 파일 하나로 관리하던 작품 아카이브를 **어디서든 조회·입력·수정·다운로드**할 수 있는 시스템으로 만든 프로젝트입니다.
+신해달 작가의 작품·전시·언론보도·홈 영상을 관리하는 관리자 도구입니다.
 
 ## 구성
 
 | 역할 | 위치 |
 |---|---|
-| 데이터 원본(DB) | [구글 시트 「신해달 작품 아카이브 DB」](https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit) |
-| 파일 보관 | [구글 드라이브 「신해달 작품 아카이브」 폴더](https://drive.google.com/drive/folders/1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4) |
-| 관리 사이트 | 이 저장소 → GitHub Pages (`index.html`) |
-| 사이트 ↔ 시트 연결 | Google Apps Script (`apps-script/Code.gs`) |
+| 데이터 원본(DB) | Supabase Postgres (works / exhibitions / press / work_photos / work_media_links / home_videos) |
+| 파일 보관 | Supabase Storage (`artwork-masters` 버킷) |
+| 관리 화면 | 이 저장소 → GitHub Pages (`admin.html`) |
+| 홈페이지 발행 트리거 | Supabase Edge Function (`supabase/functions/publish/index.ts`) — admin.html의 "🚀 홈페이지에 반영" 버튼이 호출 |
+| 실제 홈페이지 | 별도 저장소 [`shinhaedal`](https://github.com/yoonsunLee/shinhaedal) — GitHub Actions가 Supabase에서 데이터를 읽어 정적 JSON/이미지로 구워서 커밋 |
 
-- 데이터는 항상 구글 시트에서 실시간으로 읽어옵니다 (저장소에는 개인정보가 포함된 데이터를 두지 않습니다).
-- 사이트에서 등록·수정한 내용은 곧바로 구글 시트에 기록됩니다.
-- 데이터 수정은 구글 시트에서 직접 해도 됩니다. 사이트는 항상 시트의 최신 내용을 보여줍니다.
+- admin.html은 로그인해야만 데이터를 조회·수정할 수 있습니다(RLS로 강제).
+- admin.html에서 수정한 내용은 즉시 Supabase에 반영되지만, **실제 홈페이지에는 자동으로 안 나갑니다.** 반드시 "🚀 홈페이지에 반영" 버튼을 눌러야 `shinhaedal` 저장소의 발행 워크플로가 돌아갑니다(매일 자동 발행도 백업으로 돌아갑니다).
+- `index.html`은 `admin.html`로 넘어가는 리다이렉트만 합니다(옛 주소로 들어와도 헤매지 않도록).
 
-## 최초 설정 (한 번만)
+## 탭별 기능
 
-### 1. Apps Script 배포 — 사이트에서 입력/수정을 쓰려면 필수
-1. https://script.google.com → **새 프로젝트**
-2. `apps-script/Code.gs` 내용 전체를 붙여넣기 (기본 코드는 지우기)
-3. 코드 상단 `TOKEN = 'haedal-2026'` 을 나만 아는 비밀번호로 변경
-4. **배포 → 새 배포 → 웹 앱** / 실행 계정: **나** / 액세스 권한: **모든 사용자** → 배포
-5. 권한 승인 후 **웹 앱 URL**(`…/exec`) 복사
-6. 아카이브 사이트 **[설정]** 탭에 URL과 비밀번호 입력 → "연결 성공" 확인
+- **Works**: 작품 등록/수정, 사진·상세사진·미디어(유튜브 등)·도슨트 오디오 업로드, 판매 상태 관리, 엑셀 다운로드
+- **Exhibitions**: 전시 등록/수정, 출품작 연결, 포스터 업로드
+- **Press**: 언론보도 등록/수정, 전시·브랜드샵 링크 연결
+- **홈 영상**: 홈페이지 첫 화면 영상(최대 3개) 관리. 영상 파일 하나만 올리면 모바일용 사본·포스터는 반영 시 자동 생성됨
+- **수수료 계산**: 작품별 판매가 대비 수수료 10~50% 구간 실수령액 계산(카드수수료·원천징수 토글 가능)
+- **Settings**: 로그인 계정 확인, 연결 상태 점검
 
-> 액세스 권한을 "모든 사용자"로 해도, URL과 비밀번호를 아는 사람만 수정할 수 있습니다. 조회 API가 부담스러우면 URL 자체를 비공개로 관리하세요.
+## Storage 파일 경로 규칙
 
-### 2. GitHub Pages 배포
-1. https://github.com/new 에서 저장소 생성 (예: `haedal-archive`, Public)
-2. 이 폴더에서:
-   ```bash
-   git remote add origin https://github.com/<아이디>/haedal-archive.git
-   git push -u origin main
-   ```
-3. 저장소 **Settings → Pages → Source: Deploy from a branch → main / (root)** 저장
-4. 1~2분 후 `https://<아이디>.github.io/haedal-archive/` 접속
-
-### 3. (선택) 드라이브에 이미지 백업
-추출된 `images/` 폴더의 사진들을 드라이브의 [images 폴더](https://drive.google.com/drive/folders/14kxWRLJvprm9bJBzlm9Oa1Vmie6XhtnH)에 드래그해서 올려두면 원본 백업이 됩니다.
-
-### 4. (선택) 엑셀 자동 백업
-Apps Script 편집기 왼쪽 시계 아이콘(트리거) → 함수 `backupXlsx` → 시간 기반 → 매일 → 저장.
-매일 드라이브 폴더에 날짜별 xlsx 사본이 쌓입니다.
-
-## 일상 사용법
-
-- **조회/검색**: 사이트 접속 → 갤러리/표 탭, 검색창·연도·판매상태 필터, 정렬(기본: 판매가능→NFS→판매완료→등록예정)
-- **통계 박스**: 전체작품/판매가능/판매완료 클릭 시 해당 작품만 필터. 누적판매액은 클릭할 때만 금액 표시
-- **작품 등록**: [＋ 작품 등록] — 작품번호는 `HD-연도-순번`으로 자동 채번(연도 입력 시 재계산)
-- **수정**: 작품 클릭 → [✏️ 수정]. 재료·크기·결제방식은 기존 값에서 선택 가능, 날짜는 캘린더 선택
-- **전시 이력**: 날짜+전시명으로 새 전시 추가하거나, 기존 전시 이력에서 골라 추가
-- **이미지**: 등록/수정 팝업에서 사진 선택 → 자동 압축 후 구글드라이브 images 폴더에 저장·연결
-- **엑셀 다운로드**: [⬇ 엑셀 다운로드] — 현재 데이터를 원본과 같은 열 구성의 xlsx로 저장
-
-## 폴더 구조
+`artwork-masters` 버킷 안에서 용도별로 접두 경로를 나눠 씁니다.
 
 ```
-index.html          관리 사이트 (GitHub Pages)
-images/             작품 원본 이미지 (작품번호.png)
-thumbs/             갤러리용 경량 썸네일 (자동 생성)
-apps-script/Code.gs 구글 시트 API 코드
+<작품번호>/<timestamp>.jpg       작품 사진
+<작품번호>/docent-<timestamp>.*  도슨트 오디오
+exhibitions/<전시ID>/<ts>.jpg    전시 포스터
+home-videos/<timestamp>.<ext>    홈 영상 원본
 ```
+
+## 스키마 변경
+
+Supabase는 service_role 키를 이 저장소에 두지 않으므로, 테이블/정책 변경은 항상 Supabase 대시보드의 **SQL Editor에서 직접 실행**합니다. 실행한 SQL은 `supabase/schema/`에 기록해 둡니다(재실행용이 아니라 현재 스키마가 어떻게 만들어졌는지 참고용).

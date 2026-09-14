@@ -42,3 +42,9 @@ create policy "authenticated full access on home_videos"
   to authenticated
   using (true)
   with check (true);
+
+-- RLS 정책과는 별개로 테이블 자체에 대한 기본 권한도 있어야 한다. SQL Editor로 테이블을
+-- 만들면(Table Editor UI와 달리) 이게 자동으로 안 붙어서, 처음에 이 줄을 빼먹었다가
+-- "permission denied for table home_videos" 에러로 admin.html에서 로그인해도 조회가
+-- 안 되는 문제가 있었다(2026-09-16, 뒤늦게 추가).
+grant select, insert, update, delete on home_videos to authenticated;

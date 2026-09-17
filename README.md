@@ -6,10 +6,11 @@
 
 | 역할 | 위치 |
 |---|---|
-| 데이터 원본(DB) | Supabase Postgres (works / exhibitions / press / work_photos / work_media_links / home_videos) |
+| 데이터 원본(DB) | Supabase Postgres (works / exhibitions / press / work_photos / work_media_links / home_videos / inquiries) |
 | 파일 보관 | Supabase Storage (`artwork-masters` 버킷) |
 | 관리 화면 | 이 저장소 → GitHub Pages (`admin.html`) |
 | 홈페이지 발행 트리거 | Supabase Edge Function (`supabase/functions/publish/index.ts`) — admin.html의 "🚀 홈페이지에 반영" 버튼이 호출 |
+| 홈페이지 문의 접수 | Supabase Edge Function (`supabase/functions/contact/index.ts`) — 홈페이지 Contact 폼이 호출. 봇 확인 → `inquiries` 저장 → 작가 메일 발송 |
 | 실제 홈페이지 | 별도 저장소 [`shinhaedal`](https://github.com/yoonsunLee/shinhaedal) — GitHub Actions가 Supabase에서 데이터를 읽어 정적 JSON/이미지로 구워서 커밋 |
 
 - admin.html은 로그인해야만 데이터를 조회·수정할 수 있습니다(RLS로 강제).
@@ -21,6 +22,7 @@
 - **Works**: 작품 등록/수정, 사진·상세사진·미디어(유튜브 등)·도슨트 오디오 업로드, 판매 상태 관리, 엑셀 다운로드
 - **Exhibitions**: 전시 등록/수정, 출품작 연결, 포스터 업로드
 - **Press**: 언론보도 등록/수정, 전시·브랜드샵 링크 연결
+- **문의함**: 홈페이지 Contact 폼으로 들어온 문의 확인, 답장 쓰기, 상태(새 문의/답장함/보관) 변경, 삭제. 개인정보라 1년 지난 문의는 삭제
 - **홈 영상**: 홈페이지 첫 화면 영상(최대 3개) 관리. 영상 파일 하나만 올리면 모바일용 사본·포스터는 반영 시 자동 생성됨
 - **수수료 계산**: 작품별 판매가 대비 수수료 10~50% 구간 실수령액 계산(카드수수료·원천징수 토글 가능)
 - **Settings**: 로그인 계정 확인, 연결 상태 점검
@@ -39,3 +41,17 @@ home-videos/<timestamp>.<ext>    홈 영상 원본
 ## 스키마 변경
 
 Supabase는 service_role 키를 이 저장소에 두지 않으므로, 테이블/정책 변경은 항상 Supabase 대시보드의 **SQL Editor에서 직접 실행**합니다. 실행한 SQL은 `supabase/schema/`에 기록해 둡니다(재실행용이 아니라 현재 스키마가 어떻게 만들어졌는지 참고용).
+
+## 문의 폼 설정 (처음 한 번)
+
+1. **SQL**: Supabase SQL Editor에서 `supabase/schema/inquiries_schema.sql` 실행
+2. **Resend**(메일 발송): 작가 메일(haedarney@naver.com)로 가입 → API Keys에서 키 발급
+   - 도메인 인증 전에는 가입한 이메일로만 보낼 수 있으므로 반드시 작가 메일로 가입
+3. **Cloudflare Turnstile**(봇 확인): Turnstile → 위젯 추가 → 호스트 이름 `yoonsunlee.github.io` (도메인 연결 후 `shinhaedal.art`도 추가)
+   → Site Key(공개값)와 Secret Key 발급
+4. **Edge Function 비밀값** (Edge Functions → Secrets): `RESEND_API_KEY`, `TURNSTILE_SECRET`
+5. **함수 배포**: Edge Functions에서 `contact` 함수를 만들고 `supabase/functions/contact/index.ts` 내용을 붙여넣어 배포.
+   공개 폼이 부르는 함수라 **Verify JWT(JWT 검증)는 꺼야** 함
+6. 홈페이지 `contact/index.html`의 `CONTACT_API`(함수 주소)와 `TURNSTILE_SITEKEY`를 채우면 폼에서 바로 접수됨.
+   둘 중 하나라도 비어 있으면 기존처럼 메일 앱으로 이어서 보내는 방식으로 동작
+7. 도메인 연결 후: Resend에서 도메인 인증 → 비밀값 `MAIL_FROM`(예: `SHIN HAEDAL <contact@shinhaedal.art>`), `SITE_BASE`(`https://shinhaedal.art`) 추가

@@ -1,0 +1,11 @@
+# 설정 파일과 반복 접수 기록은 웹으로 열람할 수 없게 막는다
+<FilesMatch "^(config\.php|config\.sample\.php)$">
+  Require all denied
+</FilesMatch>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(config\.php|config\.sample\.php)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
+RedirectMatch 404 /_rate(/.*)?$

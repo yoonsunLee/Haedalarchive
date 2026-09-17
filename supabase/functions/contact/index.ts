@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
   const subject = str("subject");
   const message = str("message");
   const lang = str("lang") === "en" ? "en" : "ko";
-  // 개인정보 처리방침(2026-09-17 시행): 수집·이용 동의와 국외 이전 동의를 둘 다 받아야 접수한다.
+  // 개인정보 처리방침(2026-09-18 시행): 수집·이용 동의와 국외 이전 동의를 둘 다 받아야 접수한다.
   // 체크박스는 화면에서도 확인하지만, 폼을 거치지 않은 요청이 있을 수 있어 서버에서 다시 확인한다.
   const noticeVersion = str("notice_version");
 

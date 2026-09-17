@@ -141,6 +141,16 @@ function mailBody(f, siteBase) {
     '</div>';
 }
 
+function readBody(params) {
+  const raw = params.__ow_body;
+  if (raw === undefined || raw === null || raw === '') {
+    return params; // 원문 사용이 꺼진 경우: 본문 값들이 파라미터에 합쳐져 있다
+  }
+  try { return JSON.parse(raw); } catch (e) {}
+  try { return JSON.parse(Buffer.from(String(raw), 'base64').toString('utf8')); } catch (e) {}
+  return null;
+}
+
 function main(params) {
   const allowed = String(cfg(params, 'ALLOWED_ORIGINS', 'https://shinhaedal.com,https://www.shinhaedal.com'))
     .split(',').map(function (s) { return s.trim(); }).filter(Boolean);
@@ -162,13 +172,10 @@ function main(params) {
   }
   if (method !== 'post') return reply(origin, allowed, 405, { ok: false, code: 'method' });
 
-  let body;
-  try {
-    const raw = params.__ow_body || '';
-    body = JSON.parse(params.__ow_isBase64Encoded ? Buffer.from(raw, 'base64').toString('utf8') : raw);
-  } catch (e) {
-    return reply(origin, allowed, 400, { ok: false, code: 'invalid' });
-  }
+  /* 'HTTP 원문 사용'을 켜면 본문이 __ow_body로(그대로 또는 base64로) 오고,
+     끄면 JSON 본문의 값들이 파라미터에 바로 합쳐져 들어온다. 둘 다 받아 준다. */
+  const body = readBody(params);
+  if (!body) return reply(origin, allowed, 400, { ok: false, code: 'invalid' });
 
   const str = function (k) { return String(body[k] === undefined || body[k] === null ? '' : body[k]).trim(); };
 

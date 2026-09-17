@@ -12,12 +12,15 @@
 // 선택 비밀값:
 //   MAIL_TO     — 받는 주소 (기본: haedarney@naver.com)
 //   MAIL_FROM   — 보내는 주소. 도메인 인증 전에는 기본값(onboarding@resend.dev)을 쓰며,
-//                 이 경우 Resend 계정 이메일로만 발송된다. 도메인 연결 후 예: "SHIN HAEDAL <contact@shinhaedal.art>"
-//   SITE_BASE   — 메일 속 작품 링크의 기준 주소 (기본: https://yoonsunlee.github.io/shinhaedal)
+//                 이 경우 Resend 계정 이메일로만 발송된다. 도메인 인증 후 예: "SHIN HAEDAL <contact@shinhaedal.com>"
+//   SITE_BASE   — 메일 속 작품 링크의 기준 주소 (기본: https://yoonsunlee.github.io/shinhaedal, 도메인 연결 후 https://shinhaedal.com)
 // (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 는 자동으로 주입된다)
 
+// shinhaedal.com이 메인, shinhaedal.art는 .com으로 넘기는 보조 도메인
 const ALLOWED_ORIGINS = [
   "https://yoonsunlee.github.io",
+  "https://shinhaedal.com",
+  "https://www.shinhaedal.com",
   "https://shinhaedal.art",
   "https://www.shinhaedal.art",
   "http://localhost:8792",

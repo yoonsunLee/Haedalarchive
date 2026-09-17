@@ -47,11 +47,11 @@ Supabase는 service_role 키를 이 저장소에 두지 않으므로, 테이블/
 1. **SQL**: Supabase SQL Editor에서 `supabase/schema/inquiries_schema.sql` 실행
 2. **Resend**(메일 발송): 작가 메일(haedarney@naver.com)로 가입 → API Keys에서 키 발급
    - 도메인 인증 전에는 가입한 이메일로만 보낼 수 있으므로 반드시 작가 메일로 가입
-3. **Cloudflare Turnstile**(봇 확인): Turnstile → 위젯 추가 → 호스트 이름 `yoonsunlee.github.io` (도메인 연결 후 `shinhaedal.art`도 추가)
+3. **Cloudflare Turnstile**(봇 확인): Turnstile → 위젯 추가 → 호스트 이름 `yoonsunlee.github.io`, `shinhaedal.com`, `www.shinhaedal.com`, `shinhaedal.art` (메인은 .com, .art는 보조)
    → Site Key(공개값)와 Secret Key 발급
 4. **Edge Function 비밀값** (Edge Functions → Secrets): `RESEND_API_KEY`, `TURNSTILE_SECRET`
 5. **함수 배포**: Edge Functions에서 `contact` 함수를 만들고 `supabase/functions/contact/index.ts` 내용을 붙여넣어 배포.
    공개 폼이 부르는 함수라 **Verify JWT(JWT 검증)는 꺼야** 함
 6. 홈페이지 `contact/index.html`의 `CONTACT_API`(함수 주소)와 `TURNSTILE_SITEKEY`를 채우면 폼에서 바로 접수됨.
    둘 중 하나라도 비어 있으면 기존처럼 메일 앱으로 이어서 보내는 방식으로 동작
-7. 도메인 연결 후: Resend에서 도메인 인증 → 비밀값 `MAIL_FROM`(예: `SHIN HAEDAL <contact@shinhaedal.art>`), `SITE_BASE`(`https://shinhaedal.art`) 추가
+7. 도메인 연결 후: Resend에서 도메인 인증 → 비밀값 `MAIL_FROM`(예: `SHIN HAEDAL <contact@shinhaedal.com>`), `SITE_BASE`(`https://shinhaedal.com`) 추가

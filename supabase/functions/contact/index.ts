@@ -106,6 +106,9 @@ Deno.serve(async (req: Request) => {
   const subject = str("subject");
   const message = str("message");
   const lang = str("lang") === "en" ? "en" : "ko";
+  // 개인정보 처리방침(2026-09-17 시행): 수집·이용 동의와 국외 이전 동의를 둘 다 받아야 접수한다.
+  // 체크박스는 화면에서도 확인하지만, 폼을 거치지 않은 요청이 있을 수 있어 서버에서 다시 확인한다.
+  const noticeVersion = str("notice_version");
 
   const invalid =
     !(type in TYPES) ||
@@ -114,7 +117,9 @@ Deno.serve(async (req: Request) => {
     !subject || subject.length > LIMITS.subject ||
     !message || message.length > LIMITS.message ||
     (workNo !== "" && !/^[A-Z]{2}-\d{4}-\d{3}$/.test(workNo)) ||
-    body.consent !== true;
+    body.consent_collect !== true ||
+    body.consent_transfer !== true ||
+    !/^[\w.-]{1,40}$/.test(noticeVersion);
   if (invalid) return json(req, { ok: false, code: "invalid" }, 400);
 
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
@@ -139,15 +144,19 @@ Deno.serve(async (req: Request) => {
   const insert = await fetch(rest, {
     method: "POST",
     headers: { ...dbHeaders, Prefer: "return=representation" },
-    body: JSON.stringify({ type, work_no: workNo || null, name, email, subject, message, lang, ip_hash: ipHash }),
+    body: JSON.stringify({
+      type, work_no: workNo || null, name, email, subject, message, lang, ip_hash: ipHash,
+      consent_collect: true, consent_transfer: true, notice_version: noticeVersion,
+    }),
   });
   if (!insert.ok) {
-    console.error("contact: 저장 실패", insert.status, await insert.text());
+    // 오류 응답 본문에는 입력값이 담길 수 있어(예: 제약조건 위반 시 실패한 행) 상태 코드만 남긴다
+    console.error("contact: 저장 실패", insert.status);
     return json(req, { ok: false, code: "save" }, 500);
   }
   const [row] = await insert.json();
 
-  const siteBase = Deno.env.get("SITE_BASE") ?? "https://yoonsunlee.github.io/shinhaedal";
+  const siteBase = Deno.env.get("SITE_BASE") ?? "https://shinhaedal.com";
   const workUrl = workNo ? `${siteBase}/works/w/${workNo}/` : "";
   const typeKo = TYPES[type];
   const lines = [
@@ -195,10 +204,10 @@ ${workNo ? `<tr><td style="color:#888;padding:2px 12px 2px 0">작품</td><td><a 
         body: JSON.stringify({ mail_sent: true }),
       });
     } else {
-      console.error("contact: 메일 발송 실패", mail.status, await mail.text());
+      console.error("contact: 메일 발송 실패", mail.status);
     }
   } catch (e) {
-    console.error("contact: 메일 발송 오류", e);
+    console.error("contact: 메일 발송 오류", e instanceof Error ? e.name : "unknown");
   }
 
   return json(req, { ok: true });

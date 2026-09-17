@@ -292,7 +292,7 @@ tr.inq-new td{font-weight:600}
       <p style="color:var(--sold)"><b>⚠️ 이 버튼을 안 눌러도, 매일 자정에 자동으로 한 번씩 반영됩니다.</b> "공개"로 체크해둔 작품·영상은 버튼을 누르지 않았더라도 늦어도 다음날 자동으로 홈페이지에 나갑니다. 아직 준비 안 된 것은 반드시 "공개" 체크를 꺼두세요.</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🔗 바로가기</h3>
-      <p><a href="https://yoonsunlee.github.io/shinhaedal/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
+      <p><a href="https://shinhaedal.com/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
     </div>
   </section>
 
@@ -1959,7 +1959,7 @@ dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdi
    홈페이지 Contact 폼 → Edge Function(contact)이 inquiries 표에 기록한다. 여기서는 조회·상태 변경·삭제만.
    방문자가 쓴 내용이라 화면에 넣을 때는 반드시 esc()를 거친다. */
 const INQ_TYPES={Artwork:'작품 소장',Exhibition:'전시',Collaboration:'협업',Licensing:'라이선싱',Other:'기타'};
-const INQ_SITE_WORK='https://yoonsunlee.github.io/shinhaedal/works/w/';
+const INQ_SITE_WORK='https://shinhaedal.com/works/w/';
 let inqRows=[], lastInqList=[], inqCurrent=null, inqMissing=false;
 
 async function loadInquiries(){

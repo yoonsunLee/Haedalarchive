@@ -53,3 +53,6 @@ create policy inquiries_admin_delete on inquiries for delete to authenticated us
 -- SQL Editor로 만든 테이블은 기본 권한이 자동으로 안 붙는다(home_videos 때 겪은 문제).
 grant select, update, delete on inquiries to authenticated;
 revoke all on inquiries from anon;
+-- 서버 함수(contact)가 service_role로 기록·연속 접수 확인·메일 발송 표시를 한다. RLS는 건너뛰지만 테이블 권한은 따로 필요하다.
+-- (처음 배포 때 이 줄이 빠져 있어 폼 접수가 '저장 실패'로 끝났다)
+grant select, insert, update on inquiries to service_role;

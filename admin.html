@@ -300,6 +300,40 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <h3>📰 Press 탭</h3>
       <p>언론 보도를 기록합니다. 홈페이지 Press 페이지에 그대로 반영됩니다.</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🗓 운영 메모 — 갱신 일정</h3>
+      <p class="hint" style="margin:0 0 10px">돈이 걸린 것과 끊기면 곤란한 것만 적어둡니다. 만료 전에 연장하세요.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>항목</th><th>기간</th><th>메모</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>도메인 <b>shinhaedal.com</b></td>
+            <td>2026-09-18 결제 · 10년<br><b>만료 2036-09-17</b></td>
+            <td>Cloudflare Registrar에서 2026-09-18 00:09 결제. 네임서버·DNS도 Cloudflare</td>
+          </tr>
+          <tr>
+            <td>웹호스팅 <b>카페24</b><br><span class="hint">문의 접수 서버</span></td>
+            <td><b>2026-09-18 ~ 2027-09-17</b></td>
+            <td>뉴아우토반 절약형(월 450원, 1년 약정) · 자동연장 미사용이라 <b>직접 연장해야 함</b>.
+                끊기면 홈페이지 문의 폼이 동작하지 않음(홈페이지 자체는 GitHub Pages라 계속 열림)</td>
+          </tr>
+          <tr>
+            <td>문의 접수 주소</td>
+            <td>—</td>
+            <td><code>https://shinhaedalapi.mycafe24.com/contact.php</code> · 설정은 서버의 <code>config.php</code>에만 있음</td>
+          </tr>
+          <tr>
+            <td>문의 알림 메일</td>
+            <td>—</td>
+            <td>카페24 서버가 작가 네이버 메일로 직접 발송. 네이버 클라우드 SENS Mail은 도메인 인증만 해 둔 상태(마이그레이션 끝나면 전환 가능)</td>
+          </tr>
+          <tr>
+            <td>문의 보관</td>
+            <td>회신 후 <b>1년</b></td>
+            <td>메일함이 보관처. <b>매월 1회</b> 지난 문의 메일을 지우기(휴지통까지) — 개인정보 처리방침에 적어 둔 약속</td>
+          </tr>
+        </tbody>
+      </table></div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📁 바로가기</h3>
       <p>
         <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank" rel="noopener">구글 시트 DB 열기</a> ·

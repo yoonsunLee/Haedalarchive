@@ -67,6 +67,12 @@ create policy "authenticated full access on home_videos"
 -- (Table Editor UI와 달리) 이게 자동으로 안 붙어서, 처음에 이 줄을 빼먹었다가
 -- "permission denied for table home_videos"로 로그인해도 조회가 안 됐다(2026-09-16).
 grant select, insert, update, delete on home_videos to authenticated;
+
+-- 발행(GitHub Actions의 publish_sb.py)은 service_role 키로 읽는다. 이 줄을 빠뜨려서
+-- 발행이 "HTTP Error 403: Forbidden"으로 멈췄다(2026-09-19). 그전에는 조회 실패를
+-- '영상 0건'으로 삼켜서 아무도 몰랐고, 그 사이 홈 영상은 한 번도 나간 적이 없다.
+grant select on home_videos to service_role;
+
 revoke all on home_videos from anon;
 
 -- ---------- 6) API가 들고 있는 스키마 목록 새로 읽기 ----------

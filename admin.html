@@ -110,8 +110,11 @@ header h1 small{color:var(--sub); font-weight:400; font-size:.78rem; margin-left
 .view-toggle{display:flex; gap:4px; margin-bottom:14px}
 .view-toggle button{border:1px solid var(--line); background:var(--card); color:var(--ink); padding:6px 13px; border-radius:20px; cursor:pointer; font-size:.86rem}
 .view-toggle button.on{background:var(--accent); border-color:var(--accent); color:#fff}
-#syncdot{width:8px; height:8px; border-radius:50%; background:#bbb; flex-shrink:0}
-#syncdot.live{background:#3fa96d} #syncdot.local{background:#d9a23c}
+/* 연결이 끊겼을 때만 보이는 표시. 잘 되고 있을 때는 알릴 게 없다.
+   (예전엔 8px짜리 점으로 알렸는데, 정작 실패하면 회색 점이라 보이지 않았다) */
+#connWarn{display:inline-flex; align-items:center; gap:6px; background:#fbe9e7; color:#b5342a;
+  border:1px solid #f0c4be; border-radius:8px; padding:4px 10px; font-size:.85rem; cursor:pointer}
+#connWarn[hidden]{display:none}
 .toolbar{display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; align-items:center}
 .toolbar input[type=search]{flex:1; min-width:150px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.92rem}
 .toolbar select{padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.88rem}
@@ -255,8 +258,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <div class="content">
 <header>
   <h1 id="pageTitle">신해달 작품 아카이브<small id="cnt"></small></h1>
-  <div id="syncdot" title="데이터 소스"></div>
   <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
+    <button type="button" id="connWarn" hidden>⚠ 연결 실패 · 다시 시도</button>
     <span id="publishStatus" class="hint"></span>
     <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
   </div>
@@ -1090,9 +1093,9 @@ async function load(){
       return flattenWork(w, buildExText(list), statusById[w.id], photoCountByWork[w.id] || 0);
     });
     await primeSignedUrls(rows);
-    $('#syncdot').className='live'; $('#syncdot').title='Supabase 연동 중';
+    $('#connWarn').hidden=true;
   }catch(e){
-    rows=[]; $('#syncdot').className=''; $('#syncdot').title='연결 실패';
+    rows=[]; $('#connWarn').hidden=false;
     toast('Supabase 연결 실패: '+(e.message||e)+' — ↻ 버튼으로 다시 시도하세요');
   }
   render();
@@ -2634,6 +2637,7 @@ $('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();re
 updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
+$('#connWarn').onclick=()=>{ load(); toast('다시 불러오는 중…'); };
 /* ---------- 휴지통 · 작업 기록 (설정 화면) ----------
    작품·전시·기사·홈 영상은 지울 때 행을 없애지 않고 deleted_at에 시각만 찍는다.
    그래서 여기서 그대로 되살릴 수 있다. 확인창만 믿기에는 손이 먼저 나가는 일이 있다. */

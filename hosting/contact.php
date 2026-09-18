@@ -173,6 +173,39 @@ $html = '<div style="font-family:system-ui,\'Apple SD Gothic Neo\',sans-serif;fo
     . '<p style="margin:0;color:#6b7280;font-size:13px">개인정보 처리방침에 따라 회신이 끝나고 1년이 지나면 이 메일을 지워 주세요.</p>'
     . '</div>';
 
+/* ---------- 발송 ----------
+   MAIL_MODE 로 방식을 고른다.
+     'php' — 호스팅 서버가 직접 보낸다(추가 업체 없음, 기본값)
+     'ncp' — 네이버 클라우드 메일 API (SENS 마이그레이션이 끝나면 쓸 수 있다) */
+$mode = isset($CFG['MAIL_MODE']) && $CFG['MAIL_MODE'] !== '' ? $CFG['MAIL_MODE'] : 'php';
+
+if ($mode === 'php') {
+    $fromAddr = isset($CFG['MAIL_FROM_HOST']) && $CFG['MAIL_FROM_HOST'] !== ''
+        ? $CFG['MAIL_FROM_HOST']
+        : 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        'From: =?UTF-8?B?' . base64_encode($CFG['MAIL_FROM_NAME']) . '?= <' . $fromAddr . '>',
+        // 작가가 알림 메일에서 바로 답장하면 문의하신 분께 간다
+        'Reply-To: ' . $f['email'],
+        'X-Mailer: shinhaedal-contact',
+    ];
+    $sent = mail(
+        $CFG['MAIL_TO'],
+        '=?UTF-8?B?' . base64_encode('[' . TYPES[$f['type']] . '] ' . $f['subject']) . '?=',
+        chunk_split(base64_encode($html)),
+        implode("
+", $headers)
+    );
+    if (!$sent) {
+        error_log('contact: 메일 발송 실패 (php mail)');
+        respond(502, ['ok' => false, 'code' => 'mail']);
+    }
+    respond(200, ['ok' => true]);
+}
+
 /* ---------- 네이버 클라우드 메일 API ---------- */
 $ts = sprintf('%.0f', microtime(true) * 1000);
 $sig = base64_encode(hash_hmac('sha256', "POST " . MAIL_PATH . "\n" . $ts . "\n" . $CFG['NCP_ACCESS_KEY'], $CFG['NCP_SECRET_KEY'], true));

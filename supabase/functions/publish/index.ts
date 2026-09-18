@@ -9,6 +9,9 @@
 //
 // 필요한 비밀값 (Edge Functions → Secrets):
 //   GITHUB_PAT — yoonsunLee/shinhaedal 에 Contents 읽기/쓰기 권한이 있는 fine-grained 토큰
+// 선택 비밀값:
+//   PUBLISH_ALLOWED_EMAILS — 발행할 수 있는 계정 이메일. 쉼표로 구분.
+//                            비워 두면 2단계 인증을 마친 로그인 사용자면 누구나 발행할 수 있다.
 //   (SUPABASE_URL / SUPABASE_ANON_KEY 는 자동으로 주입된다)
 
 const GITHUB_REPO = "yoonsunLee/shinhaedal";
@@ -27,38 +30,62 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** 요청자가 실제 로그인한 사용자인지 Supabase에 물어본다. */
-async function isLoggedIn(req: Request): Promise<boolean> {
+/** 토큰 안의 내용을 읽는다(서명이 맞는지는 아래에서 Supabase에 물어 확인한다). */
+function claimsOf(token: string): Record<string, unknown> | null {
+  try {
+    const body = token.split(".")[1];
+    return JSON.parse(atob(body.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 발행을 요청할 자격이 있는지 확인한다.
+ *   ① 유효한 로그인 토큰  ② 2단계 인증을 마친 세션  ③ (설정했다면) 허용된 계정
+ */
+async function checkCaller(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   const auth = req.headers.get("Authorization") ?? "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return false;
-
   const url = Deno.env.get("SUPABASE_URL");
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!url || !anon) return false;
+  const deny = { ok: false as const, status: 401, error: "로그인이 필요합니다" };
 
-  // anon 키로는 아무 데이터도 못 읽지만, 토큰이 유효한지 확인하는 데는 쓸 수 있다.
-  if (token === anon) return false; // 로그인 없이 anon 키만 들고 온 경우
+  if (!token || !url || !anon) return deny;
+  if (token === anon) return deny; // 로그인 없이 anon 키만 들고 온 경우
 
+  let user: { id?: string; email?: string };
   try {
     const res = await fetch(`${url}/auth/v1/user`, {
       headers: { apikey: anon, Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return false;
-    const user = await res.json();
-    return Boolean(user && user.id);
+    if (!res.ok) return deny;
+    user = await res.json();
   } catch {
-    return false;
+    return deny;
   }
+  if (!user || !user.id) return deny;
+
+  // 관리 화면과 같은 기준: 2단계 인증을 마친 세션만 발행할 수 있다.
+  const claims = claimsOf(token);
+  if (!claims || claims.aal !== "aal2") {
+    return { ok: false, status: 403, error: "2단계 인증 후에 발행할 수 있습니다. 로그아웃했다가 다시 로그인해 주세요." };
+  }
+
+  const allowed = (Deno.env.get("PUBLISH_ALLOWED_EMAILS") ?? "")
+    .split(",").map((v) => v.trim().toLowerCase()).filter(Boolean);
+  if (allowed.length && !allowed.includes((user.email ?? "").toLowerCase())) {
+    return { ok: false, status: 403, error: "이 계정은 발행 권한이 없습니다." };
+  }
+  return { ok: true };
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "POST만 허용됩니다" }, 405);
 
-  if (!(await isLoggedIn(req))) {
-    return json({ ok: false, error: "로그인이 필요합니다" }, 401);
-  }
+  const caller = await checkCaller(req);
+  if (!caller.ok) return json({ ok: false, error: caller.error }, caller.status);
 
   const pat = Deno.env.get("GITHUB_PAT");
   if (!pat) {

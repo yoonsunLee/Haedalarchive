@@ -120,12 +120,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 #toast{position:fixed; inset:auto; margin:0; border:none; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
 #toast.show{opacity:.95}
 .empty{text-align:center; color:var(--sub); padding:60px 0}
-.inq-badge{display:inline-block; min-width:18px; padding:0 6px; margin-left:4px; border-radius:9px; background:var(--sold); color:#fff; font-size:.72rem; line-height:18px; text-align:center}
-.inq-badge[hidden]{display:none}
-.inq-expired{color:var(--sold); font-weight:600}
-tr.inq-new td{font-weight:600}
-.inq-message{white-space:pre-wrap; word-break:break-word; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:16px 0; font-size:.92rem; line-height:1.7}
-.inq-note{width:100%; min-height:70px; border:1px solid var(--line); border-radius:8px; padding:9px 11px; font:inherit; font-size:.88rem; margin-top:6px}
 @media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
 @media (max-width:760px){
   .app{flex-direction:column}
@@ -170,7 +164,6 @@ tr.inq-new td{font-weight:600}
   <button data-v="works" class="on">Works</button>
   <button data-v="exhibitions">Exhibitions</button>
   <button data-v="press">Press</button>
-  <button data-v="inquiries">문의함 <span class="inq-badge" id="inqBadge" hidden></span></button>
   <button data-v="homevideos">홈 영상</button>
   <button data-v="feecalc">수수료 계산</button>
   <button data-v="website">Website</button>
@@ -240,27 +233,6 @@ tr.inq-new td{font-weight:600}
     <div class="tablewrap"><table>
       <thead><tr><th>No.</th><th>매체명</th><th>날짜</th><th class="wrap">기사 제목</th><th>링크</th></tr></thead>
       <tbody id="pressTbody"></tbody>
-    </table></div>
-  </section>
-
-  <section id="vInquiries" hidden>
-    <div class="toolbar" style="padding:0 0 12px">
-      <select id="inqStatus">
-        <option value="new">새 문의</option>
-        <option value="replied">답장함</option>
-        <option value="archived">보관</option>
-        <option value="expired">보관기간 지남</option>
-        <option value="">전체</option>
-      </select>
-      <button class="btn" id="btnInqReload" title="새로고침">↻</button>
-      <button class="btn" id="btnInqLog" style="margin-left:auto">접속 기록 · 월간 점검</button>
-    </div>
-    <p class="hint" style="margin:0 0 12px">홈페이지 Contact 폼으로 들어온 문의입니다. 같은 내용이 작가 메일로도 가고, 그 메일에 답장하면 문의하신 분께 바로 전달됩니다.
-      개인정보 처리방침에 따라 <b>처리 완료(답장함·보관) 후 1년</b>이 지나면 삭제합니다. <b>매월 한 번</b> '보관기간 지남'을 확인해 여기서 삭제하고, 작가 메일함의 같은 알림 메일도 함께 지운 뒤 '접속 기록 · 월간 점검'에서 점검 완료를 기록해 주세요.</p>
-    <p class="hint" id="inqAccessNote" hidden style="margin:0 0 12px;color:var(--sold)"></p>
-    <div class="tablewrap"><table>
-      <thead><tr><th>받은 시각</th><th>유형</th><th>보낸 사람</th><th class="wrap">제목</th><th>작품</th><th>메일</th><th>보관</th></tr></thead>
-      <tbody id="inqTbody"></tbody>
     </table></div>
   </section>
 
@@ -367,34 +339,6 @@ tr.inq-new td{font-weight:600}
       <button type="submit" class="btn primary">저장</button>
     </div>
   </form>
-</dialog>
-
-<dialog id="dlgInq">
-  <div class="dlghead"><h2 id="inqTitle">문의</h2><button class="btn" id="btnCloseInq">✕</button></div>
-  <div class="dlgbody" id="inqBody"></div>
-  <div class="formfoot" style="flex-wrap:wrap">
-    <button type="button" class="btn" id="btnDeleteInq" style="color:var(--sold);margin-right:auto">🗑 삭제</button>
-    <a class="btn" id="inqReply" href="#">✉ 답장 쓰기</a>
-    <button type="button" class="btn" id="btnInqNew">새 문의로</button>
-    <button type="button" class="btn" id="btnInqArchive">보관</button>
-    <button type="button" class="btn primary" id="btnInqReplied">답장함으로 표시</button>
-  </div>
-</dialog>
-
-<dialog id="dlgInqLog">
-  <div class="dlghead"><h2>문의함 접속 기록</h2><button class="btn" id="btnCloseInqLog">✕</button></div>
-  <div class="dlgbody">
-    <p class="hint" style="margin:0 0 10px">문의함을 열람·수정·삭제한 기록과 관리자 지정 기록입니다. 기록은 화면에서 지우거나 고칠 수 없고, 1년 이상 보관됩니다. 매월 한 번 훑어보고 모르는 접속이 없는지 확인한 뒤 점검 완료를 눌러 주세요.</p>
-    <p id="inqLastReview" style="margin:0 0 10px;font-size:.88rem"></p>
-    <div class="tablewrap"><table>
-      <thead><tr><th>시각</th><th>계정</th><th>내용</th><th>문의</th><th class="wrap">비고</th></tr></thead>
-      <tbody id="inqLogTbody"></tbody>
-    </table></div>
-  </div>
-  <div class="formfoot">
-    <button type="button" class="btn" id="btnCloseInqLog2">닫기</button>
-    <button type="button" class="btn primary" id="btnInqReview">이번 달 점검 완료로 기록</button>
-  </div>
 </dialog>
 
 <dialog id="dlgHvEdit">
@@ -1990,172 +1934,6 @@ $('#btnClosePressEdit').onclick=()=>dlgPressEdit.close();
 $('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
 dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
 
-/* ---------- 문의함 ----------
-   홈페이지 Contact 폼 → Edge Function(contact)이 inquiries 표에 기록한다. 여기서는 조회·상태 변경·삭제만.
-   방문자가 쓴 내용이라 화면에 넣을 때는 반드시 esc()를 거친다. */
-const INQ_TYPES={Artwork:'작품 소장',Exhibition:'전시',Collaboration:'협업',Licensing:'라이선싱',Other:'기타'};
-const INQ_SITE_WORK='https://shinhaedal.com/works/w/';
-let inqRows=[], lastInqList=[], inqCurrent=null, inqMissing=false, inqAccess='ok';
-const INQ_RETENTION_DAYS=365; // 개인정보 처리방침: 처리 완료 후 1년
-const INQ_ACTIONS={list:'목록 열람',view:'상세 열람',update:'수정',delete:'삭제',grant:'관리자 지정',revoke:'관리자 해제',review:'월간 점검'};
-
-// 열람 기록은 서버 함수로만 남긴다(기록 테이블은 화면에서 직접 쓸 수 없음). 실패해도 화면 사용은 막지 않는다.
-function inqLog(action, inquiryId, detail){
-  sb.rpc('log_inquiry_access',{p_action:action, p_inquiry:inquiryId||null, p_detail:detail||null})
-    .then(r=>{ if(r.error) console.warn('접속 기록 실패:', r.error.message); });
-}
-function inqDaysLeft(r){
-  if(!r.closed_at) return null;
-  return Math.floor((new Date(r.closed_at).getTime()+INQ_RETENTION_DAYS*864e5-Date.now())/864e5);
-}
-function inqExpired(r){ const d=inqDaysLeft(r); return d!==null && d<0; }
-function inqRetention(r){
-  const d=inqDaysLeft(r);
-  if(d===null) return r.status==='new'?'<span class="hint">처리 전</span>':'';
-  return d<0?'<span class="inq-expired">보관기간 지남</span>':`${d}일 남음`;
-}
-
-async function loadInquiries(){
-  try{
-    const q=await sb.from('inquiries').select('*').order('created_at',{ascending:false});
-    if(q.error) throw q.error;
-    inqRows=q.data||[]; inqMissing=false;
-    // 접근 조건(지정 관리자 + 2단계 인증)을 못 채우면 RLS가 오류 없이 빈 목록을 돌려주므로 따로 확인한다
-    const aal=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    const adm=await sb.from('inquiry_admins').select('user_id').maybeSingle();
-    if(adm.error) inqAccess='nosetup';
-    else if(!adm.data) inqAccess='not-admin';
-    else if(!aal.data||aal.data.currentLevel!=='aal2') inqAccess='need-mfa';
-    else inqAccess='ok';
-    if(inqAccess==='ok') inqLog('list', null, inqRows.length+'건');
-  }catch(e){
-    inqRows=[];
-    // 아직 inquiries_schema.sql을 실행하지 않은 경우엔 알림 없이 안내만 한다
-    inqMissing=/inquiries|does not exist|schema cache/i.test(String(e.message||e));
-    if(!inqMissing) toast('문의 불러오기 실패: '+(e.message||e));
-  }
-  renderInqBadge(); renderInquiries();
-}
-function renderInqBadge(){
-  const n=inqRows.filter(r=>r.status==='new').length;
-  $('#inqBadge').textContent=n; $('#inqBadge').hidden=!n;
-}
-function fmtInqTime(iso){
-  const d=new Date(iso);
-  return isNaN(d)?'':d.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-}
-function renderInquiries(){
-  const note=$('#inqAccessNote');
-  note.hidden=true;
-  if(inqMissing){
-    $('#inqTbody').innerHTML='<tr><td colspan="7" class="empty">문의함 설정이 아직 안 됐어요 — Supabase에서 inquiries_schema.sql을 실행해 주세요</td></tr>';
-    return;
-  }
-  if(inqAccess==='not-admin'||inqAccess==='need-mfa'){
-    $('#inqTbody').innerHTML='<tr><td colspan="7" class="empty">'+(inqAccess==='not-admin'
-      ?'이 계정은 문의함 관리자로 지정되지 않았어요'
-      :'문의함은 2단계 인증으로 로그인해야 볼 수 있어요 — 로그아웃 후 다시 로그인해 주세요')+'</td></tr>';
-    return;
-  }
-  if(inqAccess==='nosetup'){
-    note.textContent='개인정보 보완 설정(inquiries_privacy_2026-09.sql)이 아직 실행되지 않았어요. 보관기간·접속 기록이 동작하지 않습니다.';
-    note.hidden=false;
-  }
-  const st=$('#inqStatus').value;
-  const list=inqRows.filter(r=>st==='expired'?inqExpired(r):(!st||r.status===st));
-  lastInqList=list;
-  $('#inqTbody').innerHTML=list.length?list.map((r,i)=>
-    `<tr data-idx="${i}"${r.status==='new'?' class="inq-new"':''}><td>${esc(fmtInqTime(r.created_at))}</td><td>${esc(INQ_TYPES[r.type]||r.type)}</td><td>${esc(r.name)}<br><small class="hint">${esc(r.email)}</small></td><td class="wrap">${esc(r.subject)}</td><td>${esc(r.work_no||'')}</td><td>${r.mail_sent?'✓':'<span style="color:var(--sold)" title="작가 메일 발송 실패 — 이 화면에서 확인하세요">✕</span>'}</td><td>${inqRetention(r)}</td></tr>`
-  ).join(''):`<tr><td colspan="7" class="empty">${st==='new'?'새 문의가 없습니다':st==='expired'?'보관기간이 지난 문의가 없습니다':'문의가 없습니다'}</td></tr>`;
-}
-function openInquiry(r){
-  inqCurrent=r;
-  $('#inqTitle').textContent=r.subject;
-  $('#inqBody').innerHTML=
-    '<dl class="kv">'+
-      `<dt>받은 시각</dt><dd>${esc(fmtInqTime(r.created_at))}</dd>`+
-      `<dt>유형</dt><dd>${esc(INQ_TYPES[r.type]||r.type)}</dd>`+
-      (r.work_no?`<dt>작품</dt><dd><a href="${esc(INQ_SITE_WORK+encodeURIComponent(r.work_no)+'/')}" target="_blank" rel="noopener">${esc(r.work_no)} ↗</a></dd>`:'')+
-      `<dt>보낸 사람</dt><dd>${esc(r.name)}</dd>`+
-      `<dt>이메일</dt><dd>${esc(r.email)}</dd>`+
-      `<dt>작성 페이지</dt><dd>${r.lang==='en'?'영문':'국문'}</dd>`+
-      `<dt>작가 메일</dt><dd>${r.mail_sent?'발송됨':'<span style="color:var(--sold)">발송 실패 — 이 화면에서 내용을 확인하고 직접 답장해 주세요</span>'}</dd>`+
-      `<dt>상태</dt><dd>${esc({new:'새 문의',replied:'답장함',archived:'보관'}[r.status]||r.status)}</dd>`+
-      (r.closed_at?`<dt>처리 완료</dt><dd>${esc(fmtInqTime(r.closed_at))} · ${inqRetention(r)}</dd>`:'')+
-      `<dt>동의</dt><dd>${r.consent_collect&&r.consent_transfer?`수집·이용, 국외 이전 (고지문 ${esc(r.notice_version||'')})`:'<span class="hint">처리방침 시행 전 접수</span>'}</dd>`+
-    '</dl>'+
-    `<div class="inq-message">${esc(r.message)}</div>`+
-    `<label class="hint" for="inqNote">메모 (나만 보는 기록 · 상태 버튼을 누르면 함께 저장)</label><textarea class="inq-note" id="inqNote">${esc(r.admin_note||'')}</textarea>`;
-  $('#inqReply').href='mailto:'+encodeURIComponent(r.email)+'?subject='+encodeURIComponent('Re: '+r.subject);
-  $('#btnInqNew').hidden=r.status==='new';
-  $('#btnInqArchive').hidden=r.status==='archived';
-  $('#btnInqReplied').hidden=r.status==='replied';
-  dlgInq.showModal();
-  pushDialogHistory();
-  inqLog('view', r.id);
-}
-async function setInquiryStatus(status){
-  if(!inqCurrent)return;
-  try{
-    const q=await sb.from('inquiries').update({status, admin_note:$('#inqNote').value.trim()||null})
-      .eq('id',inqCurrent.id).eq('version',inqCurrent.version).select('id');
-    if(q.error) throw q.error;
-    if(!q.data||!q.data.length) throw new Error('다른 곳에서 먼저 수정됐습니다. 새로고침(↻) 후 다시 시도하세요.');
-    toast('저장되었습니다');
-    dlgInq.close(); await loadInquiries();
-  }catch(e){toast('오류: '+(e.message||e))}
-}
-$('#btnInqReplied').onclick=()=>setInquiryStatus('replied');
-$('#btnInqArchive').onclick=()=>setInquiryStatus('archived');
-$('#btnInqNew').onclick=()=>setInquiryStatus('new');
-$('#btnDeleteInq').onclick=async()=>{
-  if(!inqCurrent)return;
-  if(!confirm(`'${inqCurrent.name}'님의 문의를 완전히 삭제할까요?\n개인정보라서 되살릴 수 없게 지워집니다.`))return;
-  try{
-    const q=await sb.from('inquiries').delete().eq('id',inqCurrent.id);
-    if(q.error) throw q.error;
-    toast('🗑 문의를 삭제했습니다');
-    dlgInq.close(); await loadInquiries();
-  }catch(e){toast('삭제 오류: '+(e.message||e))}
-};
-$('#inqTbody').onclick=e=>{const tr=e.target.closest('tr[data-idx]');if(tr)openInquiry(lastInqList[+tr.dataset.idx])};
-$('#inqStatus').onchange=renderInquiries;
-$('#btnInqReload').onclick=()=>{loadInquiries();toast('새로고침')};
-$('#btnCloseInq').onclick=()=>dlgInq.close();
-
-/* 접속 기록 · 월간 점검 */
-const dlgInqLog=$('#dlgInqLog');
-async function openInqLog(){
-  try{
-    const q=await sb.from('inquiry_access_log').select('*').order('at',{ascending:false}).limit(300);
-    if(q.error) throw q.error;
-    const rows=q.data||[];
-    const last=rows.find(r=>r.action==='review');
-    const days=last?Math.floor((Date.now()-new Date(last.at).getTime())/864e5):null;
-    $('#inqLastReview').innerHTML=last
-      ?`마지막 점검: <b>${esc(fmtInqTime(last.at))}</b> (${esc(last.email||'')})${days>31?' — <span class="inq-expired">한 달이 지났어요</span>':''}`
-      :'<span class="inq-expired">아직 점검 기록이 없어요</span>';
-    $('#inqLogTbody').innerHTML=rows.length?rows.map(r=>
-      `<tr><td>${esc(fmtInqTime(r.at))}</td><td>${esc(r.email||'')}</td><td>${esc(INQ_ACTIONS[r.action]||r.action)}</td><td>${r.inquiry_id?esc(String(r.inquiry_id).slice(0,8)):''}</td><td class="wrap">${esc(r.detail||'')}</td></tr>`
-    ).join(''):'<tr><td colspan="5" class="empty">기록이 없습니다</td></tr>';
-    if(!dlgInqLog.open){ dlgInqLog.showModal(); pushDialogHistory(); }
-  }catch(e){toast('접속 기록을 불러오지 못했어요: '+(e.message||e))}
-}
-$('#btnInqLog').onclick=openInqLog;
-$('#btnCloseInqLog').onclick=()=>dlgInqLog.close();
-$('#btnCloseInqLog2').onclick=()=>dlgInqLog.close();
-dlgInqLog.addEventListener('click',e=>{if(e.target===dlgInqLog)dlgInqLog.close()});
-$('#btnInqReview').onclick=async()=>{
-  const expired=inqRows.filter(inqExpired).length;
-  if(expired&&!confirm(`보관기간이 지난 문의가 ${expired}건 남아 있어요. 삭제하지 않고 점검 완료로 기록할까요?`))return;
-  const ym=new Date().toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit'});
-  const r=await sb.rpc('log_inquiry_access',{p_action:'review', p_inquiry:null, p_detail:`${ym} 점검 · 보관기간 지난 문의 ${expired}건`});
-  if(r.error){toast('기록 실패: '+r.error.message);return}
-  toast('점검 완료를 기록했어요');
-  openInqLog();
-};
-dlgInq.addEventListener('click',e=>{if(e.target===dlgInq)dlgInq.close()});
-
 /* ---------- 홈 영상 ---------- */
 let hvRows=[], hvWorksRows=[], hvCurrent=null, hvIsNew=false;
 
@@ -2420,7 +2198,6 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   $('#vWorks').hidden=section!=='works';
   $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
-  $('#vInquiries').hidden=section!=='inquiries';
   $('#vHomeVideos').hidden=section!=='homevideos';
   $('#vFeeCalc').hidden=section!=='feecalc';
   $('#vWebsite').hidden=section!=='website';
@@ -2429,7 +2206,6 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   if(section==='works')render();
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
-  if(section==='inquiries')loadInquiries();
   if(section==='homevideos')renderHomeVideosList();
   if(section==='feecalc')renderFeeCalc();
 });
@@ -2488,7 +2264,6 @@ $('#btnReload').onclick=()=>{load();toast('새로고침')};
 loadPress();
 loadHomeVideos();
 loadFeeCalc();
-// 문의함은 로그인·2단계 인증이 끝난 뒤 boot()에서 불러온다
 
 /* ---------- 로그인 게이트 ----------
    RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.
@@ -2516,10 +2291,9 @@ loadFeeCalc();
     var who = document.querySelector('.sidebar-brand');
     if(who && session && session.user) who.title = session.user.email;
     load();
-    loadInquiries();
   }
 
-  /* 2단계 인증: 문의함 개인정보 보호를 위해 관리 화면 전체를 비밀번호 + 인증 앱으로 연다.
+  /* 2단계 인증: 관리 화면을 비밀번호 + 인증 앱 두 단계로 연다.
      (「개인정보의 안전성 확보조치 기준」 외부 접속 시 안전한 인증수단) */
   function qrSrc(q){
     // Supabase가 주는 SVG 데이터 주소는 인코딩되지 않아 '#' 등에서 잘릴 수 있어 다시 인코딩한다
@@ -2531,7 +2305,7 @@ loadFeeCalc();
     mfaForm.hidden = false;
     mfaEnroll.hidden = mode !== 'enroll';
     mfaDesc.textContent = mode === 'enroll'
-      ? '문의함의 개인정보를 보호하기 위해 2단계 인증을 처음 한 번 등록합니다. 휴대폰 인증 앱(Google Authenticator, Microsoft Authenticator 등)으로 아래 QR을 찍고, 앱에 나온 6자리 숫자를 입력하세요.'
+      ? '관리 화면을 안전하게 지키기 위해 2단계 인증을 처음 한 번 등록합니다. 휴대폰 인증 앱(Google Authenticator, Microsoft Authenticator 등)으로 아래 QR을 찍고, 앱에 나온 6자리 숫자를 입력하세요.'
       : '휴대폰 인증 앱에 나온 6자리 숫자를 입력하세요.';
     mfaCode.value = ''; mfaMsg.textContent = '';
     setTimeout(function(){ mfaCode.focus(); }, 0);

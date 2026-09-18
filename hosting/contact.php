@@ -138,14 +138,22 @@ if (count($rows) >= RATE_MAX) respond(429, ['ok' => false, 'code' => 'rate']);
 foreach ($rows as $r) {
     if (($r['dup'] ?? '') === $dup) respond(429, ['ok' => false, 'code' => 'duplicate']);
 }
-$rows[] = ['at' => $now, 'dup' => $dup];
+// 일단 '시도'로만 적는다. 중복 표시는 메일이 실제로 나간 뒤에 붙인다
+// (발송이 실패했는데 중복으로 막혀 다시 못 보내는 일이 없도록).
+$rows[] = ['at' => $now, 'dup' => null];
 @file_put_contents($file, json_encode($rows), LOCK_EX);
 
-// 오래된 기록 청소 (요청 20번에 한 번)
-if (random_int(1, 20) === 1) {
-    foreach (glob($dir . '/*.json') ?: [] as $old) {
-        if ($now - (int) filemtime($old) > RATE_WINDOW * 2) @unlink($old);
-    }
+/** 메일이 나간 뒤에만 중복 기록을 확정하고 접수 완료로 답한다 */
+function finish_ok(string $file, array $rows, string $dup): void
+{
+    $rows[count($rows) - 1]['dup'] = $dup;
+    @file_put_contents($file, json_encode($rows), LOCK_EX);
+    respond(200, ['ok' => true]);
+}
+
+// 만료된 기록 청소 — 요청이 올 때마다 확인한다(처리방침 4항)
+foreach (glob($dir . '/*.json') ?: [] as $old) {
+    if ($now - (int) filemtime($old) > RATE_WINDOW) @unlink($old);
 }
 
 /* ---------- 메일 본문 ---------- */
@@ -204,7 +212,7 @@ if ($mode === 'php') {
         error_log('contact: 메일 발송 실패 (php mail)');
         respond(502, ['ok' => false, 'code' => 'mail']);
     }
-    respond(200, ['ok' => true]);
+    finish_ok($file, $rows, $dup);
 }
 
 /* ---------- 네이버 클라우드 메일 API ---------- */
@@ -242,4 +250,4 @@ if ($status < 200 || $status >= 300) {
     error_log('contact: 메일 발송 실패 ' . $status);
     respond(502, ['ok' => false, 'code' => 'mail']);
 }
-respond(200, ['ok' => true]);
+finish_ok($file, $rows, $dup);

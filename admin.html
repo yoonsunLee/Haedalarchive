@@ -24,6 +24,23 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .sidebar-brand img{width:26px; height:26px; flex:none; border-radius:6px}
 .sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
+/* 작품 수정 폼 묶음 */
+.fgroup{border:1px solid var(--line); border-radius:10px; margin:0 0 10px; background:var(--card)}
+.fgroup>summary{cursor:pointer; padding:11px 14px; font-weight:600; font-size:.92rem; list-style:none; display:flex; align-items:center; gap:8px}
+.fgroup>summary::-webkit-details-marker{display:none}
+.fgroup>summary::before{content:'▸'; color:var(--sub); font-size:.8rem}
+.fgroup[open]>summary::before{content:'▾'}
+.fgroup>summary small{color:var(--sub); font-weight:400; margin-left:auto}
+.fgroup-body{padding:4px 14px 12px; border-top:1px solid var(--line)}
+
+/* 홈 영상 목록 */
+.hv-thumb{width:64px; height:36px; object-fit:cover; border-radius:4px; background:var(--bg); display:block}
+.hv-move{display:flex; gap:3px}
+.hv-move button{border:1px solid var(--line); background:var(--card); border-radius:6px; width:26px; height:24px; cursor:pointer; line-height:1; color:var(--ink)}
+.hv-move button:disabled{opacity:.35; cursor:default}
+.badge-on{color:#2f7a52; font-weight:600}
+.badge-off{color:var(--sub)}
+
 /* 작품 필터 접기 */
 .filterbar{display:none; flex-wrap:wrap; gap:8px; padding:0 16px 12px; align-items:center}
 .filterbar.open{display:flex}
@@ -297,7 +314,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <p class="hint" style="margin:0 0 12px">홈페이지 첫 화면에 최대 3개까지 순서대로 표시됩니다. 영상 파일 하나만 올리면
       모바일용 저용량 사본과 포스터 이미지는 반영할 때 자동으로 만들어집니다.</p>
     <div class="tablewrap"><table>
-      <thead><tr><th>순서</th><th>이름(관리용)</th><th>연결 작품</th><th>공개</th><th>테마</th></tr></thead>
+      <thead><tr><th>순서</th><th>미리보기</th><th>이름(관리용)</th><th>연결 작품</th><th>공개</th><th>테마</th></tr></thead>
       <tbody id="hvTbody"></tbody>
     </table></div>
   </section>
@@ -1238,6 +1255,8 @@ function openEdit(r,neu){
   $('#eTitle').textContent=neu?'새 작품 등록':`${r.no} 수정`;
 
   const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
+  // 칸이 많아 네 묶음으로 나눈다. 자주 쓰는 것만 펼쳐 두고 나머지는 필요할 때 연다.
+  const G=(title,note,inner,open)=>`<details class="fgroup"${open?' open':''}><summary>${title}${note?`<small>${note}</small>`:''}</summary><div class="fgroup-body">${inner}</div></details>`;
   const curImg=imgUrl(r,true);
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
   const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
@@ -1245,7 +1264,13 @@ function openEdit(r,neu){
   const curPrefix=prefixOf(r.no);
   const loadCandidates=rows.filter(x=>String(x.title).trim()).slice()
     .sort((a,b)=>String(a.title).split('\n')[0].localeCompare(String(b.title).split('\n')[0],'ko'));
+  // 판매·노출 묶음은 이미 채워진 내용이 있으면 펼친 채로 연다
+  const hasSale = !!(String(r.sold||'').trim() || String(r.price||'').trim() || String(r.actual_price||'').trim()
+                     || String(r.owner||'').trim() || String(r.sale_date||'').trim());
+  const hasShow = !!(r.docent_enabled || r._photoCount || String(r.series||'').trim());
+
   $('#eBody').innerHTML=
+    G('기본 정보','작품번호·사진·제목·재료',
     F('작품 유형',`<select name="notype"${isExisting?' disabled':''}>
         <option value="HD"${curPrefix==='HD'?' selected':''}>일반 작품 (HD-)</option>
         <option value="HDT"${curPrefix==='HDT'?' selected':''}>아트토이 (HDT-)</option>
@@ -1270,7 +1295,9 @@ function openEdit(r,neu){
     F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
     F('재료 (영문)',`<textarea name="material_en">${esc(r.material_en||'')}</textarea>`,'예: Traditional Korean najeonchilgi on a hemp-wrapped wood core')+
     F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
-    F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)+
+    F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)
+    , true)+
+    G('판매 정보', hasSale?'':'아직 비어 있음',
     F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
     F(LABELS.qty,`<input name="qty" type="number" min="0" value="${esc(r.qty)}">`,'아트토이 총 제작 수량','toyonly')+
     F(LABELS.sold_qty,`<input name="sold_qty" type="number" min="0" value="${esc(r.sold_qty)}">`,'지금까지 판매된 개수','toyonly')+
@@ -1286,7 +1313,9 @@ function openEdit(r,neu){
     F(LABELS.sale_date,`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`)+
     F(LABELS.delivery_date,`<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`)+
     F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
-    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
+    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)
+    , hasSale)+
+    G('홈페이지 노출','전시 이력·시리즈·도슨트·상세 사진·영상',
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>Exhibitions</b> 탭의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
@@ -1310,8 +1339,11 @@ function openEdit(r,neu){
     F('영상 · 인스타그램 링크',
       `<div id="mediaLinkManager" class="media-manager"></div>
        <button type="button" id="addMediaLink" class="btn-add-row">+ 영상/링크 추가</button>`,
-      '유튜브는 "공개" 또는 "일부 공개(Unlisted)"만 사용하세요 — "비공개"는 방문자가 볼 수 없습니다. 일부 공개 영상도 링크를 알면 누구나 볼 수 있어 홈페이지에 노출하면 사실상 공개와 같습니다. 인스타그램은 새 탭 링크로만 연결되고 사이트 안에서 재생되지 않습니다. 제목을 비우면 "영상으로 보기"로 표시됩니다')+
-    F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
+      '유튜브는 "공개" 또는 "일부 공개(Unlisted)"만 사용하세요 — "비공개"는 방문자가 볼 수 없습니다. 일부 공개 영상도 링크를 알면 누구나 볼 수 있어 홈페이지에 노출하면 사실상 공개와 같습니다. 인스타그램은 새 탭 링크로만 연결되고 사이트 안에서 재생되지 않습니다. 제목을 비우면 "영상으로 보기"로 표시됩니다')
+    , hasShow)+
+    G('비고','나만 보는 메모',
+    F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`)
+    , !!String(r.note||'').trim());
 
   ensureEx().then(()=>{
     const html=exAutoListInner(r.no);
@@ -2048,11 +2080,37 @@ function renderHomeVideosList(){
   window._hvList=list;
   $('#hvTbody').innerHTML=list.length?list.map(function(r,i){
     var w=hvWorksRows.find(function(x){return x.id===r.work_id});
-    return '<tr data-idx="'+i+'"><td>'+esc(r.sort_order)+'</td><td>'+esc(r.name||'(이름 없음)')+'</td>'+
-      '<td>'+(w?esc(w.work_no):'—')+'</td>'+
-      '<td>'+(r.is_public?'공개':'비공개')+'</td>'+
+    // 미리보기는 홈페이지에 이미 반영된 포스터를 쓴다(아직 반영 전이면 표시하지 않음)
+    var poster='https://shinhaedal.com/assets/home-video/'+encodeURIComponent(r._id||'')+'/poster.jpg';
+    return '<tr data-idx="'+i+'">'+
+      '<td><span class="hv-move">'+
+        '<button type="button" data-move="up" data-i="'+i+'" title="위로"'+(i===0?' disabled':'')+'>↑</button>'+
+        '<button type="button" data-move="down" data-i="'+i+'" title="아래로"'+(i===list.length-1?' disabled':'')+'>↓</button>'+
+      '</span></td>'+
+      '<td>'+(r.video_master?'<img class="hv-thumb" src="'+esc(poster)+'" alt="" onerror="this.style.visibility=\'hidden\'">':'<span class="hint">영상 없음</span>')+'</td>'+
+      '<td>'+esc(r.name||'(이름 없음)')+'</td>'+
+      '<td>'+(w?esc(w.work_no+(w.title_ko?' · '+String(w.title_ko).split('\n')[0]:'')):'—')+'</td>'+
+      '<td class="'+(r.is_public?'badge-on':'badge-off')+'">'+(r.is_public?'공개':'비공개')+'</td>'+
       '<td>'+(r.ui_theme==='light'?'밝은 배경용':'어두운 배경용')+'</td></tr>';
-  }).join(''):'<tr><td colspan="5" class="empty">등록된 영상이 없습니다</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">등록된 영상이 없습니다 — 홈 첫 화면은 작품 이미지로 나갑니다</td></tr>';
+}
+
+/* 순서 바꾸기 — 이웃과 sort_order를 맞바꾼다 */
+async function moveHomeVideo(i, dir){
+  var list=window._hvList||[];
+  var j=i+(dir==='up'?-1:1);
+  if(!list[i]||!list[j])return;
+  var a=list[i], b=list[j];
+  var ao=a.sort_order||0, bo=b.sort_order||0;
+  if(ao===bo){ ao=i; bo=j; }   // 값이 같으면 자리 번호로 새로 매긴다
+  try{
+    var r1=await sb.from('home_videos').update({sort_order:bo}).eq('id',a._id).select('id');
+    if(r1.error) throw r1.error;
+    var r2=await sb.from('home_videos').update({sort_order:ao}).eq('id',b._id).select('id');
+    if(r2.error) throw r2.error;
+    await loadHomeVideos();
+    toast('순서를 바꿨습니다 — 반영하면 홈페이지에 적용돼요');
+  }catch(e){ toast('순서 변경 실패: '+(e.message||e)); }
 }
 async function uploadHomeVideo(file){
   if(!file)return;
@@ -2154,7 +2212,12 @@ $('#btnDeleteHv').onclick=async()=>{
     dlgHvEdit.close();await loadHomeVideos();
   }catch(err){toast('삭제 오류: '+(err.message||err))}
 };
-$('#hvTbody').onclick=e=>{var tr=e.target.closest('tr[data-idx]');if(tr)openHvEdit(window._hvList[+tr.dataset.idx],false)};
+$('#hvTbody').onclick=e=>{
+  var mv=e.target.closest('[data-move]');
+  if(mv){ e.stopPropagation(); moveHomeVideo(+mv.dataset.i, mv.dataset.move); return; }
+  var tr=e.target.closest('tr[data-idx]');
+  if(tr)openHvEdit(window._hvList[+tr.dataset.idx],false);
+};
 $('#btnHvAdd').onclick=()=>openHvEdit({name:'',video_master:'',work_id:'',bg_color:'#000000',ui_theme:'dark',sort_order:(hvRows.length?Math.max.apply(null,hvRows.map(function(r){return r.sort_order||0}))+1:1),is_public:false},true);
 $('#btnHvReload').onclick=()=>{loadHomeVideos();toast('새로고침')};
 $('#btnCloseHvEdit').onclick=()=>dlgHvEdit.close();

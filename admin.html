@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>신해달 작품 아카이브 (Supabase)</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦦</text></svg>">
+<link rel="icon" href="assets/haedal-icon.png">
+<link rel="apple-touch-icon" href="assets/haedal-icon.png">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <meta name="robots" content="noindex,nofollow,noarchive">
@@ -18,7 +19,22 @@
 body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif; line-height:1.55}
 .app{display:flex; min-height:100vh}
 .sidebar{flex:0 0 176px; width:176px; background:var(--card); border-right:1px solid var(--line); padding:16px 10px; display:flex; flex-direction:column; gap:2px; position:sticky; top:0; align-self:flex-start; height:100vh; overflow-y:auto}
-.sidebar-brand{font-size:.92rem; font-weight:600; padding:4px 10px 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sidebar-brand{display:flex; align-items:center; gap:8px; width:100%; font-size:.92rem; font-weight:600; padding:6px 8px 6px; margin-bottom:10px; background:none; border:none; border-radius:8px; color:var(--ink); cursor:pointer; text-align:left}
+.sidebar-brand:hover{background:var(--bg)}
+.sidebar-brand img{width:26px; height:26px; flex:none; border-radius:6px}
+.sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* 메인(홈) 화면 */
+.home-hello{display:flex; align-items:center; gap:14px; margin:18px 0 20px}
+.home-hello img{width:56px; height:56px; border-radius:12px; flex:none}
+.home-hello h2{font-size:1.15rem; margin-bottom:2px}
+.home-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px}
+.home-card{display:flex; flex-direction:column; gap:4px; text-align:left; padding:16px; background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); cursor:pointer; font:inherit; color:var(--ink)}
+.home-card:hover{border-color:var(--accent)}
+.home-card b{font-size:.98rem}
+.home-card .num{font-size:1.5rem; font-weight:700; letter-spacing:-.01em}
+.home-card .num small{font-size:.8rem; font-weight:400; color:var(--sub); margin-left:4px}
+.home-links{display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:22px; font-size:.88rem}
 .sidebar button{text-align:left; border:none; background:none; color:var(--ink); padding:10px 12px; border-radius:8px; cursor:pointer; font-size:.88rem; white-space:nowrap}
 .sidebar button.on{background:var(--accent); color:#fff}
 .sidebar button:hover:not(.on){background:var(--bg)}
@@ -160,8 +176,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <div class="app">
 <nav class="sidebar">
-  <div class="sidebar-brand">🦦 신해달 아카이브</div>
-  <button data-v="works" class="on">Works</button>
+  <button class="sidebar-brand" id="brandHome" title="메인으로">
+    <img src="assets/haedal-icon.png" alt=""><span>신해달 아카이브</span>
+  </button>
+  <button data-v="home" class="on">메인</button>
+  <button data-v="works">Works</button>
   <button data-v="exhibitions">Exhibitions</button>
   <button data-v="press">Press</button>
   <button data-v="homevideos">홈 영상</button>
@@ -205,7 +224,24 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <main>
   <div id="issues" hidden></div>
-  <section id="vWorks">
+
+  <section id="vHome">
+    <div class="home-hello">
+      <img src="assets/haedal-icon.png" alt="">
+      <div>
+        <h2>신해달 작품 아카이브</h2>
+        <p class="hint">여기서 작품·전시·보도자료를 관리하고, 다 되면 위의 <b>🚀 홈페이지에 반영</b>을 누르면 됩니다.</p>
+      </div>
+    </div>
+    <div class="home-cards" id="homeCards"></div>
+    <p class="home-links">
+      <a href="https://shinhaedal.com" target="_blank" rel="noopener">홈페이지 보기 ↗</a>
+      <a href="https://shinhaedal.com/works/" target="_blank" rel="noopener">작품 페이지 ↗</a>
+      <a href="https://shinhaedal.com/privacy/" target="_blank" rel="noopener">개인정보 처리방침 ↗</a>
+    </p>
+  </section>
+
+  <section id="vWorks" hidden>
     <div class="view-toggle">
       <button data-view="gallery" class="on">▦ 갤러리</button>
       <button data-view="table">≡ 표</button>
@@ -395,7 +431,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 const KEYS=['no','image','title','caption','material','size','year','price','sold','discount','actual_price','payment','sale_date','delivery_date','channel','owner','exhibitions','note','qty','sold_qty'];
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'전시 이력 (자동)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
-let rows=[], lastList=[], view='gallery', section='works', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
+let rows=[], lastList=[], view='gallery', section='home', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
 let PHOTO_ROWS=[], MEDIA_ROWS=[];
 
 /* ---------- 모바일 뒤로가기가 사이트를 통째로 나가버리지 않도록: 다이얼로그만 히스토리에 걸기 ----------
@@ -970,6 +1006,7 @@ async function load(){
     toast('Supabase 연결 실패: '+(e.message||e)+' — ↻ 버튼으로 다시 시도하세요');
   }
   render();
+  if(typeof renderHome === 'function') renderHome();
 }
 
 /* ---------- 필터·정렬·렌더 ---------- */
@@ -2224,13 +2261,14 @@ $('#btnPublish').onclick=async()=>{
 };
 
 /* ---------- 이벤트 ---------- */
-document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
+function goSection(v){
+  document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
   // 전시 수정 화면을 열어둔 채로 다른 탭으로 바로 넘어가면 플래그가 남아
   // popstate가 엉뚱하게 반응할 수 있어 여기서 정리한다(히스토리 엔트리 자체는
   // 그냥 버려둬도 무해 — popstate가 만나도 열린 게 없으면 아무 것도 안 함).
-  if(b.dataset.v!=='exhibitions') exFormOpen=false;
-  section=b.dataset.v;
+  if(v!=='exhibitions') exFormOpen=false;
+  section=v;
+  $('#vHome').hidden=section!=='home';
   $('#vWorks').hidden=section!=='works';
   $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
@@ -2244,7 +2282,33 @@ document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>{
   if(section==='press')renderPressList();
   if(section==='homevideos')renderHomeVideosList();
   if(section==='feecalc')renderFeeCalc();
-});
+  if(section==='home')renderHome();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
+$('#brandHome').onclick=()=>goSection('home');
+goSection(section);   // 첫 화면(메인)에 맞춰 툴바·영역 정리
+$('#homeCards').onclick=e=>{const c=e.target.closest('[data-go]'); if(c) goSection(c.dataset.go);};
+
+/* ---------- 메인 화면 ---------- */
+function renderHome(){
+  const pub = rows.filter(r=>r.publish_web && !r.deleted_at).length;
+  const cards = [
+    {go:'works', t:'Works', d:'작품 등록·수정, 사진과 판매 기록', n:rows.length, unit:'점', sub:pub?('공개 '+pub):''},
+    {go:'exhibitions', t:'Exhibitions', d:'전시 이력과 포스터', n:exRows.length, unit:'건'},
+    {go:'press', t:'Press', d:'언론 보도 기록', n:pressRows.length, unit:'건'},
+    {go:'homevideos', t:'홈 영상', d:'홈페이지 첫 화면 영상', n:hvRows.length, unit:'개'},
+    {go:'feecalc', t:'수수료 계산', d:'판매가·수수료 계산기'},
+    {go:'website', t:'Website', d:'홈페이지 반영 안내'},
+    {go:'settings', t:'Settings', d:'계정·갱신 일정·바로가기'},
+  ];
+  $('#homeCards').innerHTML = cards.map(c=>
+    `<button class="home-card" data-go="${c.go}">`+
+      `<b>${esc(c.t)}</b>`+
+      (c.n===undefined?'':`<span class="num">${c.n}<small>${esc(c.unit||'')}${c.sub?' · '+esc(c.sub):''}</small></span>`)+
+      `<span class="hint">${esc(c.d)}</span>`+
+    '</button>').join('');
+}
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
   view=b.dataset.view;

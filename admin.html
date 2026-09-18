@@ -2309,7 +2309,7 @@ function openHvEdit(r,neu){
       '<option value="dark"'+(r.ui_theme!=='light'?' selected':'')+'>어두운 배경용 (밝은 글씨)</option>'+
       '<option value="light"'+(r.ui_theme==='light'?' selected':'')+'>밝은 배경용 (어두운 글씨)</option>'+
       '</select>', '영상이 전체적으로 밝으면 "밝은 배경용"을 선택하세요')+
-    F('순서', '<input type="number" name="sort_order" value="'+esc(r.sort_order||0)+'" style="width:80px">', '숫자가 작을수록 먼저 재생됩니다. 최대 3개까지만 홈페이지에 쓰여요')+
+    F('순서', '<input type="number" name="sort_order" value="'+esc(r.sort_order||0)+'" style="width:80px">', '영상이 2개 이상이면 홈에 들어올 때마다 그중 하나로 시작하고, 이 순서대로 이어서 재생됩니다. 최대 3개까지만 홈페이지에 쓰여요')+
     F('모바일에서', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
       '<input type="checkbox" name="mobile_image_fallback"'+(r.mobile_image_fallback?' checked':'')+'> 모바일에서는 영상 대신 원래 이미지 화면 보여주기'+
       '</label>', '영상이 모바일 화면에 잘 안 맞거나 데이터가 부담될 때 체크하세요. PC에서는 그대로 영상이 나옵니다')+

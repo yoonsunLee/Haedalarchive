@@ -166,6 +166,7 @@ $html = '<div style="font-family:system-ui,\'Apple SD Gothic Neo\',sans-serif;fo
     . '<p style="margin:0 0 6px"><b>회신 주소</b> <a href="' . esc($replyHref) . '">' . esc($f['email']) . '</a></p>'
     . $workLine
     . '<p style="margin:0 0 6px"><b>작성 언어</b> ' . ($f['lang'] === 'en' ? '영문' : '국문') . '</p>'
+    . '<p style="margin:0 0 6px"><b>동의</b> 개인정보 수집·이용 동의 (고지문 ' . esc($noticeVersion) . ')</p>'
     . '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">'
     . '<div style="white-space:pre-wrap">' . esc($f['message']) . '</div>'
     . '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">'

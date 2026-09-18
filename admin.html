@@ -173,6 +173,7 @@ dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
 .kv dt{color:var(--sub)} .kv dd{white-space:pre-wrap; word-break:break-word}
 form .row{display:grid; grid-template-columns:110px 1fr; gap:8px 12px; align-items:start; margin-bottom:9px}
 form label{color:var(--sub); font-size:.85rem; padding-top:7px}
+form input[type=checkbox],form input[type=radio]{width:auto; flex:none; padding:0; margin:0}
 form input,form textarea,form select{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:.9rem; font-family:inherit}
 form textarea{resize:vertical; min-height:56px}
 form select.pick{margin-bottom:4px; color:var(--sub)}
@@ -420,7 +421,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <h3>🚀 홈페이지에 반영</h3>
       <p>작품·전시·기사를 다 입력하셨으면, 화면 상단의 <b>🚀 홈페이지에 반영</b> 버튼을 눌러주세요 (어느 화면에 있든 항상 보입니다). 홈페이지가 최신 내용으로 다시 만들어집니다 (보통 1~2분 소요).</p>
       <p style="color:var(--sold)"><b>⚠️ 이 버튼을 안 눌러도, 매일 자정에 자동으로 한 번씩 반영됩니다.</b> "공개"로 체크해둔 작품·영상은 버튼을 누르지 않았더라도 늦어도 다음날 자동으로 홈페이지에 나갑니다. 아직 준비 안 된 것은 반드시 "공개" 체크를 꺼두세요.</p>
-      <p><a href="https://shinhaedal.com/" target="_blank" rel="noopener">라이브 사이트 열기 ↗</a></p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>⚙️ 계정</h3>
       <p>이제 공유 비밀번호 대신 <b>내 계정으로 로그인</b>합니다.
@@ -429,9 +429,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <button class="btn" id="btnCheckConn">연결 확인</button>
       <button class="btn" id="btnLogout" style="color:var(--sold)">로그아웃</button>
       <p style="margin-top:16px" id="setStatus"></p>
-      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
-      <h3>📰 기사</h3>
-      <p>언론 보도를 기록합니다. 홈페이지 Press 화면에 그대로 반영됩니다.</p>
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🗓 운영 메모 — 갱신 일정</h3>
       <p class="hint" style="margin:0 0 10px">돈이 걸린 것과 끊기면 곤란한 것만 적어둡니다. 만료 전에 연장하세요.</p>
@@ -471,8 +468,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📁 바로가기</h3>
       <p>
-        <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank" rel="noopener">구글 시트 DB 열기</a> ·
-        <a href="https://drive.google.com/drive/folders/1HFZIzNCmnM9LSbxlrFVdgepyPSQhdDh4" target="_blank" rel="noopener">구글 드라이브 폴더 열기</a>
+        <a href="https://docs.google.com/spreadsheets/d/14gYnblfAlLo-IPYMEvBj7eBHj4hFgf4AI6qqXME7NeU/edit" target="_blank" rel="noopener">구글 시트 DB 열기</a>
       </p>
     </div>
   </section>
@@ -2319,7 +2315,7 @@ function openHvEdit(r,neu){
       '</label>', '영상이 모바일 화면에 잘 안 맞거나 데이터가 부담될 때 체크하세요. PC에서는 그대로 영상이 나옵니다')+
     F('공개', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
       '<input type="checkbox" name="is_public"'+(r.is_public?' checked':'')+'> 홈페이지에 공개'+
-      '</label>', '이 영상을 홈페이지 후보에서 제외합니다. 공개된 영상이 하나도 안 남으면 원래 이미지 화면으로 돌아가고, 다른 공개 영상이 남아있으면 그 영상들만으로 계속 재생됩니다.');
+      '</label>', '<b>체크해야 홈페이지에 나옵니다.</b> 체크를 풀면 홈 화면 후보에서 빠집니다. 공개된 영상이 하나도 안 남으면 원래 이미지 화면(얼빵해달)으로 돌아가고, 다른 공개 영상이 남아 있으면 그 영상들로만 계속 재생됩니다.');
   $('#btnDeleteHv').style.display=neu?'none':'';
   $('#hvVideoName').textContent='';
   dlgHvEdit.showModal();

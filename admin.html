@@ -2600,10 +2600,6 @@ $('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();re
 updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
-loadPress();
-loadHomeVideos();
-loadFeeCalc();
-
 goSection(section);   // 첫 화면(메인)에 맞춰 제목·툴바 정리 — 모든 정의가 끝난 뒤에 실행
 
 /* ---------- 로그인 게이트 ----------
@@ -2631,7 +2627,13 @@ goSection(section);   // 첫 화면(메인)에 맞춰 제목·툴바 정리 — 
     booted = true;
     var who = document.querySelector('.sidebar-brand');
     if(who && session && session.user) who.title = session.user.email;
+    // RLS가 비로그인 읽기를 막으므로(오류가 아니라 '0건'으로 돌아온다) 모든 목록은
+    // 세션을 확보한 뒤에 부른다. 예전엔 기사·홈 영상·수수료를 화면이 뜨자마자 불러서,
+    // 새로 로그인한 날에는 목록이 비어 보였다.
     load();
+    loadPress();
+    loadHomeVideos();
+    loadFeeCalc();
   }
 
   /* 2단계 인증: 관리 화면을 비밀번호 + 인증 앱 두 단계로 연다.

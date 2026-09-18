@@ -253,6 +253,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="exhibitions">전시</button>
   <button data-v="press">기사</button>
   <button data-v="feecalc">수수료 계산</button>
+  <button data-v="activity">작업 기록</button>
   <button data-v="settings">설정</button>
 </nav>
 <div class="content">
@@ -388,6 +389,32 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </table></div>
   </section>
 
+  <section id="vActivity" hidden>
+    <div class="settings-box">
+      <h3>🗑 휴지통 — 지운 것 되살리기</h3>
+      <p class="hint" style="margin:0 0 10px">작품·전시·기사·홈 영상은 지워도 바로 사라지지 않고 여기 남습니다.
+      되살리면 원래 자리로 그대로 돌아갑니다.</p>
+      <div class="logbar"><button class="btn" id="btnTrashReload">↻ 새로고침</button></div>
+      <div id="trashBox"><span class="hint">불러오는 중…</span></div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🕘 작업 기록</h3>
+      <p class="hint" style="margin:0 0 10px">무엇을 언제 누가 바꿨는지 데이터베이스가 직접 남깁니다.
+      되살릴 때 참고하는 기록이기도 하고, 소장자 이름 같은 개인정보를 다루는 화면이라 1년 이상 보관합니다.</p>
+      <div class="logbar">
+        <select id="logFilter">
+          <option value="">전체</option>
+          <option value="works">작품</option>
+          <option value="exhibitions">전시</option>
+          <option value="press">기사</option>
+          <option value="home_videos">홈 영상</option>
+        </select>
+        <button class="btn" id="btnLogReload">↻ 새로고침</button>
+      </div>
+      <div id="logBox"><span class="hint">불러오는 중…</span></div>
+    </div>
+  </section>
+
   <section id="vSettings" hidden>
     <div class="settings-box">
       <h3>🚀 홈페이지에 반영</h3>
@@ -405,29 +432,6 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📰 기사</h3>
       <p>언론 보도를 기록합니다. 홈페이지 Press 화면에 그대로 반영됩니다.</p>
-      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
-      <h3>🗑 휴지통 — 지운 것 되살리기</h3>
-      <p class="hint" style="margin:0 0 10px">작품·전시·기사·홈 영상은 지워도 바로 사라지지 않고 여기 남습니다.
-      되살리면 원래 자리로 그대로 돌아갑니다.</p>
-      <div class="logbar"><button class="btn" id="btnTrashReload">↻ 새로고침</button></div>
-      <div id="trashBox"><span class="hint">설정 화면을 열면 불러옵니다.</span></div>
-
-      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
-      <h3>🕘 작업 기록</h3>
-      <p class="hint" style="margin:0 0 10px">무엇을 언제 누가 바꿨는지 데이터베이스가 직접 남깁니다.
-      되살릴 때 참고하는 기록이기도 하고, 소장자 이름 같은 개인정보를 다루는 화면이라 1년 이상 보관합니다.</p>
-      <div class="logbar">
-        <select id="logFilter">
-          <option value="">전체</option>
-          <option value="works">작품</option>
-          <option value="exhibitions">전시</option>
-          <option value="press">기사</option>
-          <option value="home_videos">홈 영상</option>
-        </select>
-        <button class="btn" id="btnLogReload">↻ 새로고침</button>
-      </div>
-      <div id="logBox"><span class="hint">설정 화면을 열면 불러옵니다.</span></div>
-
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🗓 운영 메모 — 갱신 일정</h3>
       <p class="hint" style="margin:0 0 10px">돈이 걸린 것과 끊기면 곤란한 것만 적어둡니다. 만료 전에 연장하세요.</p>
@@ -2512,11 +2516,12 @@ function goSection(v){
   $('#vPress').hidden=section!=='press';
   $('#vHomeVideos').hidden=section!=='homevideos';
   $('#vFeeCalc').hidden=section!=='feecalc';
+  $('#vActivity').hidden=section!=='activity';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
   const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 영상', works:'작품', exhibitions:'전시',
-                press:'기사', feecalc:'수수료 계산', settings:'설정'};
+                press:'기사', feecalc:'수수료 계산', activity:'작업 기록', settings:'설정'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
   $('#cnt').hidden=section!=='works';
   if(section==='works')render();
@@ -2525,7 +2530,7 @@ function goSection(v){
   if(section==='homevideos')renderHomeVideosList();
   if(section==='feecalc')renderFeeCalc();
   if(section==='home')renderHome();
-  if(section==='settings'){ loadTrash(); loadActivityLog(); }
+  if(section==='activity'){ loadTrash(); loadActivityLog(); }
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
@@ -2548,6 +2553,7 @@ function renderHome(){
     {go:'exhibitions', t:'전시', d:'전시 이력과 포스터', n:exRows.length, unit:'건'},
     {go:'press', t:'기사', d:'언론 보도 기록', n:pressRows.length, unit:'건'},
     {go:'feecalc', t:'수수료 계산', d:'판매가·수수료 계산기'},
+    {go:'activity', t:'작업 기록', d:'지운 것 되살리기, 바뀐 내역 보기'},
     {go:'settings', t:'설정', d:'반영 안내·계정·갱신 일정', wide:true},
   ];
   // 확인 필요(이미지·영문 누락 등)는 메인에서도 바로 보이게 한다
@@ -2638,7 +2644,7 @@ updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
 $('#connWarn').onclick=()=>{ load(); toast('다시 불러오는 중…'); };
-/* ---------- 휴지통 · 작업 기록 (설정 화면) ----------
+/* ---------- 휴지통 · 작업 기록 (작업 기록 화면) ----------
    작품·전시·기사·홈 영상은 지울 때 행을 없애지 않고 deleted_at에 시각만 찍는다.
    그래서 여기서 그대로 되살릴 수 있다. 확인창만 믿기에는 손이 먼저 나가는 일이 있다. */
 function fmtWhen(iso){

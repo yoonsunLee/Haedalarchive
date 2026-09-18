@@ -27,6 +27,12 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
 /* 휴지통·작업 기록 */
+.chg{margin:6px 0 0; font-size:.83rem; line-height:1.55}
+.chg li{list-style:none; margin:2px 0; overflow-wrap:anywhere}
+.chg .f{color:var(--sub)}
+.chg .was{color:var(--sub); text-decoration:line-through; text-decoration-thickness:1px}
+.chg .now{font-weight:600}
+.chg .more{color:var(--sub)}
 .logbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 10px}
 #trashBox table td, #logBox table td{vertical-align:top}
 #trashBox .nowrap, #logBox .nowrap{white-space:nowrap}
@@ -2752,6 +2758,78 @@ async function restoreTrash(i){
   }catch(e){ toast('되살리기 실패: '+(e.message||e)); }
 }
 
+/* 어떤 칸이 바뀌었는지 우리말로 보여 주기 위한 이름표.
+   여기 없는 칸은 원래 이름 그대로 나온다(틀린 이름을 지어내는 것보다 낫다). */
+const FIELD_KO={
+  // 작품
+  work_no:'작품번호', title_ko:'작품명', title_en:'작품명(영문)',
+  caption_ko:'설명', caption_en:'설명(영문)', material_ko:'재료', material_en:'재료(영문)',
+  year:'제작연도', size_text:'크기', width_cm:'가로', height_cm:'세로', depth_cm:'깊이',
+  list_price_krw:'정가', internal_note:'비고', series_key:'시리즈', image_file:'대표 이미지',
+  edition_size:'에디션 수', work_state:'작품 상태', audio_master:'도슨트 음성',
+  transcript_ko:'도슨트 대본', transcript_en:'도슨트 대본(영문)', docent_enabled:'도슨트 노출',
+  publish_web:'홈페이지 공개', kind:'작품 유형',
+  // 작품 판매정보
+  status:'판매 상태', actual_price_krw:'실제 판매가', discount_rate:'할인율',
+  payment_method:'결제 수단', sales_channel:'판매 경로', collector_name:'소장자',
+  sale_date:'판매일', delivery_date:'인도일', edition_number:'에디션 번호',
+  // 전시
+  exhibition_no:'전시번호', venue_ko:'장소', venue_en:'장소(영문)',
+  start_date:'시작일', end_date:'종료일', type:'구분', note_public_ko:'공개 메모',
+  poster_url:'포스터', map_url:'지도 링크', featured_work_nos:'대표 작품',
+  about_selected:'About 고정 노출', display_order:'순서',
+  // 기사
+  press_no:'기사번호', outlet_ko:'매체', published_date:'보도일', url:'기사 주소',
+  quote_ko:'인용구', quote_en:'인용구(영문)', image_source_url:'대표 이미지',
+  byline:'비고', link_type:'연결 대상', linked_exhibition_id:'연결한 전시',
+  // 홈 영상
+  name:'이름(관리용)', video_master:'영상 파일', work_id:'연결 작품',
+  bg_color:'영상 배경색', ui_theme:'버튼·배지 테마', sort_order:'순서',
+  is_public:'공개', mobile_image_fallback:'모바일에서 이미지로',
+  exhibition_id:'전시'
+};
+
+/* 코드값을 사람 말로 */
+const VALUE_KO={
+  work_state:{planned:'등록 예정', completed:'완성'},
+  status:{available:'판매가능', sold:'판매완료', nfs:'비매(NFS)', reserved:'예약'},
+  type:{feature:'대표 기사', mention:'일반 기사', solo:'개인전', group:'단체전'},
+  ui_theme:{dark:'어두운 배경용', light:'밝은 배경용'},
+  link_type:{exhibition:'전시', brand_shop:'브랜드 샵'}
+};
+
+/* 저장할 때마다 저절로 바뀌는 값들 — 무엇을 했는지와는 상관없다 */
+const DIFF_SKIP=['id','version','created_at','updated_at','deleted_at','work_id','exhibition_id'];
+
+function logValue(field, v){
+  if(v===null || v===undefined || v==='') return '없음';
+  if(v===true) return '예';
+  if(v===false) return '아니오';
+  const map=VALUE_KO[field];
+  if(map && map[v]) return map[v];
+  let t=String(v).replace(/\s+/g,' ').trim();
+  if(field==='list_price_krw' || field==='actual_price_krw'){
+    const n=Number(t);
+    if(!isNaN(n)) return n.toLocaleString('ko-KR')+'원';
+  }
+  if(t.indexOf('sb:')===0) t='올린 파일';        // Storage 참조는 경로를 보여줘야 소용없다
+  return t.length>46 ? t.slice(0,46)+'…' : t;
+}
+
+/* 바뀐 칸만 골라낸다. 한쪽이 없으면(등록·완전삭제) 비교할 게 없으니 건너뛴다. */
+function logChanges(oldRow, newRow){
+  if(!oldRow || !newRow) return [];
+  const out=[];
+  const keys=new Set(Object.keys(oldRow).concat(Object.keys(newRow)));
+  keys.forEach(function(k){
+    if(DIFF_SKIP.indexOf(k)>=0) return;
+    const a=oldRow[k], b=newRow[k];
+    if(JSON.stringify(a===undefined?null:a)===JSON.stringify(b===undefined?null:b)) return;
+    out.push({field:k, ko:FIELD_KO[k]||k, was:logValue(k,a), now:logValue(k,b)});
+  });
+  return out;
+}
+
 const LOG_TABLE_KO={works:'작품', editions:'작품 판매정보', exhibitions:'전시',
                     exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 영상'};
 const LOG_ACTION_KO={insert:'등록', update:'수정', soft_delete:'삭제',
@@ -2761,8 +2839,10 @@ const LOG_GROUP={works:['works','editions'], exhibitions:['exhibitions','exhibit
 
 async function loadActivityLog(){
   $('#logBox').innerHTML='<span class="hint">불러오는 중…</span>';
-  let q=sb.from('activity_log').select('logged_at, actor, table_name, action, label')
-          .order('logged_at',{ascending:false}).limit(200);
+  // old_row·new_row까지 가져와 무엇이 바뀌었는지 보여 준다. 두 벌을 통째로 싣는 만큼
+  // 무거워서, 한 번에 부르는 건수는 200에서 80으로 줄였다.
+  let q=sb.from('activity_log').select('logged_at, actor, table_name, action, label, old_row, new_row')
+          .order('logged_at',{ascending:false}).limit(80);
   const f=$('#logFilter').value;
   if(f) q=q.in('table_name', LOG_GROUP[f]||[f]);
   const r=await q;
@@ -2778,11 +2858,22 @@ async function loadActivityLog(){
     '<thead><tr><th>때</th><th>한 일</th></tr></thead><tbody>'+
     list.map(function(r){
       const act=r.action||'';
-      return '<tr><td class="nowrap">'+esc(fmtWhen(r.logged_at))+
+      const ch=logChanges(r.old_row, r.new_row);
+      const shown=ch.slice(0,4);
+      const chHtml=ch.length
+        ? '<ul class="chg">'+shown.map(function(c){
+            return '<li><span class="f">'+esc(c.ko)+'</span> '+
+              '<span class="was">'+esc(c.was)+'</span> → '+
+              '<span class="now">'+esc(c.now)+'</span></li>';
+          }).join('')+
+          (ch.length>shown.length?'<li class="more">외 '+(ch.length-shown.length)+'개</li>':'')+
+          '</ul>'
+        : '';
+      return '<tr><td>'+esc(fmtWhen(r.logged_at))+
           '<div class="hint">'+esc(String(r.actor||'').split('@')[0])+'</div></td>'+
         '<td class="wrap"><span class="act act-'+esc(act)+'">'+esc(LOG_ACTION_KO[act]||act)+'</span> '+
           '<span class="hint">'+esc(LOG_TABLE_KO[r.table_name]||r.table_name)+'</span><br>'+
-          esc(String(r.label||'—').split('\n')[0])+'</td></tr>';
+          esc(String(r.label||'—').split('\n')[0])+chHtml+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
 

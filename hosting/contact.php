@@ -55,9 +55,17 @@ if (!in_array($origin, $allowed, true)) respond(403, ['ok' => false, 'code' => '
    비밀값은 서버에만 있으므로 토큰을 위조할 수 없다. */
 function client_ip(): string
 {
-    $fwd = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-    if ($fwd !== '') return trim(explode(',', $fwd)[0]);
-    return $_SERVER['REMOTE_ADDR'] ?? '';
+    // X-Forwarded-For는 요청자가 마음대로 넣을 수 있으므로 기본은 실제 접속 주소를 쓴다.
+    // 앞단에 프록시가 있는 구성(접속 주소가 사설/예약 대역)일 때만 헤더를 참고한다.
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isPublic = $remote !== '' && filter_var(
+        $remote, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    );
+    if (!$isPublic) {
+        $fwd = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        if ($fwd !== '') return trim(explode(',', $fwd)[0]);
+    }
+    return $remote;
 }
 
 function ip_hash(string $secret): string

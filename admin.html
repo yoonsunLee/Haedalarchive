@@ -24,7 +24,16 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .sidebar-brand img{width:26px; height:26px; flex:none; border-radius:6px}
 .sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
+/* 작품 필터 접기 */
+.filterbar{display:none; flex-wrap:wrap; gap:8px; padding:0 16px 12px; align-items:center}
+.filterbar.open{display:flex}
+.btn.toggled{background:var(--accent); border-color:var(--accent); color:#fff}
+
 /* 메인(홈) 화면 */
+.home-alert{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; background:#fbf3e3; border:1px solid #e8cf9c; border-radius:12px; padding:12px 14px; margin:0 0 14px; font-size:.9rem}
+.home-alert b{font-size:.98rem}
+.home-quick{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px}
+.home-meta{color:var(--sub); font-size:.85rem; margin:14px 0 0}
 .home-hello{display:flex; align-items:center; gap:14px; margin:18px 0 20px}
 .home-hello img{width:56px; height:56px; border-radius:12px; flex:none}
 .home-hello h2{font-size:1.15rem; margin-bottom:2px}
@@ -189,7 +198,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </nav>
 <div class="content">
 <header>
-  <h1>신해달 작품 아카이브<small id="cnt"></small></h1>
+  <h1 id="pageTitle">신해달 작품 아카이브<small id="cnt"></small></h1>
   <div id="syncdot" title="데이터 소스"></div>
   <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
     <span id="publishStatus" class="hint"></span>
@@ -199,6 +208,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <div class="toolbar" id="worksToolbar">
   <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
+  <button class="btn" id="btnFilters" aria-expanded="false">⚙ 필터·정렬</button>
+  <button class="btn" id="btnReload" title="새로고침">↻</button>
+  <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
+</div>
+<div class="filterbar" id="filterBar">
   <select id="fYear"><option value="">전체 연도</option></select>
   <select id="fEx" style="max-width:230px"><option value="">전체 전시</option></select>
   <select id="fSold">
@@ -216,9 +230,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </select>
   <button class="btn" id="btnDir" title="정렬 방향 전환">↓ 내림차순</button>
   <button class="btn" id="btnSize" title="작품 크기 전환">▦ 작게보기</button>
-  <button class="btn" id="btnReload" title="새로고침">↻</button>
   <button class="btn" id="btnXlsx">⬇ 엑셀 다운로드</button>
-  <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
 </div>
 
 <main>
@@ -232,7 +244,13 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
         <p class="hint">여기서 작품·전시·보도자료를 관리하고, 다 되면 위의 <b>🚀 홈페이지에 반영</b>을 누르면 됩니다.</p>
       </div>
     </div>
+    <div id="homeAlert"></div>
+    <div class="home-quick">
+      <button class="btn primary" id="homeAddWork">＋ 작품 등록</button>
+      <button class="btn" id="homeAddVideo">＋ 홈 영상 등록</button>
+    </div>
     <div class="home-cards" id="homeCards"></div>
+    <p class="home-meta" id="homeMeta"></p>
     <p class="home-links">
       <a href="https://shinhaedal.com" target="_blank" rel="noopener">홈페이지 보기 ↗</a>
       <a href="https://shinhaedal.com/works/" target="_blank" rel="noopener">작품 페이지 ↗</a>
@@ -2269,6 +2287,11 @@ function goSection(v){
   $('#vFeeCalc').hidden=section!=='feecalc';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
+  if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
+  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 영상', works:'작품', exhibitions:'전시',
+                press:'기사', feecalc:'수수료 계산', settings:'설정'};
+  $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
+  $('#cnt').hidden=section!=='works';
   if(section==='works')render();
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
@@ -2279,8 +2302,14 @@ function goSection(v){
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
 $('#brandHome').onclick=()=>goSection('home');
-goSection(section);   // 첫 화면(메인)에 맞춰 툴바·영역 정리
 $('#homeCards').onclick=e=>{const c=e.target.closest('[data-go]'); if(c) goSection(c.dataset.go);};
+$('#homeAddWork').onclick=()=>{ goSection('works'); $('#btnAdd').click(); };
+$('#homeAddVideo').onclick=()=>{ goSection('homevideos'); $('#btnHvAdd').click(); };
+$('#btnFilters').onclick=()=>{
+  const open = $('#filterBar').classList.toggle('open');
+  $('#btnFilters').classList.toggle('toggled', open);
+  $('#btnFilters').setAttribute('aria-expanded', open ? 'true' : 'false');
+};
 
 /* ---------- 메인 화면 ---------- */
 function renderHome(){
@@ -2293,12 +2322,40 @@ function renderHome(){
     {go:'feecalc', t:'수수료 계산', d:'판매가·수수료 계산기'},
     {go:'settings', t:'설정', d:'반영 안내·계정·갱신 일정', wide:true},
   ];
+  // 확인 필요(이미지·영문 누락 등)는 메인에서도 바로 보이게 한다
+  let issues = [];
+  try{ if(typeof computeIssues === 'function' && rows.length) issues = computeIssues(); }catch(e){ console.warn('확인 필요 계산 실패', e); }
+  $('#homeAlert').innerHTML = issues.length
+    ? `<div class="home-alert"><b>⚠ 확인 필요 ${issues.length}건</b>`+
+      `<span class="hint">${esc(issues.slice(0,2).map(i=>i.text).join(' · '))}${issues.length>2?' 외':''}</span>`+
+      `<button class="btn" id="goIssues" style="margin-left:auto">작품에서 보기</button></div>`
+    : '';
+  const go = $('#goIssues');
+  if(go) go.onclick = ()=>{ goSection('works'); setTimeout(()=>$('#issues')?.scrollIntoView({block:'center'}), 100); };
+
   $('#homeCards').innerHTML = cards.map(c=>
     `<button class="home-card" data-go="${c.go}">`+
       `<b>${esc(c.t)}</b>`+
       (c.n===undefined?'':`<span class="num">${c.n}<small>${esc(c.unit||'')}${c.sub?' · '+esc(c.sub):''}</small></span>`)+
       `<span class="hint">${esc(c.d)}</span>`+
     '</button>').join('');
+  showLastPublish();
+}
+
+/* 마지막으로 홈페이지에 반영된 시각 — 공개 저장소의 최근 커밋 시각을 읽어온다 */
+var lastPublishShown = false;   // renderHome이 선언보다 먼저 불릴 수 있어 var
+function showLastPublish(){
+  if(lastPublishShown) return;
+  lastPublishShown = true;
+  fetch('https://api.github.com/repos/yoonsunLee/shinhaedal/commits?per_page=1')
+    .then(r=>r.ok?r.json():null)
+    .then(j=>{
+      const d = j && j[0] && j[0].commit && j[0].commit.committer && j[0].commit.committer.date;
+      if(!d) return;
+      const t = new Date(d).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      $('#homeMeta').textContent = '마지막 홈페이지 반영: ' + t;
+    })
+    .catch(()=>{});
 }
 document.querySelectorAll('.view-toggle button[data-view]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.view-toggle button[data-view]').forEach(x=>x.classList.toggle('on',x===b));
@@ -2355,6 +2412,8 @@ $('#btnReload').onclick=()=>{load();toast('새로고침')};
 loadPress();
 loadHomeVideos();
 loadFeeCalc();
+
+goSection(section);   // 첫 화면(메인)에 맞춰 제목·툴바 정리 — 모든 정의가 끝난 뒤에 실행
 
 /* ---------- 로그인 게이트 ----------
    RLS가 비로그인 접근을 전부 막으므로, 로그인 전에는 데이터를 한 줄도 못 읽는다.

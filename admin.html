@@ -26,6 +26,16 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .sidebar-brand img{width:26px; height:26px; flex:none; border-radius:6px}
 .sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
+/* 휴지통·작업 기록 */
+.logbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 10px}
+#trashBox table td, #logBox table td{vertical-align:top}
+#trashBox .nowrap, #logBox .nowrap{white-space:nowrap}
+.act{display:inline-block; padding:1px 8px; border-radius:20px; font-size:.8rem; white-space:nowrap}
+.act-insert{background:#e6f1ea; color:#2f7a52}
+.act-update{background:var(--bg); color:var(--sub)}
+.act-soft_delete,.act-delete{background:#fbe9e7; color:#b5342a}
+.act-restore{background:#e8eefb; color:#2f57a8}
+
 /* 홈페이지 미리보기 — 실제 화면의 색·서체를 그대로 쓴다 */
 .sitepv{border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:0 0 16px}
 .sitepv-head{display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--bg); font-size:.84rem; color:var(--sub)}
@@ -392,6 +402,29 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>📰 기사</h3>
       <p>언론 보도를 기록합니다. 홈페이지 Press 화면에 그대로 반영됩니다.</p>
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🗑 휴지통 — 지운 것 되살리기</h3>
+      <p class="hint" style="margin:0 0 10px">작품·전시·기사·홈 영상은 지워도 바로 사라지지 않고 여기 남습니다.
+      되살리면 원래 자리로 그대로 돌아갑니다.</p>
+      <div class="logbar"><button class="btn" id="btnTrashReload">↻ 새로고침</button></div>
+      <div id="trashBox"><span class="hint">설정 화면을 열면 불러옵니다.</span></div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <h3>🕘 작업 기록</h3>
+      <p class="hint" style="margin:0 0 10px">무엇을 언제 누가 바꿨는지 데이터베이스가 직접 남깁니다.
+      되살릴 때 참고하는 기록이기도 하고, 소장자 이름 같은 개인정보를 다루는 화면이라 1년 이상 보관합니다.</p>
+      <div class="logbar">
+        <select id="logFilter">
+          <option value="">전체</option>
+          <option value="works">작품</option>
+          <option value="exhibitions">전시</option>
+          <option value="press">기사</option>
+          <option value="home_videos">홈 영상</option>
+        </select>
+        <button class="btn" id="btnLogReload">↻ 새로고침</button>
+      </div>
+      <div id="logBox"><span class="hint">설정 화면을 열면 불러옵니다.</span></div>
+
       <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
       <h3>🗓 운영 메모 — 갱신 일정</h3>
       <p class="hint" style="margin:0 0 10px">돈이 걸린 것과 끊기면 곤란한 것만 적어둡니다. 만료 전에 연장하세요.</p>
@@ -2489,6 +2522,7 @@ function goSection(v){
   if(section==='homevideos')renderHomeVideosList();
   if(section==='feecalc')renderFeeCalc();
   if(section==='home')renderHome();
+  if(section==='settings'){ loadTrash(); loadActivityLog(); }
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
@@ -2600,6 +2634,160 @@ $('#btnDir').onclick=()=>{sortDir=sortDir==='asc'?'desc':'asc';updateDirBtn();re
 updateDirBtn();
 $('#q').oninput=render;$('#fYear').onchange=render;$('#fSold').onchange=render;$('#fEx').onchange=render;
 $('#btnReload').onclick=()=>{load();toast('새로고침')};
+/* ---------- 휴지통 · 작업 기록 (설정 화면) ----------
+   작품·전시·기사·홈 영상은 지울 때 행을 없애지 않고 deleted_at에 시각만 찍는다.
+   그래서 여기서 그대로 되살릴 수 있다. 확인창만 믿기에는 손이 먼저 나가는 일이 있다. */
+function fmtWhen(iso){
+  if(!iso) return '';
+  try{
+    // '2026. 09. 18. 오후 09:41'은 좁은 화면에서 표를 밀어내므로 '2026.09.18 21:41'로 짧게 쓴다
+    const p=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',
+      month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date(iso))
+      .reduce(function(o,x){ o[x.type]=x.value; return o; },{});
+    return p.year+'.'+p.month+'.'+p.day+' '+p.hour+':'+p.minute;
+  }catch(e){ return String(iso).slice(0,16).replace('T',' '); }
+}
+
+const TRASH_KINDS=[
+  {t:'works',       ko:'작품',    title:'title_ko', no:'work_no',
+   cols:'id, work_no, title_ko, deleted_at'},
+  {t:'exhibitions', ko:'전시',    title:'title_ko', no:'exhibition_no',
+   cols:'id, exhibition_no, title_ko, start_date, venue_ko, deleted_at'},
+  {t:'press',       ko:'기사',    title:'title_ko', no:'press_no',
+   cols:'id, press_no, outlet_ko, title_ko, deleted_at'},
+  {t:'home_videos', ko:'홈 영상', title:'name',     no:null,
+   cols:'id, name, deleted_at'}
+];
+let trashRows=[];
+
+async function loadTrash(){
+  $('#trashBox').innerHTML='<span class="hint">불러오는 중…</span>';
+  const out=[];
+  for(let i=0;i<TRASH_KINDS.length;i++){
+    const k=TRASH_KINDS[i];
+    const q=await sb.from(k.t).select(k.cols)
+      .not('deleted_at','is',null).order('deleted_at',{ascending:false}).limit(50);
+    if(q.error){
+      $('#trashBox').innerHTML='<span class="hint">휴지통을 읽지 못했습니다: '+esc(q.error.message||q.error)+'</span>';
+      return;
+    }
+    (q.data||[]).forEach(function(r){ out.push({kind:k, row:r}); });
+  }
+  out.sort(function(a,b){ return String(b.row.deleted_at).localeCompare(String(a.row.deleted_at)); });
+  trashRows=out;
+  renderTrash();
+}
+
+function renderTrash(){
+  if(!trashRows.length){
+    $('#trashBox').innerHTML='<span class="hint">지운 것이 없습니다.</span>';
+    return;
+  }
+  // 휴대폰에서도 되살리기 버튼이 가로 스크롤 뒤로 밀리지 않게 두 칸만 쓴다
+  $('#trashBox').innerHTML='<div class="tablewrap"><table>'+
+    '<thead><tr><th>지운 것</th><th></th></tr></thead><tbody>'+
+    trashRows.map(function(x,i){
+      const r=x.row;
+      const name=r[x.kind.title]||'(이름 없음)';
+      const no=x.kind.no?(r[x.kind.no]||''):'';
+      const sub=x.kind.t==='exhibitions'
+        ? [r.start_date||'', r.venue_ko||''].filter(Boolean).join(' · ')
+        : (x.kind.t==='press' ? (r.outlet_ko||'') : no);
+      return '<tr><td class="wrap"><span class="hint">'+esc(x.kind.ko)+'</span><br>'+
+          esc(String(name).split('\n')[0])+
+          (sub?'<div class="hint">'+esc(sub)+'</div>':'')+
+          '<div class="hint">'+esc(fmtWhen(r.deleted_at))+' 지움</div></td>'+
+        '<td><button class="btn" data-restore="'+i+'">되살리기</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+/* 전시를 지울 때 함께 지워진 출품 작품 관계를 작업 기록에서 되돌린다.
+   이 관계만은 소프트 삭제가 아니라 진짜 삭제라, 기록이 유일한 단서다. */
+async function restoreExhibitionWorks(exId){
+  try{
+    const q=await sb.from('activity_log').select('at, old_row')
+      .eq('table_name','exhibition_works').eq('action','delete')
+      .order('at',{ascending:false}).limit(300);
+    if(q.error) return '';                    // 기록이 아직 없으면 조용히 넘어간다
+    const mine=(q.data||[]).filter(function(r){
+      return r.old_row && r.old_row.exhibition_id===exId && r.old_row.work_id;
+    });
+    if(!mine.length) return '';
+    // 같은 순간(10초 안)에 지워진 것만 = 전시 삭제에 딸려간 것들
+    const t0=new Date(mine[0].at).getTime();
+    const batch=mine.filter(function(r){ return Math.abs(new Date(r.at).getTime()-t0)<10000; });
+    const payload=batch.map(function(r){
+      return {exhibition_id:exId, work_id:r.old_row.work_id, display_order:r.old_row.display_order||0};
+    });
+    const ins=await sb.from('exhibition_works').insert(payload);
+    if(ins.error) return '';
+    return ' (출품 작품 '+payload.length+'점도 함께)';
+  }catch(e){ return ''; }
+}
+
+async function restoreTrash(i){
+  const x=trashRows[i]; if(!x) return;
+  const name=String(x.row[x.kind.title]||'(이름 없음)').split('\n')[0];
+  if(!confirm(x.kind.ko+' "'+name+'"을(를) 되살릴까요?')) return;
+  try{
+    const u=await sb.from(x.kind.t).update({deleted_at:null}).eq('id',x.row.id).select('id');
+    if(u.error) throw u.error;
+    if(!u.data || !u.data.length) throw new Error('대상을 찾지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+    let extra='';
+    if(x.kind.t==='exhibitions') extra=await restoreExhibitionWorks(x.row.id);
+    toast('↩ 되살렸습니다'+extra);
+    exLoaded=false;
+    await load();
+    if(x.kind.t==='press') await loadPress();
+    if(x.kind.t==='home_videos') await loadHomeVideos();
+    await loadTrash();
+    loadActivityLog();
+  }catch(e){ toast('되살리기 실패: '+(e.message||e)); }
+}
+
+const LOG_TABLE_KO={works:'작품', editions:'작품 판매정보', exhibitions:'전시',
+                    exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 영상'};
+const LOG_ACTION_KO={insert:'등록', update:'수정', soft_delete:'삭제',
+                     restore:'되살림', delete:'완전 삭제'};
+const LOG_GROUP={works:['works','editions'], exhibitions:['exhibitions','exhibition_works'],
+                 press:['press'], home_videos:['home_videos']};
+
+async function loadActivityLog(){
+  $('#logBox').innerHTML='<span class="hint">불러오는 중…</span>';
+  let q=sb.from('activity_log').select('at, actor, table_name, action, label')
+          .order('at',{ascending:false}).limit(200);
+  const f=$('#logFilter').value;
+  if(f) q=q.in('table_name', LOG_GROUP[f]||[f]);
+  const r=await q;
+  if(r.error){
+    $('#logBox').innerHTML='<p class="hint">작업 기록이 아직 켜져 있지 않습니다. '+
+      '아카이브 저장소의 <code>supabase/schema/activity_log_2026-09.sql</code>을 '+
+      'Supabase SQL Editor에서 한 번 실행하면 그때부터 쌓입니다.</p>';
+    return;
+  }
+  const list=r.data||[];
+  if(!list.length){ $('#logBox').innerHTML='<span class="hint">아직 기록이 없습니다.</span>'; return; }
+  $('#logBox').innerHTML='<div class="tablewrap"><table>'+
+    '<thead><tr><th>때</th><th>한 일</th></tr></thead><tbody>'+
+    list.map(function(r){
+      const act=r.action||'';
+      return '<tr><td class="nowrap">'+esc(fmtWhen(r.at))+
+          '<div class="hint">'+esc(String(r.actor||'').split('@')[0])+'</div></td>'+
+        '<td class="wrap"><span class="act act-'+esc(act)+'">'+esc(LOG_ACTION_KO[act]||act)+'</span> '+
+          '<span class="hint">'+esc(LOG_TABLE_KO[r.table_name]||r.table_name)+'</span><br>'+
+          esc(String(r.label||'—').split('\n')[0])+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+$('#btnTrashReload').onclick=function(){ loadTrash(); };
+$('#btnLogReload').onclick=function(){ loadActivityLog(); };
+$('#logFilter').onchange=function(){ loadActivityLog(); };
+$('#trashBox').onclick=function(e){
+  const b=e.target.closest('[data-restore]');
+  if(b) restoreTrash(+b.dataset.restore);
+};
+
 goSection(section);   // 첫 화면(메인)에 맞춰 제목·툴바 정리 — 모든 정의가 끝난 뒤에 실행
 
 /* ---------- 로그인 게이트 ----------

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>신해달 작품 아카이브 (Supabase)</title>
 <link rel="icon" href="assets/haedal-icon.png">
+<!-- 미리보기를 실제 홈페이지와 같은 서체로 보여주기 위해 가져온다(홈페이지가 자체 호스팅) -->
+<link rel="stylesheet" href="https://shinhaedal.com/assets/fonts.css">
 <link rel="apple-touch-icon" href="assets/haedal-icon.png">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -23,6 +25,33 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .sidebar-brand:hover{background:var(--bg)}
 .sidebar-brand img{width:26px; height:26px; flex:none; border-radius:6px}
 .sidebar-brand span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+/* 홈페이지 미리보기 — 실제 화면의 색·서체를 그대로 쓴다 */
+.sitepv{border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:0 0 16px}
+.sitepv-head{display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--bg); font-size:.84rem; color:var(--sub)}
+.sitepv-head .pvlang{margin-left:auto; display:flex; gap:2px}
+.sitepv-head .pvlang button{border:1px solid var(--line); background:var(--card); color:var(--sub); border-radius:6px; padding:2px 9px; font-size:.78rem; cursor:pointer}
+.sitepv-head .pvlang button.on{background:var(--accent); border-color:var(--accent); color:#fff}
+.sitepv-body{background:#0b0b0f; color:#f5f0e6; padding:18px 16px; font-family:'Noto Sans KR',sans-serif}
+.sitepv-note{padding:9px 12px; background:var(--bg); font-size:.8rem; color:var(--sub); border-top:1px solid var(--line)}
+.pv-meta{font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; letter-spacing:.5px; color:rgba(245,240,230,.55); text-transform:uppercase; margin:0 0 6px}
+.pv-title{font-size:16px; line-height:1.5; color:#f5f0e6; margin:0}
+.pv-title.big{font-size:24px; font-weight:700; line-height:1.4}
+.pv-flag{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:rgba(245,240,230,.55); border:1px solid rgba(245,240,230,.24); border-radius:20px; padding:2px 9px; margin-left:8px; white-space:nowrap}
+.pv-dek{font-size:14px; line-height:1.6; color:rgba(245,240,230,.62); margin:6px 0 0}
+.pv-dek.big{font-size:16px; line-height:1.75; color:#f5f0e6}
+.pv-links{display:flex; flex-wrap:wrap; gap:16px; margin:10px 0 0; font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; letter-spacing:.5px}
+.pv-go{color:#86b6e8}
+.pv-sub{color:rgba(245,240,230,.62); text-decoration:underline; text-underline-offset:5px}
+.pv-row{display:flex; gap:16px; align-items:flex-start}
+.pv-thumb{width:96px; height:96px; object-fit:contain; flex:none; background:#111420}
+.pv-empty{font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; color:rgba(245,240,230,.55)}
+.pv-ex-year{font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; color:rgba(245,240,230,.55); letter-spacing:.5px; margin:0 0 10px}
+.pv-ex-item{display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:9px 0; border-bottom:1px solid rgba(245,240,230,.12); font-size:16px}
+.pv-ex-title{color:rgba(245,240,230,.62)}
+.pv-ex-venue{font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; letter-spacing:.5px; color:rgba(245,240,230,.55); text-align:right; flex:none}
+.pv-ex-label{font-family:'Space Mono','Noto Sans KR',monospace; font-size:11px; letter-spacing:1px; color:#86b6e8; margin:0 0 6px}
+.pv-ex-date{font-family:'Space Mono','Noto Sans KR',monospace; font-size:12px; color:rgba(245,240,230,.55); margin-left:10px}
 
 /* 작품 수정 폼 묶음 */
 .fgroup{border:1px solid var(--line); border-radius:10px; margin:0 0 10px; background:var(--card)}
@@ -1318,7 +1347,7 @@ function openEdit(r,neu){
     G('홈페이지 노출','전시 이력·시리즈·도슨트·상세 사진·영상',
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
-       <div class="hint">전시 연결(추가·해제)은 <b>Exhibitions</b> 탭의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
+       <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
     F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 홈페이지 작품 상세에서 "시리즈 작품"으로 묶여 표시됩니다. 비워두면 묶이지 않습니다')+
     F('도슨트',
       `<label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:10px">
@@ -1796,7 +1825,7 @@ function exFormHtml(r,isNew){
   ${F('출품작 선택',`<input type="hidden" name="work_nos" value="${esc(r.work_nos||'')}">
     <div id="exPickSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <input type="search" id="exPickSearch" placeholder="작품명·번호 검색" style="width:100%;margin-bottom:8px">
-    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 전시 기간 중 Works 페이지에서 "이번 전시 작품 보기"로 연결되는 전체 목록입니다')}
+    <div id="exPickGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,'작품을 클릭해 선택/해제하세요. 전시 기간 중 작품 화면에서 "이번 전시 작품 보기"로 연결되는 전체 목록입니다')}
   ${F('홈페이지 추천 작품 (최대 5)',`<input type="hidden" name="featured_work_nos" value="${esc(r.featured_work_nos||'')}">
     <div id="exFeatSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <div id="exFeatGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,
@@ -1923,6 +1952,10 @@ function renderExForm(r,isNew){
   exFormOpen=true;
   pushDialogHistory();
   $('#exBody').innerHTML=exFormHtml(r,isNew);
+  $('#exBody').insertAdjacentHTML('afterbegin','<div id="exPreview"></div>');
+  renderExPreview();
+  $('#exBody').addEventListener('input', renderExPreview);
+  $('#exBody').addEventListener('change', renderExPreview);
   initExPicker();
   initExFeaturedPicker();
   $('#btnExBack').onclick=()=>renderExList();
@@ -1952,6 +1985,97 @@ function renderExForm(r,isNew){
     finally{saveBtn.disabled=false;}
   };
 }
+/* ---------- 홈페이지 미리보기 ----------
+   입력한 내용이 홈페이지에서 어떻게 보이는지 그대로 그려 준다.
+   실제 화면과 같은 색·서체를 쓰되, 데이터는 지금 폼에 적힌 값만 본다. */
+let pvLang='ko';
+function pvShell(title, inner, note){
+  return '<div class="sitepv">'+
+    '<div class="sitepv-head">'+esc(title)+
+      '<span class="pvlang">'+
+        '<button type="button" data-pvlang="ko" class="'+(pvLang==='ko'?'on':'')+'">국문</button>'+
+        '<button type="button" data-pvlang="en" class="'+(pvLang==='en'?'on':'')+'">영문</button>'+
+      '</span></div>'+
+    '<div class="sitepv-body">'+inner+'</div>'+
+    (note?'<div class="sitepv-note">'+note+'</div>':'')+
+  '</div>';
+}
+function pvBindLang(root, redraw){
+  root.querySelectorAll('[data-pvlang]').forEach(function(b){
+    b.onclick=function(){ pvLang=b.dataset.pvlang; redraw(); };
+  });
+}
+
+/* 기사 — Press 화면의 카드 모습 */
+function renderPressPreview(){
+  const box=$('#pePreview'); if(!box)return;
+  const v=n=>{const el=$('#peBody [name='+n+']'); return el?String(el.value||'').trim():'';};
+  const featured=!!($('#peBody [name=featured]')||{}).checked;
+  const en=pvLang==='en';
+  const title=en?(v('title_en')||v('title')):v('title');
+  const quote=en?v('quote_en'):v('quote');
+  const flag=(en&&!v('title_en'))?'<span class="pv-flag">Article in Korean</span>':'';
+  const date=v('date'), outlet=v('outlet'), img=v('image'), url=v('url');
+  const link=($('#peBody [name=link_type]')||{}).value||'';
+  const links=[];
+  if(url) links.push('<span class="pv-sub">'+(en?'Read the article ↗':'기사 원문 보기 ↗')+'</span>');
+  if(link==='exhibition') links.push('<span class="pv-go">'+(en?'See exhibited works →':'전시 작품 보기 →')+'</span>');
+  if(link==='brand_shop') links.push('<span class="pv-sub">'+(en?'Visit the brand shop ↗':'브랜드 샵 바로가기 ↗')+'</span>');
+
+  const body=(!title&&!outlet)
+    ? '<p class="pv-empty">'+(en?'Fill in the outlet and title to see the preview':'매체명과 제목을 입력하면 여기에 보여요')+'</p>'
+    : '<div class="pv-row">'+
+        (img?'<img class="pv-thumb'+(featured?' big':'')+'" src="'+esc(img)+'" alt="" onerror="this.style.display=\'none\'">':'')+
+        '<div style="flex:1;min-width:0">'+
+          '<p class="pv-meta">'+esc(outlet||'매체명')+(date?' · '+esc(date):'')+'</p>'+
+          '<p class="pv-title'+(featured?' big':'')+'">'+esc(title||'(제목 없음)')+flag+'</p>'+
+          (quote?'<p class="pv-dek'+(featured?' big':'')+'">'+(featured?'“':'')+esc(quote)+(featured?'”':'')+'</p>':'')+
+          (links.length?'<div class="pv-links">'+links.join('')+'</div>':'')+
+        '</div>'+
+      '</div>';
+
+  const note=featured
+    ? '맨 위 <b>대표 자리</b>에 큰 카드로 표시됩니다.'
+    : 'Press 목록에 한 줄로 표시됩니다. 대표 자리에 넣으려면 아래 <b>대표 기사</b>를 켜세요.';
+  box.innerHTML=pvShell('홈페이지 Press 화면에서 이렇게 보여요', body,
+    note+(en&&!v('quote_en')&&v('quote')?' · 영문 인용구가 비어 있어 영문 화면에서는 인용구가 나오지 않습니다.':''));
+  pvBindLang(box, renderPressPreview);
+}
+
+/* 전시 — About 화면의 전시 이력 모습 */
+function renderExPreview(){
+  const box=$('#exPreview'); if(!box)return;
+  const v=n=>{const el=$('#exBody [name='+n+']'); return el?String(el.value||'').trim():'';};
+  const selected=!!($('#exBody [name=about_selected]')||{}).checked;
+  const en=pvLang==='en';
+  const title=en?(v('title_en')||v('title')):v('title');
+  const venue=en?(v('venue_en')||v('venue')):v('venue');
+  const sd=v('start_date'), ed=v('end_date'), type=v('type');
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=sd&&sd>today;
+  const year=(sd||'').slice(0,4)||'—';
+  const range=sd?(sd.replace(/-/g,'.')+(ed?' – '+ed.slice(5).replace('-','.'):'')):'';
+
+  const body=!title
+    ? '<p class="pv-empty">'+(en?'Enter the exhibition title to see the preview':'전시명을 입력하면 여기에 보여요')+'</p>'
+    : (upcoming
+        ? '<p class="pv-ex-label">'+esc(en?(type==='개인전'?'UPCOMING SOLO EXHIBITION':'UPCOMING EXHIBITION'):(type==='개인전'?'예정된 개인전':'예정된 전시'))+'</p>'+
+          '<div class="pv-ex-item"><span class="pv-ex-title">'+esc(title)+'<span class="pv-ex-date">'+esc(range)+'</span></span>'+
+          '<span class="pv-ex-venue">'+esc(venue||'장소')+'</span></div>'
+        : '<p class="pv-ex-year">'+esc(year)+'</p>'+
+          '<div class="pv-ex-item"><span class="pv-ex-title">'+esc(title)+'</span>'+
+          '<span class="pv-ex-venue">'+esc(venue||'장소')+'</span></div>');
+
+  const note=upcoming
+    ? 'About 화면 맨 위 <b>예정 전시</b>로 먼저 표시됩니다.'
+    : (selected
+        ? 'About 화면의 전시 이력에 <b>항상</b> 표시됩니다(대표 전시로 지정됨).'
+        : '대표 전시로 지정하지 않으면 <b>최근 전시 2~3개</b>에 들 때만 About에 나옵니다.');
+  box.innerHTML=pvShell('홈페이지 About 화면에서 이렇게 보여요', body,
+    note+' 포스터와 연결한 작품은 작품 화면의 전시 정보에서 쓰입니다.');
+  pvBindLang(box, renderExPreview);
+}
+
 /* ---------- Press ---------- */
 const PRESS_KEYS=['no','outlet','date','title','title_en','url','quote','quote_en','image','note','link_type','linked_exhibition_id'];
 const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
@@ -1995,6 +2119,7 @@ function openPressEdit(r,neu){
   $('#peTitle').textContent=neu?'기사 등록':'기사 수정';
   const F=(label,inner,hint)=>`<div class="row"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
   $('#peBody').innerHTML=
+    '<div id="pePreview"></div>'+
     F(PRESS_LABELS.no,`<input name="no" value="${esc(r.no)}" ${neu?'':'readonly'}>`,neu?'비워두면 자동으로 채번됩니다 (PR-연도-순번)':'')+
     F(PRESS_LABELS.outlet,`<input name="outlet" value="${esc(r.outlet)}" placeholder="예: 코리안투데이">`)+
     F(PRESS_LABELS.date,`<input name="date" type="date" value="${toISO(r.date)}">`)+
@@ -2005,7 +2130,7 @@ function openPressEdit(r,neu){
     F('인용구 (영문)',`<textarea name="quote_en" placeholder="Quote translated into English">${esc(r.quote_en||'')}</textarea>`,'비워두면 영문 모드에서 인용구가 표시되지 않습니다')+
     F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
     F('대표 기사',`<label style="display:flex;align-items:center;gap:8px;font-weight:400">
-        <input type="checkbox" name="featured"${r.featured?' checked':''}> Press 페이지 맨 위 대표 자리에 표시
+        <input type="checkbox" name="featured"${r.featured?' checked':''}> Press 화면 맨 위 대표 자리에 표시
       </label>`,'여러 기사를 체크해도 그중 하나만 쓰입니다. 아무것도 체크하지 않으면 최신 기사가 자동으로 대표 자리에 표시됩니다')+
     F('연결 대상',`<select name="link_type">
         <option value=""${!r.link_type?' selected':''}>없음</option>
@@ -2018,6 +2143,9 @@ function openPressEdit(r,neu){
       </select>`,'홈페이지 기사 카드의 "전시 작품 보기"/"브랜드 샵" 링크가 여기 연결한 대상을 가리킵니다')+
     F(PRESS_LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`);
   $('#btnDeletePress').style.display=neu?'none':'';
+  renderPressPreview();
+  $('#peBody').addEventListener('input', renderPressPreview);
+  $('#peBody').addEventListener('change', renderPressPreview);
   dlgPressEdit.showModal();
   pushDialogHistory();
 }

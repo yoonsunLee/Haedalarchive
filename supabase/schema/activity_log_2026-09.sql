@@ -11,23 +11,31 @@
 --  2) 접속기록 — 작품의 소장자(owner)처럼 개인정보에 해당하는 항목이 있으므로
 --     「개인정보의 안전성 확보조치 기준」에 따라 1년 이상 보관한다. 지우지 말 것.
 --
--- Supabase 콘솔 → SQL Editor에 통째로 붙여넣고 Run 하면 된다. 여러 번 실행해도 안전하다.
+-- Supabase 콘솔 → SQL Editor에 통째로 붙여넣고 Run. 여러 번 실행해도 안전하다.
+--
+-- 시각 열의 이름은 logged_at이다. 처음에 at으로 썼다가
+-- "ERROR: 42703: column \"at\" does not exist"로 막혔다. at은 AT TIME ZONE에
+-- 쓰이는 낱말이라 자리에 따라 열 이름으로 읽히지 않는다. 짧다고 쓸 이름이 아니다.
 
 -- ---------- 1) 기록 테이블 ----------
+-- 만들다 만 표가 이미 있어도 살려 쓰도록, 표는 최소로 만들고 열은 하나씩 채운다.
+-- (create table if not exists만 쓰면 표가 이미 있을 때 통째로 건너뛰어,
+--  빠진 열이 영영 안 생긴다 — home_videos에서 겪은 그 문제다)
 create table if not exists activity_log (
-  id          bigserial primary key,
-  at          timestamptz not null default now(),
-  actor       text,          -- 로그인한 사람의 이메일 (없으면 'system')
-  table_name  text not null, -- works / editions / exhibitions / exhibition_works / press / home_videos
-  row_id      text,          -- 대상 행의 id (exhibition_works처럼 id가 없으면 비어 있음)
-  action      text not null, -- insert / update / soft_delete / restore / delete
-  label       text,          -- 사람이 알아볼 이름 (작품명·전시명 등)
-  old_row     jsonb,         -- 바꾸기 전 전체 내용 (되살릴 때 쓴다)
-  new_row     jsonb          -- 바꾼 뒤 전체 내용
+  id bigserial primary key
 );
 
-create index if not exists activity_log_at_idx  on activity_log (at desc);
-create index if not exists activity_log_row_idx on activity_log (table_name, row_id, at desc);
+alter table activity_log add column if not exists logged_at  timestamptz not null default now();
+alter table activity_log add column if not exists actor      text;   -- 로그인한 사람의 이메일
+alter table activity_log add column if not exists table_name text;   -- works / exhibitions / …
+alter table activity_log add column if not exists row_id     text;   -- 대상 행의 id
+alter table activity_log add column if not exists action     text;   -- insert/update/soft_delete/restore/delete
+alter table activity_log add column if not exists label      text;   -- 사람이 알아볼 이름
+alter table activity_log add column if not exists old_row    jsonb;  -- 바꾸기 전 전체 내용
+alter table activity_log add column if not exists new_row    jsonb;  -- 바꾼 뒤 전체 내용
+
+create index if not exists activity_log_at_idx  on activity_log (logged_at desc);
+create index if not exists activity_log_row_idx on activity_log (table_name, row_id, logged_at desc);
 
 -- 읽기는 로그인한 사람만. 쓰기는 아무도 못 한다(아래 트리거만 기록한다).
 alter table activity_log enable row level security;
@@ -80,13 +88,19 @@ begin
      where e.id = coalesce(n->>'exhibition_id', o->>'exhibition_id')::uuid;
   end if;
 
-  insert into activity_log (actor, table_name, row_id, action, label, old_row, new_row)
-  values (
-    coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email', 'system'),
-    TG_TABLE_NAME,
-    coalesce(n->>'id', o->>'id'),
-    act, lbl, o, n
-  );
+  -- 기록에 실패하더라도 작품·전시 저장 자체가 막히면 안 된다. 기록은 곁다리다.
+  begin
+    insert into activity_log (actor, table_name, row_id, action, label, old_row, new_row)
+    values (
+      coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email', 'system'),
+      TG_TABLE_NAME,
+      coalesce(n->>'id', o->>'id'),
+      act, lbl, o, n
+    );
+  exception when others then
+    raise warning '작업 기록 실패(%): %', TG_TABLE_NAME, sqlerrm;
+  end;
+
   return null;
 end $$;
 
@@ -114,3 +128,13 @@ create trigger trg_log_press after insert or update or delete on press
 drop trigger if exists trg_log_home_videos on home_videos;
 create trigger trg_log_home_videos after insert or update or delete on home_videos
   for each row execute function log_activity();
+
+-- ---------- 4) API가 들고 있는 스키마 목록 새로 읽기 ----------
+notify pgrst, 'reload schema';
+
+-- ---------- 5) 확인 ----------
+-- logged_at·old_row까지 8개 열이 보이면 된 것이다.
+select column_name, data_type
+  from information_schema.columns
+ where table_schema = 'public' and table_name = 'activity_log'
+ order by ordinal_position;

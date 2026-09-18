@@ -2716,17 +2716,17 @@ function renderTrash(){
    이 관계만은 소프트 삭제가 아니라 진짜 삭제라, 기록이 유일한 단서다. */
 async function restoreExhibitionWorks(exId){
   try{
-    const q=await sb.from('activity_log').select('at, old_row')
+    const q=await sb.from('activity_log').select('logged_at, old_row')
       .eq('table_name','exhibition_works').eq('action','delete')
-      .order('at',{ascending:false}).limit(300);
+      .order('logged_at',{ascending:false}).limit(300);
     if(q.error) return '';                    // 기록이 아직 없으면 조용히 넘어간다
     const mine=(q.data||[]).filter(function(r){
       return r.old_row && r.old_row.exhibition_id===exId && r.old_row.work_id;
     });
     if(!mine.length) return '';
     // 같은 순간(10초 안)에 지워진 것만 = 전시 삭제에 딸려간 것들
-    const t0=new Date(mine[0].at).getTime();
-    const batch=mine.filter(function(r){ return Math.abs(new Date(r.at).getTime()-t0)<10000; });
+    const t0=new Date(mine[0].logged_at).getTime();
+    const batch=mine.filter(function(r){ return Math.abs(new Date(r.logged_at).getTime()-t0)<10000; });
     const payload=batch.map(function(r){
       return {exhibition_id:exId, work_id:r.old_row.work_id, display_order:r.old_row.display_order||0};
     });
@@ -2765,8 +2765,8 @@ const LOG_GROUP={works:['works','editions'], exhibitions:['exhibitions','exhibit
 
 async function loadActivityLog(){
   $('#logBox').innerHTML='<span class="hint">불러오는 중…</span>';
-  let q=sb.from('activity_log').select('at, actor, table_name, action, label')
-          .order('at',{ascending:false}).limit(200);
+  let q=sb.from('activity_log').select('logged_at, actor, table_name, action, label')
+          .order('logged_at',{ascending:false}).limit(200);
   const f=$('#logFilter').value;
   if(f) q=q.in('table_name', LOG_GROUP[f]||[f]);
   const r=await q;
@@ -2782,7 +2782,7 @@ async function loadActivityLog(){
     '<thead><tr><th>때</th><th>한 일</th></tr></thead><tbody>'+
     list.map(function(r){
       const act=r.action||'';
-      return '<tr><td class="nowrap">'+esc(fmtWhen(r.at))+
+      return '<tr><td class="nowrap">'+esc(fmtWhen(r.logged_at))+
           '<div class="hint">'+esc(String(r.actor||'').split('@')[0])+'</div></td>'+
         '<td class="wrap"><span class="act act-'+esc(act)+'">'+esc(LOG_ACTION_KO[act]||act)+'</span> '+
           '<span class="hint">'+esc(LOG_TABLE_KO[r.table_name]||r.table_name)+'</span><br>'+

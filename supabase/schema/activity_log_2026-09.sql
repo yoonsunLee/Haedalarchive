@@ -13,9 +13,11 @@
 --
 -- Supabase 콘솔 → SQL Editor에 통째로 붙여넣고 Run. 여러 번 실행해도 안전하다.
 --
--- 시각 열의 이름은 logged_at이다. 처음에 at으로 썼다가
--- "ERROR: 42703: column \"at\" does not exist"로 막혔다. at은 AT TIME ZONE에
--- 쓰이는 낱말이라 자리에 따라 열 이름으로 읽히지 않는다. 짧다고 쓸 이름이 아니다.
+-- 시각 열의 이름은 logged_at이다. 처음엔 at으로 썼는데
+-- "ERROR: 42703: column \"at\" does not exist"로 막혔다. 원인은 낱말 문제가 아니라,
+-- activity_log 표가 옛 설계의 흔적으로 이미 있었고 create table if not exists가
+-- 그걸 보고 통째로 건너뛰어 열이 하나도 안 생긴 것이었다(activity_log_cleanup 참고).
+-- 이름은 그래도 logged_at으로 둔다 — at은 AT TIME ZONE과 겹쳐 읽기 어렵다.
 
 -- ---------- 1) 기록 테이블 ----------
 -- 만들다 만 표가 이미 있어도 살려 쓰도록, 표는 최소로 만들고 열은 하나씩 채운다.

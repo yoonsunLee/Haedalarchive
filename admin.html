@@ -94,6 +94,19 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 /* 메인(홈) 화면 */
 .home-alert{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; background:#fbf3e3; border:1px solid #e8cf9c; border-radius:12px; padding:12px 14px; margin:0 0 14px; font-size:.9rem}
 .home-alert b{font-size:.98rem}
+/* 빠진 정보 알림: 홈페이지에 영향(빨강) / 보완 권장(갈색). 메뉴별로 묶고 누르면 해당 수정 화면으로 */
+.ha{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:0 0 14px; font-size:.9rem}
+.ha-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:6px}
+.ha-head b{font-size:.98rem}
+.ha-pill{font-size:.78rem; font-weight:700; padding:3px 9px; border-radius:20px}
+.ha-pill.impact{background:#f6e1de; color:var(--sold)} .ha-pill.rec{background:#f3ead9; color:var(--nfs)}
+.ha details{border-top:1px solid var(--line); padding:8px 0 2px}
+.ha summary{cursor:pointer; font-weight:600; list-style-position:inside}
+.ha-items{display:flex; flex-direction:column; gap:4px; margin:8px 0 4px}
+.ha-item{display:flex; gap:8px; align-items:flex-start; text-align:left; border:none; background:none; padding:4px 2px; font:inherit; color:var(--ink); cursor:pointer; border-radius:6px}
+.ha-item:hover{background:#f4f1ea}
+.ha-item .dot{flex:0 0 auto; width:8px; height:8px; border-radius:50%; margin-top:7px}
+.ha-item .dot.impact{background:var(--sold)} .ha-item .dot.rec{background:#c9a86a}
 .home-quick{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px}
 .home-meta{color:var(--sub); font-size:.85rem; margin:14px 0 0}
 .home-hello{display:flex; align-items:center; gap:14px; margin:18px 0 20px}
@@ -876,6 +889,7 @@ async function savePressToDb(rec, neu, cur){
     linked_exhibition_id: rec.link_type === 'exhibition' ? textOrNull(rec.linked_exhibition_id) : null,
     type: rec.featured ? 'feature' : 'mention'
   };
+  if(PRESS_HAS_OUTLET_EN) payload.outlet_en = textOrNull(rec.outlet_en);
   if(!payload.title_ko) throw new Error('기사 제목을 입력하세요');
   if(!payload.outlet_ko) throw new Error('매체명을 입력하세요');
   if(payload.url && !/^https?:\/\//i.test(payload.url))
@@ -1086,6 +1100,7 @@ async function load(){
         poster_url: e.poster_url || '', map_url: e.map_url || '',
         featured_work_nos: e.featured_work_nos || '',
         about_selected: !!e.about_selected,
+        publish_web: e.publish_web !== false,
         work_nos: members.join(','),
         _id: e.id, _version: e.version
       };
@@ -1163,46 +1178,98 @@ function renderStats(){
     <div class="stat" data-act="revenue" title="클릭하면 금액이 표시/숨김됩니다"><span>누적 판매액 ${revealRevenue?'🙉':'🙈'}</span><b>${revealRevenue?revenue.toLocaleString('ko-KR')+'원':'••••••'}</b></div>`;
 }
 /* ---------- Needs Attention: 누락·오류 자동 탐지 (읽기 전용, 클릭하면 해당 작품/전시로 이동) ---------- */
+/* 빠진 정보 점검. sev: 'impact'(홈페이지에 바로 영향) / 'rec'(보완 권장). area로 메뉴를 묶는다.
+   알려 주기만 하고 내용을 자동으로 채우지 않는다. */
+const ISSUE_AREAS=['작품','전시','기사','홈 영상'];
 function computeIssues(){
   const issues=[];
+  const add=(area,sev,text,extra)=>issues.push(Object.assign({area,sev,text},extra||{}));
+  const pubNos=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'')));
   rows.forEach(r=>{
     const st=soldState(r);
     const label=r.no||'(번호 미부여)';
     if(st==='planned')return; // 등록 예정은 아직 정보가 없는 게 정상이라 제외
+    const pub=!!r.publish_web;
     if(!String(r.image||'').trim())
-      issues.push({no:r.no,text:`${label} · 이미지 없음`,row:r});
+      add('작품',pub?'impact':'rec',`${label} · 이미지 없음`,{row:r});
     const titleParts=String(r.title||'').split('\n');
     // 영문 제목은 title_en 컬럼이 정식 위치이고, 예전 행은 title의 둘째 줄에 들어있다.
     const titleEn=String(r.title_en||'').trim()||String(titleParts[1]||'').trim();
     if(!titleParts[0]?.trim())
-      issues.push({no:r.no,text:`${label} · 작품명 없음`,row:r});
+      add('작품',pub?'impact':'rec',`${label} · 작품명 없음`,{row:r});
     else if(!titleEn)
-      issues.push({no:r.no,text:`${label} · 영문 작품명 없음`,row:r});
+      add('작품','rec',`${label} · 영문 작품명 없음`,{row:r});
     if(!String(r.material_en||'').trim())
-      issues.push({no:r.no,text:`${label} · 영문 재료 없음`,row:r});
+      add('작품','rec',`${label} · 영문 재료 없음`,{row:r});
+    if(pub&&!String(r.size||'').trim())
+      add('작품','rec',`${label} · 크기 없음`,{row:r});
+    if(pub&&!String(r.year||'').trim())
+      add('작품','rec',`${label} · 연도 없음`,{row:r});
     if(st==='sold'){
       if(!String(r.owner||'').trim())
-        issues.push({no:r.no,text:`${label} · 판매완료인데 소장자 없음`,row:r});
+        add('작품','rec',`${label} · 판매완료인데 소장자 없음`,{row:r});
       if(!String(r.delivery_date||'').trim())
-        issues.push({no:r.no,text:`${label} · 판매완료인데 인도일 없음`,row:r});
+        add('작품','rec',`${label} · 판매완료인데 인도일 없음`,{row:r});
     }
     if(st==='avail'&&!String(r.price||'').trim()&&(r.qty??'')==='')
-      issues.push({no:r.no,text:`${label} · 판매가능인데 가격 없음`,row:r});
+      add('작품','rec',`${label} · 판매가능인데 가격 없음`,{row:r});
   });
-  const today=new Date();today.setHours(0,0,0,0);
+
+  const todayStr=new Date(Date.now()+9*3600*1000).toISOString().slice(0,10); // KST
+  const dayDiff=(a,b)=>Math.round((new Date(a)-new Date(b))/86400000);
   exRows.forEach(ex=>{
-    if(!ex.end_date)return;
-    const end=new Date(ex.end_date);if(isNaN(end))return;
-    const days=Math.round((end-today)/86400000);
-    if(days>=0&&days<=7)
-      issues.push({no:null,text:`${ex.title||ex.id} · 종료까지 D-${days}`,ex:ex});
+    const name=ex.title||ex.id;
+    if(ex.publish_web===false)return;
+    if(!ex.start_date||!ex.end_date){
+      add('전시','impact',`${name} · 전시 기간(시작일·종료일) 없음`,{ex});
+      return;
+    }
+    const toStart=dayDiff(ex.start_date,todayStr), toEnd=dayDiff(ex.end_date,todayStr);
+    const pubCount=String(ex.work_nos||'').split(',').map(x=>x.trim()).filter(x=>pubNos.has(x)).length;
+    // 홈 전시 카드는 개막 30일 전부터, 공개 출품작이 1점 이상일 때만 뜬다(index.html UPCOMING_WINDOW_DAYS)
+    if(toEnd>=0&&toStart<=30&&!pubCount)
+      add('전시','impact',`${name} · 공개 출품작 0점이라 홈에 전시 예고가 안 뜸`,{ex});
+    else if(toStart>30&&toStart<=60&&!pubCount)
+      add('전시','rec',`${name} · 개막 D-${toStart} — 30일 전부터 홈에 뜨려면 출품작 연결 필요`,{ex});
+    if(toEnd>=0&&toEnd<=7)
+      add('전시','rec',`${name} · 종료까지 D-${toEnd}`,{ex});
+    if(!String(ex.title_en||'').trim()) add('전시','rec',`${name} · 영문 전시명 없음`,{ex});
+    if(!String(ex.venue_en||'').trim()) add('전시','rec',`${name} · 영문 장소 없음`,{ex});
+    if(toEnd>=0){
+      if(!String(ex.poster_url||'').trim()) add('전시','rec',`${name} · 포스터 없음`,{ex});
+      if(!String(ex.map_url||'').trim()) add('전시','rec',`${name} · 찾아오는 길 링크 없음`,{ex});
+    }
+  });
+
+  (typeof pressRows!=='undefined'?pressRows:[]).forEach(p=>{
+    const name=`${p.outlet||'(매체명 없음)'} · ${String(p.title||'').slice(0,24)}${String(p.title||'').length>24?'…':''}`;
+    const url=String(p.url||'').trim();
+    if(!url) add('기사','impact',`${name} · 기사 링크 없음`,{press:p});
+    else if(!/^https:\/\//i.test(url)) add('기사','impact',`${name} · 링크가 https가 아니라 홈페이지에서 숨겨짐`,{press:p});
+    if(PRESS_HAS_OUTLET_EN&&!String(p.outlet_en||'').trim()) add('기사','rec',`${name} · 영문 매체명 없음`,{press:p});
+    if(!String(p.title_en||'').trim()) add('기사','rec',`${name} · 영문 기사 제목 없음`,{press:p});
+    if(!String(p.image||'').trim()) add('기사','rec',`${name} · 대표 이미지 없음`,{press:p});
+  });
+  if(typeof pressRows!=='undefined'&&pressRows.length&&!PRESS_HAS_OUTLET_EN)
+    add('기사','rec','영문 매체명 칸 준비 필요 — Supabase SQL Editor에서 press_outlet_en_2026-09.sql 실행',{});
+
+  (typeof hvRows!=='undefined'?hvRows:[]).forEach(v=>{
+    if(v.is_public&&!String(v.video_master||'').trim())
+      add('홈 영상','impact',`${v.name||'(이름 없음)'} · 공개인데 영상 파일 없음`,{hv:v});
   });
   return issues;
+}
+/** 알림 하나를 눌렀을 때 해당 항목의 수정 화면을 연다 */
+function openIssue(it){
+  if(it.row){ openDetail(it.row); return; }
+  if(it.ex){ openEx().then(()=>renderExForm(it.ex,false)); return; }
+  if(it.press){ goSection('press'); openPressEdit(it.press,false); return; }
+  if(it.hv){ goSection('homevideos'); openHvEdit(it.hv,false); return; }
 }
 function renderIssues(){
   const box=$('#issues');
   if(!box)return;
-  const issues=computeIssues();
+  const issues=computeIssues().filter(it=>it.area==='작품'||it.area==='전시');
   if(!issues.length){box.hidden=true;return}
   box.hidden=false;
   box.innerHTML=`<div class="issues-head">⚠ 확인 필요 ${issues.length}건</div>`+
@@ -1210,11 +1277,7 @@ function renderIssues(){
       `<button type="button" class="issue-item" data-issue="${i}">${esc(it.text)}</button>`).join('')+
     `</div>`;
   box.querySelectorAll('[data-issue]').forEach((btn,i)=>{
-    btn.onclick=()=>{
-      const it=issues[i];
-      if(it.row)openDetail(it.row);
-      else if(it.ex){openEx().then(()=>renderExForm(it.ex,false))}
-    };
+    btn.onclick=()=>openIssue(issues[i]);
   });
 }
 function renderGrid(list){
@@ -2057,7 +2120,7 @@ function renderPressPreview(){
   const title=en?(v('title_en')||v('title')):v('title');
   const quote=en?v('quote_en'):v('quote');
   const flag=(en&&!v('title_en'))?'<span class="pv-flag">Article in Korean</span>':'';
-  const date=v('date'), outlet=v('outlet'), img=v('image'), url=v('url');
+  const date=v('date'), outlet=en?(v('outlet_en')||v('outlet')):v('outlet'), img=v('image'), url=v('url');
   const link=($('#peBody [name=link_type]')||{}).value||'';
   const links=[];
   if(url) links.push('<span class="pv-sub">'+(en?'Read the article ↗':'기사 원문 보기 ↗')+'</span>');
@@ -2119,16 +2182,19 @@ function renderExPreview(){
 }
 
 /* ---------- Press ---------- */
-const PRESS_KEYS=['no','outlet','date','title','title_en','url','quote','quote_en','image','note','link_type','linked_exhibition_id'];
+const PRESS_KEYS=['no','outlet','outlet_en','date','title','title_en','url','quote','quote_en','image','note','link_type','linked_exhibition_id'];
 const PRESS_LABELS={no:'No.',outlet:'매체명',date:'게재일',title:'기사 제목',url:'기사 링크',quote:'인용구',image:'대표 이미지 URL',note:'비고'};
 let pressRows=[], lastPressList=[], pressCurrent=null, pressIsNew=false;
+// press 표에 outlet_en 열이 있는지(supabase/schema/press_outlet_en_2026-09.sql 실행 여부). 없으면 칸을 잠근다
+let PRESS_HAS_OUTLET_EN=false;
 
 async function loadPress(){
   try{
     var q = await sb.from('press').select('*').is('deleted_at', null);
     if(q.error) throw q.error;
+    if((q.data||[]).length) PRESS_HAS_OUTLET_EN = Object.prototype.hasOwnProperty.call(q.data[0], 'outlet_en');
     pressRows = (q.data||[]).map(function(p){
-      return { no:p.press_no, outlet:p.outlet_ko, date:p.published_date||'',
+      return { no:p.press_no, outlet:p.outlet_ko, outlet_en:p.outlet_en||'', date:p.published_date||'',
                title:p.title_ko, url:p.url||'', quote:p.quote_ko||'',
                image:p.image_source_url||'', note:p.byline||'',
                title_en:p.title_en||'', quote_en:p.quote_en||'',
@@ -2141,6 +2207,7 @@ async function loadPress(){
     toast('Press 불러오기 실패: '+(e.message||e));
   }
   renderPressList();
+  if(section==='home') renderHome(); // 빠진 정보 알림에 기사도 반영
 }
 function filteredPress(){
   const q=($('#pq').value||'').trim().toLowerCase();
@@ -2164,6 +2231,11 @@ function openPressEdit(r,neu){
     '<div id="pePreview"></div>'+
     F(PRESS_LABELS.no,`<input name="no" value="${esc(r.no)}" ${neu?'':'readonly'}>`,neu?'비워두면 자동으로 채번됩니다 (PR-연도-순번)':'')+
     F(PRESS_LABELS.outlet,`<input name="outlet" value="${esc(r.outlet)}" placeholder="예: 코리안투데이">`)+
+    F('매체명 (영문)', PRESS_HAS_OUTLET_EN
+        ? `<input name="outlet_en" value="${esc(r.outlet_en||'')}" placeholder="예: Korean Today">`
+        : `<input name="outlet_en" value="" disabled placeholder="준비 중">`,
+      PRESS_HAS_OUTLET_EN ? '홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 매체명이 대신 표시됩니다'
+        : 'Supabase SQL Editor에서 supabase/schema/press_outlet_en_2026-09.sql 을 한 번 실행하면 쓸 수 있어요')+
     F(PRESS_LABELS.date,`<input name="date" type="date" value="${toISO(r.date)}">`)+
     F(PRESS_LABELS.title,`<input name="title" value="${esc(r.title)}">`)+
     F('기사 제목 (영문)',`<input name="title_en" value="${esc(r.title_en||'')}">`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 제목이 대신 표시됩니다')+
@@ -2243,6 +2315,7 @@ async function loadHomeVideos(){
     hvRows=[];
     toast('홈 영상 불러오기 실패: '+(e.message||e));
   }
+  if(section==='home') renderHome();
   renderHomeVideosList();
 }
 function renderHomeVideosList(){
@@ -2590,13 +2663,24 @@ function renderHome(){
   // 확인 필요(이미지·영문 누락 등)는 메인에서도 바로 보이게 한다
   let issues = [];
   try{ if(typeof computeIssues === 'function' && rows.length) issues = computeIssues(); }catch(e){ console.warn('확인 필요 계산 실패', e); }
+  const nImpact = issues.filter(i=>i.sev==='impact').length, nRec = issues.length - nImpact;
   $('#homeAlert').innerHTML = issues.length
-    ? `<div class="home-alert"><b>⚠ 확인 필요 ${issues.length}건</b>`+
-      `<span class="hint">${esc(issues.slice(0,2).map(i=>i.text).join(' · '))}${issues.length>2?' 외':''}</span>`+
-      `<button class="btn" id="goIssues" style="margin-left:auto">작품에서 보기</button></div>`
+    ? `<div class="ha"><div class="ha-head"><b>빠진 정보</b>`+
+        (nImpact?`<span class="ha-pill impact">홈페이지에 영향 ${nImpact}</span>`:'')+
+        (nRec?`<span class="ha-pill rec">보완 권장 ${nRec}</span>`:'')+
+        `<span class="hint">누르면 해당 항목 수정 화면이 열려요</span></div>`+
+      ISSUE_AREAS.map(area=>{
+        const list = issues.filter(i=>i.area===area).sort((a,b)=>(a.sev==='impact'?0:1)-(b.sev==='impact'?0:1));
+        if(!list.length) return '';
+        const imp = list.filter(i=>i.sev==='impact').length;
+        return `<details${imp?' open':''}><summary>${area} ${list.length}건${imp?` · 영향 ${imp}`:''}</summary><div class="ha-items">`+
+          list.map(it=>`<button type="button" class="ha-item" data-issue="${issues.indexOf(it)}"><span class="dot ${it.sev==='impact'?'impact':'rec'}"></span><span>${esc(it.text)}</span></button>`).join('')+
+          `</div></details>`;
+      }).join('')+`</div>`
     : '';
-  const go = $('#goIssues');
-  if(go) go.onclick = ()=>{ goSection('works'); setTimeout(()=>$('#issues')?.scrollIntoView({block:'center'}), 100); };
+  $('#homeAlert').querySelectorAll('[data-issue]').forEach(btn=>{
+    btn.onclick=()=>{ const it=issues[+btn.dataset.issue]; if(it) openIssue(it); };
+  });
 
   $('#homeCards').innerHTML = cards.map(c=>
     `<button class="home-card" data-go="${c.go}">`+

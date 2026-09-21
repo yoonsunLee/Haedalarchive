@@ -16,7 +16,7 @@ $CFG = require __DIR__ . '/config.php';
 
 const LIMITS = ['name' => 100, 'email' => 200, 'subject' => 200, 'message' => 5000];
 const TYPES = [
-    'Artwork' => '작품 소장',
+    'Artwork' => '작품문의',  // 사이트 선택지와 같게(2026-09-22). 전송 값 Artwork는 그대로
     'Exhibition' => '전시',
     'Collaboration' => '협업',
     'Licensing' => '라이선싱',

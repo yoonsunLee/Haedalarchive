@@ -2250,8 +2250,9 @@ function renderHomeVideosList(){
   window._hvList=list;
   $('#hvTbody').innerHTML=list.length?list.map(function(r,i){
     var w=hvWorksRows.find(function(x){return x.id===r.work_id});
-    // 미리보기는 홈페이지에 이미 반영된 포스터를 쓴다(아직 반영 전이면 표시하지 않음)
-    var poster='https://shinhaedal.com/assets/home-video/'+encodeURIComponent(r._id||'')+'/poster.jpg';
+    // 미리보기는 홈페이지에 이미 반영된 포스터를 쓴다(아직 반영 전이면 표시하지 않음).
+    // 발행은 poster.webp를 만든다 — 예전엔 poster.jpg를 불러서 썸네일이 늘 깨졌다
+    var poster='https://shinhaedal.com/assets/home-video/'+encodeURIComponent(r._id||'')+'/poster.webp';
     return '<tr data-idx="'+i+'">'+
       '<td><span class="hv-move">'+
         '<button type="button" data-move="up" data-i="'+i+'" title="위로"'+(i===0?' disabled':'')+'>↑</button>'+
@@ -2282,8 +2283,35 @@ async function moveHomeVideo(i, dir){
     toast('순서를 바꿨습니다 — 반영하면 홈페이지에 적용돼요');
   }catch(e){ toast('순서 변경 실패: '+(e.message||e)); }
 }
+/* 영상 길이(초). 브라우저가 못 읽는 형식이면 null */
+function videoDuration(file){
+  return new Promise(function(resolve){
+    var v=document.createElement('video'), url=URL.createObjectURL(file), done=false;
+    function end(d){ if(done)return; done=true; URL.revokeObjectURL(url); resolve(d); }
+    v.preload='metadata';
+    v.onloadedmetadata=function(){ end(isFinite(v.duration)?v.duration:null); };
+    v.onerror=function(){ end(null); };
+    setTimeout(function(){ end(null); }, 8000);
+    v.src=url;
+  });
+}
+var HV_MAX_MB=50;  // Supabase 저장소의 파일 한 개 업로드 한도(기본값)
+var HV_MAX_SEC=20; // 발행 때 이보다 긴 부분은 잘린다(scripts/publish_sb.py VIDEO_MAX_SECONDS)
 async function uploadHomeVideo(file){
   if(!file)return;
+  var mb=file.size/1024/1024;
+  if(mb>HV_MAX_MB){
+    toast('⚠️ 파일이 '+mb.toFixed(0)+'MB라 올릴 수 없어요(최대 '+HV_MAX_MB+'MB). 1080p로 찍거나 8~15초로 줄여 주세요');
+    $('#hvFileInput').value='';
+    return;
+  }
+  var sec=await videoDuration(file);
+  if(sec && sec>HV_MAX_SEC+0.5){
+    if(!confirm('영상이 '+Math.round(sec)+'초예요. 홈페이지에는 앞 '+HV_MAX_SEC+'초만 쓰입니다(8~15초 권장). 그래도 올릴까요?')){
+      $('#hvFileInput').value='';
+      return;
+    }
+  }
   toast('영상 업로드 중… (파일이 크면 시간이 걸릴 수 있어요)');
   try{
     var ext=(file.name.split('.').pop()||'mp4').toLowerCase();
@@ -2305,7 +2333,8 @@ function openHvEdit(r,neu){
       '<input type="file" accept="video/*" id="hvFileInput">'+
       '<input type="hidden" name="video_master" value="'+esc(r.video_master||'')+'">'+
       '<div id="hvVideoName" class="hint">'+(r.video_master?'✅ 기존 영상 있음 (다시 선택하면 교체됩니다)':'')+'</div>',
-      '16:9로 찍은 원본 그대로 올리면 됩니다. 모바일용 사본과 포스터는 반영할 때 자동 생성됩니다')+
+      '16:9 원본 그대로(8~15초 권장, 최대 '+HV_MAX_MB+'MB). 반영할 때 웹용으로 다시 인코딩하고 모바일용·포스터도 자동으로 만듭니다. '+
+      '폰 설정에서 HDR 영상은 끄고, 배경은 검정으로, 영상 안에 자막·별 배경은 넣지 마세요')+
     F('이름 (관리용)', '<input name="name" value="'+esc(r.name||'')+'" placeholder="예: 아트토이 자개 회전">', '홈페이지에는 노출되지 않고 이 목록에서만 보여요')+
     F('연결 작품', '<select name="work_id"><option value=""'+(!r.work_id?' selected':'')+'>연결 안 함</option>'+
       hvWorksRows.map(function(w){return '<option value="'+esc(w.id)+'"'+(r.work_id===w.id?' selected':'')+'>'+esc(w.title_ko||'')+' ('+esc(w.work_no)+')</option>'}).join('')+

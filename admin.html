@@ -3467,20 +3467,18 @@ function drawWorksPage(){
     return `<tr>
       <td><b>${esc(k)}</b><div class="hint">공개 ${n}점 / 전체 ${members.length}점</div></td>
       <td class="wrap" style="font-size:.8rem">${members.map(r=>esc(r.no||'')+(r.publish_web?'':' (비공개)')).join('<br>')}</td>
-      <td><input type="text" data-ser="${esc(k)}" data-f="name_ko" value="${esc(serVal(k,'name_ko')||'')}" placeholder="예: 우주조약"></td>
-      <td><input type="text" data-ser="${esc(k)}" data-f="name_en" value="${esc(serVal(k,'name_en')||'')}" placeholder="English"></td>
       <td style="text-align:center"><input type="checkbox" data-ser="${esc(k)}" data-f="joined" ${j?'checked':''} style="width:auto">
         ${j&&n!==2?`<div class="wp-warn">공개 2점일 때만 붙습니다</div>`:''}</td>
     </tr>`;
   }).join('');
   const serDirty=Object.keys(WP_SERIES_DRAFT).length>0;
   const serHtml=`<div class="wp-box">
-    <div class="wp-head"><h3>연작</h3><span class="hint">작품 수정 화면의 '시리즈 키'가 같은 작품끼리 연작입니다</span></div>
-    <p class="hint"><b>두 폭 붙이기</b>를 켠 연작만 작품 목록에서 ㅁㅁ처럼 두 칸짜리 한 단위로 붙어 나옵니다(사이를 살짝 띄움, 공개 작품이 딱 2점일 때만).
-      끈 묶음은 목록 순서대로 흩어져 나오고, 작품 상세의 '시리즈 작품'으로만 묶입니다. <b>이름</b>을 적은 묶음은 작품 페이지 '모아 보기'에 나옵니다.</p>
-    ${keys.length?`<div class="tablewrap"><table><thead><tr><th>시리즈 키</th><th>작품</th><th>연작 이름</th><th>영문 이름</th><th>두 폭 붙이기</th></tr></thead>
+    <div class="wp-head"><h3>시리즈 · 두 폭 연작</h3><span class="hint">작품 수정 화면의 '시리즈 키'가 같은 작품끼리 한 묶음입니다</span></div>
+    <p class="hint">시리즈는 작품 페이지에서 따로 모아 보여 주지 않고, 작품 상세의 '시리즈 작품'으로만 묶여 나옵니다.
+      두 폭 연작이면 <b>두 폭 붙이기</b>를 켜세요 — 작품 목록에서 ㅁㅁ처럼 두 칸짜리 한 단위로 붙어 나옵니다(사이를 살짝 띄움, 공개 작품이 딱 2점일 때만).</p>
+    ${keys.length?`<div class="tablewrap"><table><thead><tr><th>시리즈 키</th><th>작품</th><th>두 폭 붙이기</th></tr></thead>
       <tbody>${serRows}</tbody></table></div>`:'<p class="hint">아직 시리즈 키를 입력한 작품이 없습니다.</p>'}
-    <div class="wp-actions"><button class="btn primary" id="wpSerSave" ${serDirty?'':'disabled'}>연작 저장</button>
+    <div class="wp-actions"><button class="btn primary" id="wpSerSave" ${serDirty?'':'disabled'}>저장</button>
       <span class="hint">${serDirty?'저장하지 않은 변경이 있습니다':''}</span></div>
   </div>`;
 

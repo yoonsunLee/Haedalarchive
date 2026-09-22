@@ -112,6 +112,49 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .home-hello{display:flex; align-items:center; gap:14px; margin:18px 0 20px}
 .home-hello img{width:56px; height:56px; border-radius:12px; flex:none}
 .home-hello h2{font-size:1.15rem; margin-bottom:2px}
+/* 페이지 미리보기(홈페이지를 iframe으로 띄우고 반영 전 데이터를 끼운다) */
+#dlgPreview{max-width:none; width:100vw; height:100vh; max-height:none; margin:0; border-radius:0; background:#16181d; color:#e9e6df; display:none; flex-direction:column}
+#dlgPreview[open]{display:flex}
+.pvx-top{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; padding:10px 14px; background:#1e2128; border-bottom:1px solid #2c3039}
+.pvx-badge{font-size:.8rem; font-weight:700; background:#e7b85c; color:#2a1f08; padding:3px 10px; border-radius:20px; white-space:nowrap}
+.pvx-sub{font-size:.78rem; color:#a4a7ae}
+.pvx-seg{display:flex; gap:2px; background:#2a2e36; padding:2px; border-radius:9px; flex-wrap:wrap}
+.pvx-seg button{border:none; background:none; color:#c9ccd2; padding:5px 11px; border-radius:7px; font:inherit; font-size:.82rem; cursor:pointer; white-space:nowrap}
+.pvx-seg button.on{background:#e9e6df; color:#16181d; font-weight:600}
+.pvx-seg button:focus-visible, .pvx-btn:focus-visible{outline:2px solid #e7b85c; outline-offset:1px}
+.pvx-btn{border:1px solid #3a3f49; background:#252932; color:#e9e6df; padding:5px 11px; border-radius:8px; font:inherit; font-size:.82rem; cursor:pointer; white-space:nowrap}
+.pvx-btn.primary{background:#e9e6df; color:#16181d; border-color:#e9e6df; font-weight:600}
+.pvx-work{background:#252932; color:#e9e6df; border:1px solid #3a3f49; border-radius:8px; padding:5px 8px; font:inherit; font-size:.82rem; max-width:240px}
+.pvx-spacer{flex:1 1 auto}
+.pvx-changes{background:#1b1e24; border-bottom:1px solid #2c3039; font-size:.84rem}
+.pvx-changes summary{cursor:pointer; padding:8px 14px; color:#e9e6df; list-style-position:inside}
+.pvx-changes summary b{color:#e7b85c}
+.pvx-chg{padding:0 14px 10px; display:flex; flex-wrap:wrap; gap:6px 22px; max-height:30vh; overflow:auto}
+.pvx-chg section{min-width:220px; flex:1 1 260px}
+.pvx-chg h4{font-size:.76rem; color:#a4a7ae; margin:6px 0 4px; font-weight:600}
+.pvx-chg ul{list-style:none; margin:0; padding:0}
+.pvx-chg li{padding:2px 0; line-height:1.45}
+.pvx-chg li .k{display:inline-block; min-width:3.2em; font-size:.72rem; font-weight:700; margin-right:6px}
+.pvx-chg .k.add{color:#8fd19e} .pvx-chg .k.mod{color:#86b6e8} .pvx-chg .k.del{color:#f0a59b}
+.pvx-chg a{color:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
+.pvx-chg .note{color:#a4a7ae; font-size:.78rem}
+.pvx-stage{flex:1 1 auto; overflow:auto; padding:16px; display:flex; gap:18px; align-items:flex-start; justify-content:center}
+.pvx-dev{flex:none; display:flex; flex-direction:column; gap:6px}
+.pvx-dev .cap{font-size:.74rem; color:#a4a7ae; display:flex; gap:8px; align-items:baseline}
+.pvx-dev .cap button{border:none; background:none; color:#c9ccd2; text-decoration:underline; font:inherit; cursor:pointer; padding:0}
+.pvx-box{position:relative; overflow:hidden; border-radius:10px; background:#000; box-shadow:0 0 0 1px #3a3f49, 0 8px 30px rgba(0,0,0,.4)}
+.pvx-box iframe{position:absolute; left:0; top:0; border:0; transform-origin:0 0; background:#0b0b0f}
+.pvx-msg{margin:auto; color:#a4a7ae; font-size:.9rem; text-align:center; line-height:1.7}
+/* 반영 확인 */
+#dlgPublish .dlgbody{max-height:60vh}
+.pubchg h4{font-size:.8rem; color:var(--sub); margin:12px 0 4px}
+.pubchg h4:first-child{margin-top:0}
+.pubchg ul{list-style:none; margin:0; padding:0; font-size:.88rem}
+.pubchg li{padding:3px 0; border-bottom:1px solid #f0ece4}
+.pubchg .k{display:inline-block; min-width:3.2em; font-size:.74rem; font-weight:700; margin-right:6px}
+.pubchg .k.add{color:var(--avail)} .pubchg .k.mod{color:var(--accent2)} .pubchg .k.del{color:var(--sold)}
+.pubchg .none{color:var(--sub); font-size:.88rem}
+
 /* Works 구성 */
 .wp{max-width:980px; margin:0 auto; display:flex; flex-direction:column; gap:16px}
 .wp-intro{font-size:.85rem; margin:0}
@@ -322,6 +365,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
     <button type="button" id="connWarn" hidden>⚠ 연결 실패 · 다시 시도</button>
     <span id="publishStatus" class="hint"></span>
+    <button class="btn" id="btnPreview" title="저장한 내용이 홈페이지에서 어떻게 보이는지 반영 전에 확인">👁 미리보기</button>
     <button class="btn primary" id="btnPublish">🚀 홈페이지에 반영</button>
   </div>
 </header>
@@ -541,11 +585,58 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </div>
 
 <dialog id="dlgDetail">
-  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnDel" style="color:var(--sold)">🗑 삭제</button><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
+  <div class="dlghead"><h2 id="dNo"></h2><button class="btn" id="btnDetailPreview" title="홈페이지 작품 상세 화면으로 미리보기">👁 미리보기</button><button class="btn" id="btnDel" style="color:var(--sold)">🗑 삭제</button><button class="btn" id="btnEdit">✏️ 수정</button><button class="btn" id="btnCloseDetail">✕</button></div>
   <div class="dlgbody" id="dBody"></div>
 </dialog>
 
 
+
+<dialog id="dlgPreview" aria-label="홈페이지 미리보기">
+  <div class="pvx-top">
+    <span class="pvx-badge">미리보기 — 아직 반영 전</span>
+    <span class="pvx-sub" id="pvxSub">저장한 내용 기준</span>
+    <span class="pvx-spacer"></span>
+    <button type="button" class="pvx-btn" id="pvxReload" title="방금 저장한 내용까지 다시 불러오기">↻ 다시 불러오기</button>
+    <button type="button" class="pvx-btn primary" id="pvxPublish">🚀 반영하기</button>
+    <button type="button" class="pvx-btn" id="pvxClose">✕ 닫기</button>
+  </div>
+  <div class="pvx-top" style="padding-top:8px;padding-bottom:8px">
+    <div class="pvx-seg" id="pvxPages" role="group" aria-label="페이지">
+      <button type="button" data-page="home">홈</button>
+      <button type="button" data-page="works">Works</button>
+      <button type="button" data-page="work">작품 상세</button>
+      <button type="button" data-page="about">About</button>
+      <button type="button" data-page="press">Press</button>
+    </div>
+    <select class="pvx-work" id="pvxWork" aria-label="작품 고르기" hidden></select>
+    <span class="pvx-spacer"></span>
+    <div class="pvx-seg" id="pvxDevs" role="group" aria-label="화면 크기">
+      <button type="button" data-dev="all">나란히</button>
+      <button type="button" data-dev="pc">PC</button>
+      <button type="button" data-dev="tablet">태블릿</button>
+      <button type="button" data-dev="mobile">모바일</button>
+    </div>
+    <div class="pvx-seg" id="pvxLangs" role="group" aria-label="언어">
+      <button type="button" data-lang="ko">국문</button>
+      <button type="button" data-lang="en">영문</button>
+    </div>
+  </div>
+  <details class="pvx-changes" id="pvxChanges" hidden><summary></summary><div class="pvx-chg"></div></details>
+  <div class="pvx-stage" id="pvxStage"></div>
+</dialog>
+
+<dialog id="dlgPublish">
+  <div class="dlghead"><h2>홈페이지에 반영할까요?</h2><button class="btn" id="btnClosePublish">✕</button></div>
+  <div class="dlgbody">
+    <p class="hint" style="margin:0 0 12px">전체 사이트가 다시 만들어지며 1~2분 정도 걸립니다. 아래는 지금 홈페이지와 비교해 <b>반영하면 바뀌는 것</b>입니다(저장한 내용 기준).</p>
+    <div class="pubchg" id="pubChg"><span class="hint">바뀔 내용을 확인하는 중…</span></div>
+  </div>
+  <div class="formfoot">
+    <button type="button" class="btn" id="btnPubPreview">👁 미리보기로 보기</button>
+    <button type="button" class="btn" id="btnPubCancel">취소</button>
+    <button type="button" class="btn primary" id="btnPubGo">🚀 반영하기</button>
+  </div>
+</dialog>
 
 <dialog id="dlgEdit">
   <div class="dlghead"><h2 id="eTitle">작품 수정</h2><button class="btn" id="btnCloseEdit">✕</button></div>
@@ -2681,8 +2772,8 @@ async function showWho(){
 }
 
 
-$('#btnPublish').onclick=async()=>{
-  if(!confirm('홈페이지에 반영할까요?\n전체 사이트가 다시 만들어지며 1~2분 정도 걸립니다.'))return;
+$('#btnPublish').onclick=()=>openPublishConfirm();
+async function doPublish(){
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
   try{
@@ -2694,7 +2785,450 @@ $('#btnPublish').onclick=async()=>{
   }catch(e){
     st.textContent='❌ 오류: '+(e.message||e);
   }
+}
+
+/* ---------- 페이지 미리보기 ----------
+   검증용 사이트 없이 바로 반영하므로, 반영 전에 결과를 본다.
+   · 실제 홈페이지(shinhaedal.com)를 iframe으로 띄우고 ?pv=1 을 붙이면 홈페이지의 assets/preview.js가
+     data/*.json 요청을 가로채, 여기서 만든 '반영 전' 데이터로 바꿔 끼운다. 페이지 코드는 실제 그대로.
+   · 데이터는 발행 스크립트(scripts/publish_sb.py)와 같은 규칙으로 만든다 — 공개 작품만, 내부 칸(가격·소장자 등) 없음.
+     규칙이 바뀌면 두 곳을 같이 고친다.
+   · 사진: 지난 반영 때와 같은 원본이면(data/asset-sources.json 지문) 홈페이지의 최적화 사진, 새로 바꾼 사진은 원본. */
+const PV_SITE='https://shinhaedal.com';
+const PV_DEVS={pc:{w:1440,h:900,label:'PC 1440'}, tablet:{w:820,h:1180,label:'태블릿 820'}, mobile:{w:390,h:844,label:'모바일 390'}};
+const PV_EX_KO={solo:'개인전', group:'단체전', curated:'기획전', art_fair:'아트페어', special:'특별전', popup:'팝업'};
+const PV_EX_EN={solo:'Solo Exhibition', group:'Group Exhibition', curated:'Curated Exhibition', art_fair:'Art Fair', special:'Special Exhibition', popup:'Pop-up'};
+// 폰에서 열면 세 화면을 나란히 놓기엔 좁아 모바일 화면 하나로 시작한다
+var PV={files:null, changes:null, page:'home', work:'', dev:innerWidth<900?'mobile':'all', lang:'ko', building:null};
+
+const pvS=v=>v==null?'':String(v).trim();
+async function pvHash(v){
+  v=pvS(v); if(!v) return '';
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
+}
+function pvDriveId(v){
+  if(v.indexOf('drive:')===0) return v.slice(6);
+  const m=v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=|thumbnail\?id=)([\w-]+)/);
+  return m?m[1]:'';
+}
+/* 원본 파일 주소 → 미리보기에서 바로 열리는 주소 */
+function pvOrig(v, signed, big){
+  v=pvS(v); if(!v) return '';
+  if(v.indexOf('sb:')===0) return signed[v.slice(3)]||'';
+  const d=pvDriveId(v);
+  if(d) return 'https://drive.google.com/thumbnail?id='+d+'&sz=w'+(big?1600:560);
+  if(/^https?:\/\//.test(v)) return v;
+  return new URL('images/'+v, location.href).href;
+}
+async function pvLiveJson(path){
+  try{
+    const r=await fetch(PV_SITE+'/data/'+path+'?t='+Date.now(), {cache:'no-store'});
+    return r.ok ? await r.json() : null;
+  }catch(e){ return null; }
+}
+function pvMissing(err){ return wpIsMissing(err); }
+async function pvQuery(q, optional){
+  const r=await q;
+  if(r.error){ if(optional&&pvMissing(r.error)) return []; throw r.error; }
+  return r.data||[];
+}
+
+/* 발행과 같은 모양의 data/*.json 묶음을 만든다 */
+async function pvBuildFiles(){
+  const [works, exhibitions, links, press, photos, hvs, medias, seriesRows, settingsRows] = await Promise.all([
+    pvQuery(sb.from('works').select('*').eq('publish_web', true).is('deleted_at', null)),
+    pvQuery(sb.from('exhibitions').select('*').eq('publish_web', true).is('deleted_at', null)),
+    pvQuery(sb.from('exhibition_works').select('exhibition_id, work_id')),
+    pvQuery(sb.from('press').select('*').eq('publish_web', true).is('deleted_at', null)),
+    pvQuery(sb.from('work_photos').select('*').eq('is_public', true).order('sort_order')),
+    pvQuery(sb.from('home_videos').select('*').eq('is_public', true).is('deleted_at', null).order('sort_order'), true),
+    pvQuery(sb.from('work_media_links').select('*').eq('is_public', true).order('sort_order')),
+    pvQuery(sb.from('series').select('*'), true),
+    pvQuery(sb.from('site_settings').select('key, value'), true)
+  ]);
+  const [liveIndex, sources] = await Promise.all([pvLiveJson('works-index.json'), pvLiveJson('asset-sources.json')]);
+  const src=sources||{works:{}, posters:{}, home_videos:{}};
+  const liveById={}; (liveIndex||[]).forEach(e=>{ liveById[e.id]=e; });
+
+  const exById={}; exhibitions.forEach(e=>{ exById[e.id]=e; });
+  const exOfWork={}; links.forEach(l=>{ (exOfWork[l.work_id]=exOfWork[l.work_id]||[]).push(exById[l.exhibition_id]); });
+  const photosOf={}; photos.forEach(p=>{ (photosOf[p.work_id]=photosOf[p.work_id]||[]).push(p); });
+  const mediaOf={}; medias.forEach(m=>{ (mediaOf[m.work_id]=mediaOf[m.work_id]||[]).push(m); });
+  const byOrder=(a,b)=>(a.sort_order||0)-(b.sort_order||0);
+
+  // 순서: 작품번호 최신순 → (안정 정렬로) 작가가 정한 목록 순서
+  const key=w=>{ const m=/^[A-Z]+-(\d{4})-(\d+)$/i.exec(pvS(w.work_no)); return m?[+m[1],+m[2]]:[0,0]; };
+  works.sort((a,b)=>{ const ka=key(a), kb=key(b); return (kb[0]-ka[0])||(kb[1]-ka[1]); });
+  works.sort((a,b)=>{
+    const oa=a.display_order, ob=b.display_order, na=oa==null, nb=ob==null;
+    if(na!==nb) return na?1:-1;
+    return (oa||0)-(ob||0);
+  });
+
+  // 서명 주소가 필요한 원본(바뀐 것만) 모으기
+  const need=[], plan=[];
+  const hashes={};
+  const addHash=async v=>{ const k=pvS(v); if(k&&!(k in hashes)) hashes[k]=await pvHash(k); return hashes[k]||''; };
+  for(const w of works){
+    const no=pvS(w.work_no), hs=src.works&&src.works[no]||{};
+    const myPhotos=(photosOf[w.id]||[]).slice().sort(byOrder), myMedia=(mediaOf[w.id]||[]).slice().sort(byOrder);
+    const imgSame = pvS(w.image_file) && hs.image && hs.image===await addHash(w.image_file);
+    const photoSame=[]; for(let i=0;i<myPhotos.length;i++) photoSame.push(!!(hs.photos&&hs.photos[i]&&hs.photos[i]===await addHash(myPhotos[i].image_file)));
+    const mediaSame=[]; for(let i=0;i<myMedia.length;i++) mediaSame.push(!!(pvS(myMedia[i].thumb_file)&&hs.media&&hs.media[i]&&hs.media[i]===await addHash(myMedia[i].thumb_file)));
+    const audioOn=!!w.docent_enabled&&!!pvS(w.audio_master);
+    const audioSame=audioOn&&hs.audio&&hs.audio===await addHash(w.audio_master);
+    const sbk=v=>{ v=pvS(v); if(v.indexOf('sb:')===0) need.push(v.slice(3)); };
+    if(pvS(w.image_file)&&!imgSame) sbk(w.image_file);
+    myPhotos.forEach((p,i)=>{ if(!photoSame[i]) sbk(p.image_file); });
+    myMedia.forEach((m,i)=>{ if(pvS(m.thumb_file)&&!mediaSame[i]) sbk(m.thumb_file); });
+    if(audioOn&&!audioSame) sbk(w.audio_master);
+    plan.push({w, no, myPhotos, myMedia, imgSame, photoSame, mediaSame, audioOn, audioSame});
+  }
+  const exPlan=[];
+  for(const e of exhibitions){
+    const id=pvS(e.exhibition_no), same=pvS(e.poster_url)&&src.posters&&src.posters[id]&&src.posters[id]===await addHash(e.poster_url);
+    if(pvS(e.poster_url)&&!same&&pvS(e.poster_url).indexOf('sb:')===0) need.push(pvS(e.poster_url).slice(3));
+    exPlan.push({e, id, same});
+  }
+  const hvPlan=[];
+  for(const v of hvs.slice(0,3)){
+    const id=pvS(v.id), same=pvS(v.video_master)&&src.home_videos&&src.home_videos[id]&&src.home_videos[id]===await addHash(v.video_master);
+    if(pvS(v.video_master)&&!same&&pvS(v.video_master).indexOf('sb:')===0) need.push(pvS(v.video_master).slice(3));
+    hvPlan.push({v, id, same});
+  }
+  const signed={};
+  if(need.length){
+    const res=await sb.storage.from('artwork-masters').createSignedUrls([...new Set(need)], 3600);
+    (res.data||[]).forEach(x=>{ if(x&&x.signedUrl) signed[x.path]=x.signedUrl; });
+  }
+
+  // 발행에서 쓰는 오디오 길이는 지난 반영 파일에서(같은 원본일 때만)
+  const liveDetail={};
+  await Promise.all(plan.filter(x=>x.audioSame).map(async x=>{ liveDetail[x.no]=await pvLiveJson('works/'+encodeURIComponent(x.no)+'.json'); }));
+
+  const files={}, index=[];
+  const exLine=e=>{
+    const st=pvS(e.start_date).replace(/-/g,'.'), en=pvS(e.end_date).slice(5).replace(/-/g,'.'), venue=pvS(e.venue_ko);
+    return st+' – '+en+'  '+pvS(e.title_ko)+(venue?', '+venue:'');
+  };
+  const cmpStr=(a,b)=>a<b?-1:a>b?1:0;
+  for(const x of plan){
+    const w=x.w, no=x.no;
+    const mine=(exOfWork[w.id]||[]).filter(Boolean).sort((a,b)=>cmpStr(pvS(b.start_date),pvS(a.start_date)));
+    const tier=t=>'assets/works/'+no+'/'+t+'.webp';
+    let images={};
+    if(pvS(w.image_file)){
+      images = x.imgSame ? {thumb:tier('thumb'), detail:tier('detail'), large:tier('large')}
+        : {thumb:pvOrig(w.image_file,signed,false), detail:pvOrig(w.image_file,signed,true), large:pvOrig(w.image_file,signed,true)};
+      if(!images.thumb) images={};
+    }
+    const photosOut=[];
+    x.myPhotos.forEach((p,i)=>{
+      const t=k=>'assets/works/'+no+'/photo'+i+'/'+k+'.webp';
+      const set = x.photoSame[i] ? {thumb:t('thumb'), detail:t('detail'), large:t('large')}
+        : {thumb:pvOrig(p.image_file,signed,false), detail:pvOrig(p.image_file,signed,true), large:pvOrig(p.image_file,signed,true)};
+      if(!set.thumb) return;
+      photosOut.push(Object.assign(set, {caption:pvS(p.caption_ko), caption_en:pvS(p.caption_en), alt:pvS(p.alt_text)}));
+    });
+    const mediaOut=[];
+    x.myMedia.forEach((m,i)=>{
+      const url=pvS(m.url); if(!url) return;
+      let thumb='';
+      if(pvS(m.thumb_file)) thumb = x.mediaSame[i] ? 'assets/works/'+no+'/media'+i+'.webp' : pvOrig(m.thumb_file,signed,false);
+      if(!thumb){ const y=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/); if(y) thumb='https://i.ytimg.com/vi/'+y[1]+'/hqdefault.jpg'; }
+      mediaOut.push({platform:pvS(m.platform), url, thumb, title:pvS(m.title_ko), title_en:pvS(m.title_en), duration:m.duration_seconds==null?null:m.duration_seconds});
+    });
+    let audio=null;
+    if(x.audioOn){
+      audio = x.audioSame
+        ? {src:'assets/works/'+no+'/audio.mp3', duration:(liveDetail[no]&&liveDetail[no].audio&&liveDetail[no].audio.duration)||0}
+        : {src:pvOrig(w.audio_master,signed,false), duration:0};
+      if(!audio.src) audio=null;
+    }
+    const year=Number.isInteger(w.year)?w.year:pvS(w.year);
+    const detail={no, title:pvS(w.title_ko), caption:pvS(w.caption_ko), material:pvS(w.material_ko), size:pvS(w.size_text), year,
+      exhibitions:mine.map(exLine).join('\n'), title_en:pvS(w.title_en), caption_en:pvS(w.caption_en), material_en:pvS(w.material_en),
+      images, audio};
+    if(audio){ detail.transcript_ko=pvS(w.transcript_ko); detail.transcript_en=pvS(w.transcript_en); }
+    if(photosOut.length) detail.photos=photosOut;
+    if(mediaOut.length) detail.media=mediaOut;
+    files['works/'+no+'.json']=detail;
+    const entry={id:no, title:detail.title, title_en:detail.title_en, year, size:detail.size, thumb:images.thumb||'',
+      has_audio:!!audio, series_key:pvS(w.series_key), series_order:w.series_order==null?null:w.series_order};
+    const le=liveById[no];
+    if(x.imgSame&&le&&le.tw&&le.th){ entry.tw=le.tw; entry.th=le.th; }
+    index.push(entry);
+  }
+  files['works-index.json']=index;
+
+  const used=new Set(index.map(e=>e.series_key).filter(Boolean));
+  files['series.json']=seriesRows.filter(r=>used.has(pvS(r.key)))
+    .map(r=>({key:pvS(r.key), name:pvS(r.name_ko), name_en:pvS(r.name_en), joined:!!r.joined}));
+  const settings={}; settingsRows.forEach(r=>{ settings[r.key]=r.value; });
+  const noByUuid={}; works.forEach(w=>{ noByUuid[w.id]=pvS(w.work_no); });
+  files['works-page.json']={selected:(Array.isArray(settings.works_selected)?settings.works_selected:[]).filter(i=>i in noByUuid).map(i=>noByUuid[i])};
+
+  const members={}; links.forEach(l=>{ const n=noByUuid[l.work_id]; if(n) (members[l.exhibition_id]=members[l.exhibition_id]||[]).push(n); });
+  files['exhibitions.json']=exPlan.slice().sort((a,b)=>cmpStr(a.id,b.id)).map(({e,id,same})=>({
+    id, title:pvS(e.title_ko), venue:pvS(e.venue_ko), start_date:pvS(e.start_date), end_date:pvS(e.end_date),
+    work_nos:(members[e.id]||[]).slice().sort(cmpStr).join(','),
+    type:PV_EX_KO[pvS(e.type)]||pvS(e.type), type_en:PV_EX_EN[pvS(e.type)]||pvS(e.type),
+    note_public:pvS(e.note_public_ko), title_en:pvS(e.title_en), venue_en:pvS(e.venue_en),
+    poster_url:pvS(e.poster_url)?(same?'assets/exhibitions/'+id+'/poster.webp':pvOrig(e.poster_url,signed,true)):'',
+    map_url:pvS(e.map_url), featured_work_nos:pvS(e.featured_work_nos), about_selected:!!e.about_selected
+  }));
+
+  files['press.json']=press.slice().sort((a,b)=>cmpStr(pvS(a.press_no),pvS(b.press_no))).map(p=>{
+    const lt=pvS(p.link_type), lx=lt==='exhibition'?exById[p.linked_exhibition_id]:null;
+    return {no:pvS(p.press_no), outlet:pvS(p.outlet_ko), outlet_en:pvS(p.outlet_en), date:pvS(p.published_date),
+      title:pvS(p.title_ko), url:pvS(p.url), quote:pvS(p.quote_ko), image:pvS(p.image_source_url),
+      title_en:pvS(p.title_en), quote_en:pvS(p.quote_en), note_public:pvS(p.byline), link_type:lt,
+      linked_exhibition_id:lx?pvS(lx.exhibition_no):'', featured:pvS(p.type)==='feature'};
+  });
+
+  files['home-videos.json']=hvPlan.map(({v,id,same})=>{
+    const d='assets/home-video/'+id+'/';
+    const media = !pvS(v.video_master) ? {video:'', video_mobile:'', poster:'', poster_mobile:''}
+      : same ? {video:d+'video.mp4', video_mobile:d+'video_mobile.mp4', poster:d+'poster.webp', poster_mobile:''}
+      : {video:pvOrig(v.video_master,signed,true), video_mobile:'', poster:'', poster_mobile:''};
+    return {id, name:pvS(v.name), public:true, order:v.sort_order||0, video:media.video, video_mobile:media.video_mobile,
+      poster:media.poster, poster_mobile:media.poster_mobile, work_no:noByUuid[pvS(v.work_id)]||'',
+      bg_color:pvS(v.bg_color)||'#000000', ui_theme:pvS(v.ui_theme)||'dark', mobile_image_fallback:!!v.mobile_image_fallback};
+  });
+
+  // 바뀔 내용 비교용: 사진이 바뀌었는지(지문 비교)
+  const assetChanged={works:{}, posters:{}, home_videos:{}};
+  plan.forEach(x=>{
+    const ch=[];
+    if(pvS(x.w.image_file)&&!x.imgSame) ch.push('대표 사진');
+    if(x.photoSame.some(v=>!v)||((src.works[x.no]||{}).photos||[]).length!==x.myPhotos.length) ch.push('상세 사진');
+    if(x.audioOn&&!x.audioSame) ch.push('도슨트 음성');
+    assetChanged.works[x.no]=ch;
+  });
+  exPlan.forEach(x=>{ if(pvS(x.e.poster_url)&&!x.same) assetChanged.posters[x.id]=true; });
+  hvPlan.forEach(x=>{ if(pvS(x.v.video_master)&&!x.same) assetChanged.home_videos[x.id]=true; });
+  return {files, assetChanged, hasSources:!!sources};
+}
+
+/* 지금 홈페이지(반영된 데이터)와 비교해 바뀌는 것 */
+async function pvDiff(built){
+  const f=built.files;
+  const [lIndex, lEx, lPress, lHv, lSeries, lPage] = await Promise.all(
+    ['works-index.json','exhibitions.json','press.json','home-videos.json','series.json','works-page.json'].map(pvLiveJson));
+  if(!lIndex) throw new Error('지금 홈페이지 데이터를 읽지 못했습니다');
+  const out={works:[], wp:[], ex:[], press:[], hv:[], notes:[]};
+  const lById={}; lIndex.forEach(e=>{ lById[e.id]=e; });
+  const nById={}; f['works-index.json'].forEach(e=>{ nById[e.id]=e; });
+  const both=f['works-index.json'].filter(e=>lById[e.id]).map(e=>e.id);
+  const lDetail={};
+  await Promise.all(both.map(async id=>{ lDetail[id]=await pvLiveJson('works/'+encodeURIComponent(id)+'.json'); }));
+  const WF={title:'작품명', title_en:'영문 작품명', caption:'캡션', caption_en:'영문 캡션', material:'재료', material_en:'영문 재료',
+    size:'크기', year:'연도', exhibitions:'전시 이력', transcript_ko:'도슨트 대본', transcript_en:'영문 도슨트 대본'};
+  const same=(a,b)=>JSON.stringify(a==null?'':a)===JSON.stringify(b==null?'':b);
+  f['works-index.json'].forEach(e=>{
+    const t=e.title||e.title_en||'';
+    if(!lById[e.id]){ out.works.push({k:'add', id:e.id, text:e.id+' '+t+' — 새로 공개'}); return; }
+    const d=f['works/'+e.id+'.json'], ld=lDetail[e.id]||{};
+    const ch=Object.keys(WF).filter(k=>!same(d[k],ld[k])).map(k=>WF[k]);
+    if(!same(e.series_key,lById[e.id].series_key)) ch.push('연작');
+    if(!same(e.series_order,lById[e.id].series_order)) ch.push('연작 안 순서');
+    if(!!e.has_audio!==!!lById[e.id].has_audio) ch.push(e.has_audio?'도슨트 켜짐':'도슨트 꺼짐');
+    if(built.hasSources) (built.assetChanged.works[e.id]||[]).forEach(x=>ch.push(x));
+    if(JSON.stringify((d.media||[]).map(m=>[m.url,m.title,m.title_en]))!==JSON.stringify((ld.media||[]).map(m=>[m.url,m.title,m.title_en]))) ch.push('영상 링크');
+    // 사진 수·설명은 지문 없이도 비교된다(사진 파일 자체가 바뀐 것은 위의 지문 비교)
+    if(JSON.stringify((d.photos||[]).map(p=>[p.caption,p.caption_en,p.alt]))!==JSON.stringify((ld.photos||[]).map(p=>[p.caption,p.caption_en,p.alt]))) ch.push('상세 사진');
+    if(!!(d.images&&d.images.thumb)!==!!(ld.images&&ld.images.thumb)) ch.push('대표 사진');
+    if(ch.length) out.works.push({k:'mod', id:e.id, text:e.id+' '+t+' — '+[...new Set(ch)].join('·')});
+  });
+  lIndex.forEach(e=>{ if(!nById[e.id]) out.works.push({k:'del', id:'', text:e.id+' '+(e.title||'')+' — 홈페이지에서 내려감'}); });
+  const seqN=f['works-index.json'].map(e=>e.id).filter(id=>lById[id]), seqL=lIndex.map(e=>e.id).filter(id=>nById[id]);
+  if(JSON.stringify(seqN)!==JSON.stringify(seqL)) out.wp.push({k:'mod', text:'작품 목록 순서가 바뀝니다'});
+  const selN=(f['works-page.json']||{}).selected||[], selL=(lPage||{}).selected||[];
+  if(JSON.stringify(selN)!==JSON.stringify(selL)) out.wp.push({k:'mod', text:'Selected works: '+(selN.length?selN.join(', '):'없음 (구역 숨김)')});
+  const serKey=a=>JSON.stringify((a||[]).slice().sort((x,y)=>x.key<y.key?-1:1));
+  if(serKey(f['series.json'])!==serKey(lSeries)) out.wp.push({k:'mod', text:'연작 이름·두 폭 붙이기 설정'});
+
+  const EF={title:'전시명', venue:'장소', start_date:'시작일', end_date:'종료일', work_nos:'출품작', type:'구분', note_public:'공개 메모',
+    title_en:'영문 전시명', venue_en:'영문 장소', map_url:'찾아오는 길', featured_work_nos:'대표 작품', about_selected:'About 고정'};
+  const lExById={}; (lEx||[]).forEach(e=>{ lExById[e.id]=e; });
+  f['exhibitions.json'].forEach(e=>{
+    const l=lExById[e.id];
+    if(!l){ out.ex.push({k:'add', text:e.id+' '+e.title+' — 새로 공개'}); return; }
+    const ch=Object.keys(EF).filter(k=>!same(e[k],l[k])).map(k=>EF[k]);
+    if(built.hasSources&&built.assetChanged.posters[e.id]) ch.push('포스터');
+    if(!built.hasSources&&!!e.poster_url!==!!l.poster_url) ch.push('포스터');
+    if(ch.length) out.ex.push({k:'mod', text:e.id+' '+e.title+' — '+ch.join('·')});
+  });
+  (lEx||[]).forEach(e=>{ if(!f['exhibitions.json'].some(x=>x.id===e.id)) out.ex.push({k:'del', text:e.id+' '+e.title+' — 홈페이지에서 내려감'}); });
+
+  const PF={outlet:'매체명', outlet_en:'영문 매체명', date:'날짜', title:'제목', url:'링크', quote:'인용구', image:'이미지',
+    title_en:'영문 제목', quote_en:'영문 인용구', link_type:'연결 대상', linked_exhibition_id:'연결 전시', featured:'대표 기사'};
+  const lPById={}; (lPress||[]).forEach(p=>{ lPById[p.no]=p; });
+  f['press.json'].forEach(p=>{
+    const l=lPById[p.no], name=(p.outlet||'')+' · '+String(p.title||'').slice(0,28);
+    if(!l){ out.press.push({k:'add', text:name+' — 새로 공개'}); return; }
+    const ch=Object.keys(PF).filter(k=>!same(p[k],l[k])).map(k=>PF[k]);
+    if(ch.length) out.press.push({k:'mod', text:name+' — '+ch.join('·')});
+  });
+  (lPress||[]).forEach(p=>{ if(!f['press.json'].some(x=>x.no===p.no)) out.press.push({k:'del', text:(p.outlet||'')+' · '+String(p.title||'').slice(0,28)+' — 홈페이지에서 내려감'}); });
+
+  const lHvById={}; (lHv||[]).forEach(v=>{ lHvById[v.id]=v; });
+  f['home-videos.json'].forEach(v=>{
+    const l=lHvById[v.id], name=v.name||'(이름 없음)';
+    if(!l){ out.hv.push({k:'add', text:name+' — 새로 공개'}); return; }
+    const ch=[];
+    if(built.hasSources?built.assetChanged.home_videos[v.id]:false) ch.push('영상 파일');
+    if(!same(v.work_no,l.work_no)) ch.push('연결 작품');
+    if(ch.length) out.hv.push({k:'mod', text:name+' — '+ch.join('·')});
+  });
+  (lHv||[]).forEach(v=>{ if(!f['home-videos.json'].some(x=>x.id===v.id)) out.hv.push({k:'del', text:(v.name||'(이름 없음)')+' — 홈에서 내려감'}); });
+  const hvSeqN=f['home-videos.json'].map(v=>v.id).filter(id=>lHvById[id]), hvSeqL=(lHv||[]).map(v=>v.id).filter(id=>f['home-videos.json'].some(x=>x.id===id));
+  if(JSON.stringify(hvSeqN)!==JSON.stringify(hvSeqL)) out.hv.push({k:'mod', text:'홈 영상 순서가 바뀝니다'});
+  if(!built.hasSources) out.notes.push('사진·영상 파일이 바뀌었는지는 다음 반영 이후부터 비교할 수 있습니다(글·순서·공개 여부는 지금도 비교).');
+  return out;
+}
+const PV_CHG_GROUPS=[['works','작품'],['wp','Works 구성'],['ex','전시'],['press','기사'],['hv','홈 영상']];
+const PV_K={add:'새로', mod:'수정', del:'내려감'};
+function pvChangeCount(c){ return c?PV_CHG_GROUPS.reduce((n,g)=>n+c[g[0]].length,0):0; }
+
+async function pvEnsure(force){
+  if(PV.files&&!force) return;
+  if(PV.building) return PV.building;
+  PV.building=(async()=>{
+    const built=await pvBuildFiles();
+    PV.files=built.files;
+    try{ PV.changes=await pvDiff(built); }catch(e){ PV.changes=null; console.warn('바뀔 내용 비교 실패', e); }
+  })();
+  try{ await PV.building; } finally { PV.building=null; }
+}
+/* 홈페이지(iframe)의 preview.js가 인사하면 데이터를 보낸다 */
+window.addEventListener('message', e=>{
+  if(e.origin!==PV_SITE||!e.data||e.data.type!=='sh-pv-hello'||!e.source) return;
+  const send=()=>{ try{ e.source.postMessage({type:'sh-pv-data', files:PV.files||{}}, PV_SITE); }catch(err){} };
+  if(PV.files) send(); else if(PV.building) PV.building.then(send, send);
+});
+
+function pvUrl(){
+  const path={home:'/', works:'/works/', work:'/works/', about:'/about/', press:'/press/'}[PV.page]||'/';
+  const q='?pv=1&lang='+PV.lang+(PV.page==='work'&&PV.work?'&w='+encodeURIComponent(PV.work):'');
+  return PV_SITE+path+q;
+}
+function pvRenderChanges(){
+  const box=$('#pvxChanges'), c=PV.changes;
+  if(!c){ box.hidden=true; return; }
+  const n=pvChangeCount(c);
+  box.hidden=false;
+  box.querySelector('summary').innerHTML = n ? `반영하면 바뀌는 것 <b>${n}건</b>` : '지금 홈페이지와 <b>같습니다</b> — 반영해도 바뀌는 것이 없습니다';
+  box.querySelector('.pvx-chg').innerHTML = PV_CHG_GROUPS.filter(g=>c[g[0]].length).map(g=>
+    `<section><h4>${g[1]}</h4><ul>`+c[g[0]].map(it=>`<li><span class="k ${it.k}">${PV_K[it.k]}</span>`+
+      (it.id?`<a data-pvwork="${esc(it.id)}">${esc(it.text)}</a>`:esc(it.text))+'</li>').join('')+'</ul></section>').join('')+
+    (c.notes.length?`<section><p class="note">${c.notes.map(esc).join('<br>')}</p></section>`:'');
+  box.querySelectorAll('[data-pvwork]').forEach(a=>a.onclick=()=>{ PV.page='work'; PV.work=a.dataset.pvwork; pvRenderFrames(); });
+}
+function pvLayout(){
+  const stage=$('#pvxStage'); if(!stage) return;
+  const devs=PV.dev==='all'?['pc','tablet','mobile']:[PV.dev];
+  const availW=stage.clientWidth-32-(devs.length-1)*18, availH=stage.clientHeight-32-22;
+  let sc;
+  if(devs.length>1){
+    const totalW=devs.reduce((n,d)=>n+PV_DEVS[d].w,0);
+    sc=Math.min(availW/totalW, availH/Math.max(...devs.map(d=>PV_DEVS[d].h)));
+  }else{
+    const d=PV_DEVS[devs[0]];
+    sc=Math.min(1, availW/d.w, Math.max(availH, 360)/d.h);
+  }
+  sc=Math.max(sc, .18);
+  stage.querySelectorAll('.pvx-dev').forEach(el=>{
+    const d=PV_DEVS[el.dataset.dev], box=el.querySelector('.pvx-box'), fr=el.querySelector('iframe');
+    box.style.width=Math.round(d.w*sc)+'px'; box.style.height=Math.round(d.h*sc)+'px';
+    fr.style.width=d.w+'px'; fr.style.height=d.h+'px'; fr.style.transform='scale('+sc+')';
+    el.querySelector('.pct').textContent=Math.round(sc*100)+'%';
+  });
+}
+function pvRenderFrames(){
+  const stage=$('#pvxStage');
+  $('#pvxPages').querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.page===PV.page));
+  $('#pvxDevs').querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.dev===PV.dev));
+  $('#pvxLangs').querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.lang===PV.lang));
+  const sel=$('#pvxWork'), idx=(PV.files&&PV.files['works-index.json'])||[];
+  sel.hidden=PV.page!=='work';
+  if(PV.page==='work'){
+    if(!PV.work||!idx.some(e=>e.id===PV.work)) PV.work=idx[0]?idx[0].id:'';
+    sel.innerHTML=idx.map(e=>`<option value="${esc(e.id)}"${e.id===PV.work?' selected':''}>${esc(e.id)} · ${esc(e.title||e.title_en||'')}</option>`).join('');
+  }
+  if(PV.page==='work'&&PV.work&&!idx.some(e=>e.id===PV.work)){
+    stage.innerHTML='<p class="pvx-msg">이 작품은 공개 작품이 아니라 홈페이지에 나오지 않습니다.</p>'; return;
+  }
+  const devs=PV.dev==='all'?['pc','tablet','mobile']:[PV.dev];
+  const url=pvUrl();
+  stage.innerHTML=devs.map(d=>`<div class="pvx-dev" data-dev="${d}"><div class="cap"><span>${PV_DEVS[d].label} · <span class="pct"></span></span>`+
+    (PV.dev==='all'?`<button type="button" data-solo="${d}">크게 보기</button>`:'')+`</div>`+
+    `<div class="pvx-box"><iframe title="${esc(PV_DEVS[d].label)} 미리보기" src="${esc(url)}" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div>`).join('');
+  stage.querySelectorAll('[data-solo]').forEach(b=>b.onclick=()=>{ PV.dev=b.dataset.solo; pvRenderFrames(); });
+  pvLayout();
+}
+async function openPreview(page, work){
+  PV.page=page||PV.page||'home'; if(work) PV.work=work;
+  const dlg=$('#dlgPreview');
+  if(!dlg.open) dlg.showModal();
+  $('#pvxStage').innerHTML='<p class="pvx-msg">저장한 내용을 모으는 중…</p>';
+  $('#pvxChanges').hidden=true;
+  try{
+    await pvEnsure(true);
+  }catch(e){
+    $('#pvxStage').innerHTML='<p class="pvx-msg">미리보기를 만들지 못했습니다: '+esc(e.message||e)+'<br>↻ 다시 불러오기를 눌러 주세요.</p>';
+    return;
+  }
+  $('#pvxSub').textContent='저장한 내용 기준 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 불러옴 · 새로 바꾼 사진은 원본으로 보입니다';
+  pvRenderChanges();
+  pvRenderFrames();
+}
+function pvPageForSection(){
+  return {home:'home', homevideos:'home', works:'works', workspage:'works', exhibitions:'about', press:'press'}[section]||'home';
+}
+$('#btnPreview').onclick=()=>openPreview(pvPageForSection());
+$('#btnDetailPreview').onclick=()=>{
+  const r=current; if(!r) return;
+  if(!r.publish_web){ toast('비공개 작품이라 홈페이지에 나오지 않습니다'); return; }
+  $('#dlgDetail').close(); openPreview('work', r.no);
 };
+$('#pvxClose').onclick=()=>{ $('#dlgPreview').close(); $('#pvxStage').innerHTML=''; };
+$('#dlgPreview').addEventListener('close', ()=>{ $('#pvxStage').innerHTML=''; });
+$('#pvxReload').onclick=()=>openPreview(PV.page);
+$('#pvxPublish').onclick=()=>{ $('#dlgPreview').close(); openPublishConfirm(); };
+$('#pvxPages').onclick=e=>{ const b=e.target.closest('[data-page]'); if(b){ PV.page=b.dataset.page; pvRenderFrames(); } };
+$('#pvxDevs').onclick=e=>{ const b=e.target.closest('[data-dev]'); if(b){ PV.dev=b.dataset.dev; pvRenderFrames(); } };
+$('#pvxLangs').onclick=e=>{ const b=e.target.closest('[data-lang]'); if(b){ PV.lang=b.dataset.lang; pvRenderFrames(); } };
+$('#pvxWork').onchange=e=>{ PV.work=e.target.value; pvRenderFrames(); };
+window.addEventListener('resize', ()=>{ if($('#dlgPreview').open) pvLayout(); });
+$('#pvxChanges').addEventListener('toggle', ()=>pvLayout());   // 바뀔 내용을 펼치고 접으면 화면 크기를 다시 맞춘다
+
+/* 반영 전 확인: 바뀔 내용을 보여 주고 누르면 반영 */
+function pvChangesHtml(c){
+  const n=pvChangeCount(c);
+  if(!n) return '<p class="none">지금 홈페이지와 같습니다 — 반영해도 바뀌는 것이 없습니다.'+(c.notes.length?'<br>'+c.notes.map(esc).join('<br>'):'')+'</p>';
+  return PV_CHG_GROUPS.filter(g=>c[g[0]].length).map(g=>`<h4>${g[1]} ${c[g[0]].length}건</h4><ul>`+
+    c[g[0]].map(it=>`<li><span class="k ${it.k}">${PV_K[it.k]}</span>${esc(it.text)}</li>`).join('')+'</ul>').join('')+
+    (c.notes.length?`<p class="hint" style="margin-top:10px">${c.notes.map(esc).join('<br>')}</p>`:'');
+}
+async function openPublishConfirm(){
+  const dlg=$('#dlgPublish');
+  $('#pubChg').innerHTML='<span class="hint">바뀔 내용을 확인하는 중…</span>';
+  $('#btnPubGo').disabled=false;
+  dlg.showModal();
+  try{
+    await pvEnsure(true);
+    $('#pubChg').innerHTML = PV.changes ? pvChangesHtml(PV.changes)
+      : '<p class="none">지금 홈페이지와 비교하지 못했습니다(인터넷 연결 확인). 그래도 반영할 수 있습니다.</p>';
+  }catch(e){
+    $('#pubChg').innerHTML='<p class="none">바뀔 내용을 모으지 못했습니다: '+esc(e.message||e)+'. 그래도 반영할 수 있습니다.</p>';
+  }
+}
+$('#btnPubGo').onclick=()=>{ $('#btnPubGo').disabled=true; $('#dlgPublish').close(); doPublish(); };
+$('#btnPubCancel').onclick=()=>$('#dlgPublish').close();
+$('#btnClosePublish').onclick=()=>$('#dlgPublish').close();
+$('#btnPubPreview').onclick=()=>{ $('#dlgPublish').close(); openPreview(pvPageForSection()); };
 
 /* ---------- 이벤트 ---------- */
 function goSection(v){

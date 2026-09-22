@@ -400,15 +400,15 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <img src="assets/haedal-icon.png" alt=""><span>신해달 아카이브</span>
   </button>
   <button data-v="home" class="on">메인</button>
-  <button data-v="homevideos">홈 히어로</button>
-  <button data-v="works">작품</button>
-  <button data-v="workspage">Works 구성</button>
-  <button data-v="exhibitions">전시</button>
-  <button data-v="press">기사</button>
-  <button data-v="stats">방문 통계</button>
-  <button data-v="feecalc">수수료 계산</button>
-  <button data-v="activity">작업 기록</button>
-  <button data-v="settings">설정</button>
+  <button data-v="homevideos">홈 운영</button>
+  <button data-v="works">작품 관리</button>
+  <button data-v="workspage">Works 운영</button>
+  <button data-v="exhibitions">전시 관리</button>
+  <button data-v="press">기사 등록</button>
+  <button data-v="stats">방문통계</button>
+  <button data-v="feecalc">수수료계산</button>
+  <button data-v="activity">작업기록</button>
+  <button data-v="settings">운영메모</button>
 </nav>
 <div class="content">
 <header>
@@ -3871,8 +3871,8 @@ function goSection(v){
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={stats:'방문 통계', home:'신해달 작품 아카이브', homevideos:'홈 히어로', works:'작품', workspage:'Works 구성', exhibitions:'전시',
-                press:'기사', feecalc:'수수료 계산', activity:'작업 기록', settings:'설정'};
+  const TITLES={stats:'방문통계', home:'신해달 작품 아카이브', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
+                press:'기사 등록', feecalc:'수수료계산', activity:'작업기록', settings:'운영메모'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
   $('#cnt').hidden=section!=='works';
   if(section==='works')render();

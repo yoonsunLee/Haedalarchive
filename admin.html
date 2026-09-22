@@ -79,7 +79,14 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .fgroup-body{padding:4px 14px 12px; border-top:1px solid var(--line)}
 
 /* 홈 영상 목록 */
-.hv-thumb{width:64px; height:36px; object-fit:cover; border-radius:4px; background:var(--bg); display:block}
+.hv-thumb{width:64px; height:40px; object-fit:contain; border-radius:4px; background:#0b0b0f; display:block}
+.hv-default td{background:#faf8f3}
+.hv-toggle{display:flex; align-items:center; gap:6px; font-weight:400; cursor:pointer}
+.hv-kinds{display:flex; flex-wrap:wrap; gap:6px 16px}
+.hv-kinds label{display:flex; align-items:center; gap:6px; font-weight:400; cursor:pointer}
+.hv-pick-prev img{max-width:180px; max-height:180px; margin-top:8px; border-radius:6px; background:#0b0b0f; display:block; object-fit:contain}
+#hvSummary{margin:0 0 12px; font-size:.85rem}
+#hvSummary .warn{color:var(--sold)}
 .hv-move{display:flex; gap:3px}
 .hv-move button{border:1px solid var(--line); background:var(--card); border-radius:6px; width:26px; height:24px; cursor:pointer; line-height:1; color:var(--ink)}
 .hv-move button:disabled{opacity:.35; cursor:default}
@@ -350,7 +357,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <img src="assets/haedal-icon.png" alt=""><span>신해달 아카이브</span>
   </button>
   <button data-v="home" class="on">메인</button>
-  <button data-v="homevideos">홈 영상</button>
+  <button data-v="homevideos">홈 히어로</button>
   <button data-v="works">작품</button>
   <button data-v="workspage">Works 구성</button>
   <button data-v="exhibitions">전시</button>
@@ -411,7 +418,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div id="homeAlert"></div>
     <div class="home-quick">
       <button class="btn primary" id="homeAddWork">＋ 작품 등록</button>
-      <button class="btn" id="homeAddVideo">＋ 홈 영상 등록</button>
+      <button class="btn" id="homeAddVideo">＋ 홈 히어로 장 추가</button>
     </div>
     <div class="home-cards" id="homeCards"></div>
     <p class="home-meta" id="homeMeta"></p>
@@ -460,12 +467,15 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <section id="vHomeVideos" hidden>
     <div class="toolbar" style="padding:0 0 12px">
       <button class="btn" id="btnHvReload" title="새로고침">↻</button>
-      <button class="btn primary" id="btnHvAdd">＋ 영상 등록</button>
+      <button class="btn" id="btnHvPreview" title="저장한 내용으로 홈 첫 화면을 PC·태블릿·모바일로 보기">👁 미리보기</button>
+      <button class="btn primary" id="btnHvAdd">＋ 장 추가</button>
     </div>
-    <p class="hint" style="margin:0 0 12px">홈페이지 첫 화면에 최대 3개까지 순서대로 표시됩니다. 영상 파일 하나만 올리면
-      모바일용 저용량 사본과 포스터 이미지는 반영할 때 자동으로 만들어집니다.</p>
+    <p class="hint" style="margin:0 0 8px">홈페이지 첫 화면에 한 장에 하나씩 — <b>작품 한 점</b>(자르지 않고 화면 가운데에 크게), <b>올린 이미지</b>, <b>영상</b>(PC에서 꽉 채움).
+      공개된 장은 들어올 때마다 순서를 섞어 검정으로 가라앉았다 떠오르며 넘어가고, 재방문 때는 지난번 첫 장과 다른 장으로 시작합니다.
+      최대 5장(기본 이미지 포함), 영상은 2개까지.</p>
+    <p id="hvSummary" class="hint"></p>
     <div class="tablewrap"><table>
-      <thead><tr><th>순서</th><th>미리보기</th><th>이름(관리용)</th><th>연결 작품</th><th>공개</th><th>테마</th></tr></thead>
+      <thead><tr><th>종류</th><th>미리보기</th><th>이름(관리용)</th><th>크레딧 작품</th><th>공개</th></tr></thead>
       <tbody id="hvTbody"></tbody>
     </table></div>
   </section>
@@ -500,7 +510,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <section id="vActivity" hidden>
     <div class="settings-box">
       <h3>🗑 휴지통 — 지운 것 되살리기</h3>
-      <p class="hint" style="margin:0 0 10px">작품·전시·기사·홈 영상은 지워도 바로 사라지지 않고 여기 남습니다.
+      <p class="hint" style="margin:0 0 10px">작품·전시·기사·홈 히어로 장은 지워도 바로 사라지지 않고 여기 남습니다.
       되살리면 원래 자리로 그대로 돌아갑니다.</p>
       <div class="logbar"><button class="btn" id="btnTrashReload">↻ 새로고침</button></div>
       <div id="trashBox"><span class="hint">불러오는 중…</span></div>
@@ -515,7 +525,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
           <option value="works">작품</option>
           <option value="exhibitions">전시</option>
           <option value="press">기사</option>
-          <option value="home_videos">홈 영상</option>
+          <option value="home_videos">홈 히어로</option>
           <option value="workspage">Works 구성</option>
         </select>
         <button class="btn" id="btnLogReload">↻ 새로고침</button>
@@ -662,7 +672,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </dialog>
 
 <dialog id="dlgHvEdit">
-  <div class="dlghead"><h2 id="hvTitle">영상 등록</h2><button class="btn" id="btnCloseHvEdit">✕</button></div>
+  <div class="dlghead"><h2 id="hvTitle">홈 히어로 장 추가</h2><button class="btn" id="btnCloseHvEdit">✕</button></div>
   <form id="hvEditForm" method="dialog">
     <div class="dlgbody" id="hvBody"></div>
     <div class="formfoot">
@@ -1339,7 +1349,7 @@ function renderStats(){
 /* ---------- Needs Attention: 누락·오류 자동 탐지 (읽기 전용, 클릭하면 해당 작품/전시로 이동) ---------- */
 /* 빠진 정보 점검. sev: 'impact'(홈페이지에 바로 영향) / 'rec'(보완 권장). area로 메뉴를 묶는다.
    알려 주기만 하고 내용을 자동으로 채우지 않는다. */
-const ISSUE_AREAS=['작품','Works 구성','전시','기사','홈 영상'];
+const ISSUE_AREAS=['작품','Works 구성','전시','기사','홈 히어로'];
 function computeIssues(){
   const issues=[];
   const add=(area,sev,text,extra)=>issues.push(Object.assign({area,sev,text},extra||{}));
@@ -1429,9 +1439,22 @@ function computeIssues(){
   }
 
   (typeof hvRows!=='undefined'?hvRows:[]).forEach(v=>{
-    if(v.is_public&&!String(v.video_master||'').trim())
-      add('홈 영상','impact',`${v.name||'(이름 없음)'} · 공개인데 영상 파일 없음`,{hv:v});
+    if(!v.is_public) return;
+    const nm=v.name||(v.kind==='work'?hvWorkLabel(v.work_id):'')||'(이름 없음)';
+    if(v.kind==='video'&&!String(v.video_master||'').trim())
+      add('홈 히어로','impact',`${nm} · 공개인데 영상 파일 없음`,{hv:v});
+    if(v.kind==='image'&&!String(v.image_file||'').trim())
+      add('홈 히어로','impact',`${nm} · 공개인데 이미지 없음`,{hv:v});
+    if(v.kind==='work'){
+      const w=hvWork(v.work_id);
+      if(!w||w.publish_web!==true) add('홈 히어로','impact',`${nm} · 연결한 작품이 비공개라 이 장은 홈페이지에 안 나옴`,{hv:v});
+    }
   });
+  if(typeof hvRows!=='undefined'){
+    const pcAll=hvRows.filter(v=>v.is_public).length+(HV_DEFAULT.enabled?1:0);
+    if(pcAll>HERO_MAX) add('홈 히어로','rec',`공개된 장이 ${pcAll}장 — ${HERO_MAX}장을 넘는 장은 홈페이지에서 빠짐`,{});
+    if(!HV_HAS_KIND&&rows.length) add('홈 히어로','rec','홈 히어로 칸 준비 필요 — Supabase SQL Editor에서 home_hero_2026-09.sql 실행(작품·이미지 장)',{});
+  }
   return issues;
 }
 /** 알림 하나를 눌렀을 때 해당 항목의 수정 화면을 연다 */
@@ -2473,70 +2496,107 @@ $('#btnClosePressEdit').onclick=()=>dlgPressEdit.close();
 $('#btnCancelPressEdit').onclick=()=>dlgPressEdit.close();
 dlgPressEdit.addEventListener('click',e=>{if(e.target===dlgPressEdit)dlgPressEdit.close()});
 
-/* ---------- 홈 영상 ---------- */
+/* ---------- 홈 히어로 ---------- */
 let hvRows=[], hvWorksRows=[], hvCurrent=null, hvIsNew=false;
+/* 홈 히어로: 표는 home_videos 그대로(home_hero_2026-09.sql이 kind·image_file 열을 더한다 — 실행 전엔 영상만).
+   기본 이미지는 행이 아니라 site_settings 'hero_default' {enabled}로 켜고 끈다(works_page_2026-09.sql 표).
+   발행 규칙은 scripts/publish_sb.py '홈 히어로'와 같다: 최대 5장(기본 이미지 포함)·영상 2개, 비공개 작품 장은 빠짐 */
+var HV_HAS_KIND=false, HV_DEFAULT={enabled:true, supported:false}, HV_SIGNED={};
+var HERO_MAX=5, HERO_MAX_VIDEO=2;
+var HV_KIND_KO={video:'영상', work:'작품', image:'이미지'};
 
 async function loadHomeVideos(){
   try{
-    var [vq, wq] = await Promise.all([
+    var q = await Promise.all([
       sb.from('home_videos').select('*').is('deleted_at', null).order('sort_order'),
-      sb.from('works').select('id, work_no, title_ko').is('deleted_at', null).order('work_no')
+      sb.from('works').select('id, work_no, title_ko, title_en, year, publish_web, image_file').is('deleted_at', null).order('work_no'),
+      sb.from('home_videos').select('kind, image_file').limit(1),
+      sb.from('site_settings').select('value').eq('key', 'hero_default')
     ]);
+    var vq = q[0], wq = q[1];
     if(vq.error) throw vq.error;
     if(wq.error) throw wq.error;
+    HV_HAS_KIND = !q[2].error;
+    var dv = q[3].error ? null : ((q[3].data || [])[0] || {}).value;
+    HV_DEFAULT = {enabled: !(dv && dv.enabled === false), supported: !q[3].error};
     hvWorksRows = wq.data || [];
     hvRows = (vq.data||[]).map(function(v){
       return { name:v.name||'', video_master:v.video_master||'', work_id:v.work_id||'',
-               bg_color:v.bg_color||'#000000', ui_theme:v.ui_theme||'dark',
+               kind:v.kind||'video', image_file:v.image_file||'',
                sort_order:v.sort_order||0, is_public:!!v.is_public,
                mobile_image_fallback:!!v.mobile_image_fallback,
                _id:v.id, _version:v.version };
     });
+    // 올린 이미지(비공개 버킷) 미리보기용 서명 주소
+    var keys = hvRows.filter(function(x){ return x.kind === 'image' && x.image_file.indexOf('sb:') === 0; }).map(function(x){ return x.image_file.slice(3); });
+    HV_SIGNED = {};
+    if(keys.length){
+      var sg = await sb.storage.from('artwork-masters').createSignedUrls(keys, 3600);
+      (sg.data || []).forEach(function(x){ if(x && x.signedUrl) HV_SIGNED[x.path] = x.signedUrl; });
+    }
   }catch(e){
     hvRows=[];
-    toast('홈 영상 불러오기 실패: '+(e.message||e));
+    toast('홈 히어로 불러오기 실패: '+(e.message||e));
   }
   if(section==='home') renderHome();
   renderHomeVideosList();
 }
+function hvWork(wid){ return hvWorksRows.find(function(x){ return x.id === wid; }); }
+function hvWorkLabel(wid){ var w = hvWork(wid); return w ? w.work_no + (w.title_ko ? ' · ' + String(w.title_ko).split('\n')[0] : '') : ''; }
+function hvWorkThumb(wid){ var w = rows.find(function(x){ return x._id === wid; }); return w ? imgUrl(w, true) : ''; }
+function hvImageUrl(v){
+  v = String(v || '');
+  if(v.indexOf('sb:') === 0) return HV_SIGNED[v.slice(3)] || '';
+  var m = v.match(/^drive:(.+)$/);
+  if(m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400';
+  return /^https?:\/\//.test(v) ? v : '';
+}
+function hvThumb(r){
+  if(r.kind === 'work') return hvWorkThumb(r.work_id);
+  if(r.kind === 'image') return hvImageUrl(r.image_file);
+  // 영상: 홈페이지에 이미 반영된 포스터(반영 전이면 없음)
+  return r.video_master ? 'https://shinhaedal.com/assets/home-video/' + encodeURIComponent(r._id || '') + '/poster.webp' : '';
+}
+function hvPublicCount(excludeId){
+  var list = hvRows.filter(function(r){ return r.is_public && r._id !== excludeId; });
+  return {all:list.length, video:list.filter(function(r){ return r.kind === 'video'; }).length};
+}
 function renderHomeVideosList(){
   var list=hvRows.slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)});
   window._hvList=list;
-  $('#hvTbody').innerHTML=list.length?list.map(function(r,i){
-    var w=hvWorksRows.find(function(x){return x.id===r.work_id});
-    // 미리보기는 홈페이지에 이미 반영된 포스터를 쓴다(아직 반영 전이면 표시하지 않음).
-    // 발행은 poster.webp를 만든다 — 예전엔 poster.jpg를 불러서 썸네일이 늘 깨졌다
-    var poster='https://shinhaedal.com/assets/home-video/'+encodeURIComponent(r._id||'')+'/poster.webp';
+  var pc = hvPublicCount(), total = pc.all + (HV_DEFAULT.enabled ? 1 : 0);
+  $('#hvSummary').innerHTML = '공개 <b>' + total + '</b>/' + HERO_MAX + '장(기본 이미지 포함) · 영상 ' + pc.video + '/' + HERO_MAX_VIDEO +
+    (total > HERO_MAX ? ' <span class="warn">— ' + HERO_MAX + '장을 넘는 장은 홈페이지에서 빠집니다</span>' : '') +
+    (HV_HAS_KIND ? '' : '<br><span class="warn">작품·이미지 장을 쓰려면 Supabase SQL Editor에서 home_hero_2026-09.sql을 한 번 실행하세요(지금은 영상만)</span>');
+  var def = '<tr class="hv-default"><td>기본 이미지</td>' +
+    '<td><img class="hv-thumb" src="https://shinhaedal.com/assets/landing/hero-bg.webp" alt=""></td>' +
+    '<td>지금 얼빵해달 화면<div class="hint">지울 수 없고, 공개된 장이 하나도 없으면 늘 나옵니다</div></td><td>—</td>' +
+    '<td>' + (HV_DEFAULT.supported
+      ? '<label class="hv-toggle"><input type="checkbox" id="hvDefaultToggle"' + (HV_DEFAULT.enabled ? ' checked' : '') + '> 공개</label>'
+      : '<span class="badge-on">공개</span><div class="hint">끄려면 works_page_2026-09.sql 실행</div>') + '</td></tr>';
+  $('#hvTbody').innerHTML = def + (list.length ? list.map(function(r,i){
+    var th = hvThumb(r);
     return '<tr data-idx="'+i+'">'+
-      '<td><span class="hv-move">'+
-        '<button type="button" data-move="up" data-i="'+i+'" title="위로"'+(i===0?' disabled':'')+'>↑</button>'+
-        '<button type="button" data-move="down" data-i="'+i+'" title="아래로"'+(i===list.length-1?' disabled':'')+'>↓</button>'+
-      '</span></td>'+
-      '<td>'+(r.video_master?'<img class="hv-thumb" src="'+esc(poster)+'" alt="" onerror="this.style.visibility=\'hidden\'">':'<span class="hint">영상 없음</span>')+'</td>'+
-      '<td>'+esc(r.name||'(이름 없음)')+'</td>'+
-      '<td>'+(w?esc(w.work_no+(w.title_ko?' · '+String(w.title_ko).split('\n')[0]:'')):'—')+'</td>'+
-      '<td class="'+(r.is_public?'badge-on':'badge-off')+'">'+(r.is_public?'공개':'비공개')+'</td>'+
-      '<td>'+(r.ui_theme==='light'?'밝은 배경용':'어두운 배경용')+'</td></tr>';
-  }).join(''):'<tr><td colspan="6" class="empty">등록된 영상이 없습니다 — 홈 첫 화면은 작품 이미지로 나갑니다</td></tr>';
+      '<td>'+esc(HV_KIND_KO[r.kind] || r.kind)+'</td>'+
+      '<td>'+(th?'<img class="hv-thumb" src="'+esc(th)+'" alt="" onerror="this.style.visibility=\'hidden\'">':'<span class="hint">'+(r.kind==='video'?'영상 없음':'없음')+'</span>')+'</td>'+
+      '<td>'+esc(r.name || (r.kind === 'work' ? hvWorkLabel(r.work_id) : '') || '(이름 없음)')+'</td>'+
+      '<td>'+(r.work_id ? esc(hvWorkLabel(r.work_id) || '(지워진 작품)') : '<span class="hint">없음</span>')+'</td>'+
+      '<td class="'+(r.is_public?'badge-on':'badge-off')+'">'+(r.is_public?'공개':'비공개')+'</td></tr>';
+  }).join('') : '<tr><td colspan="5" class="empty">추가한 장이 없습니다 — 홈 첫 화면에는 기본 이미지만 나갑니다</td></tr>');
+  var tg = $('#hvDefaultToggle');
+  if(tg) tg.onchange = function(){ setHeroDefault(tg.checked); };
+}
+async function setHeroDefault(on){
+  if(on){
+    var pc = hvPublicCount();
+    if(pc.all + 1 > HERO_MAX){ toast('공개된 장이 이미 ' + pc.all + '장이라 기본 이미지까지 ' + HERO_MAX + '장을 넘습니다 — 한 장을 비공개로 바꾼 뒤 켜세요'); renderHomeVideosList(); return; }
+  }
+  var q = await sb.from('site_settings').upsert({key:'hero_default', value:{enabled:on}, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  if(q.error){ toast('저장 실패: ' + q.error.message); }
+  else toast(on ? '기본 이미지를 켰습니다' : '기본 이미지를 껐습니다 — 공개된 장이 하나도 없으면 그래도 나옵니다');
+  await loadHomeVideos();
 }
 
-/* 순서 바꾸기 — 이웃과 sort_order를 맞바꾼다 */
-async function moveHomeVideo(i, dir){
-  var list=window._hvList||[];
-  var j=i+(dir==='up'?-1:1);
-  if(!list[i]||!list[j])return;
-  var a=list[i], b=list[j];
-  var ao=a.sort_order||0, bo=b.sort_order||0;
-  if(ao===bo){ ao=i; bo=j; }   // 값이 같으면 자리 번호로 새로 매긴다
-  try{
-    var r1=await sb.from('home_videos').update({sort_order:bo}).eq('id',a._id).select('id');
-    if(r1.error) throw r1.error;
-    var r2=await sb.from('home_videos').update({sort_order:ao}).eq('id',b._id).select('id');
-    if(r2.error) throw r2.error;
-    await loadHomeVideos();
-    toast('순서를 바꿨습니다 — 반영하면 홈페이지에 적용돼요');
-  }catch(e){ toast('순서 변경 실패: '+(e.message||e)); }
-}
 /* 영상 길이(초). 브라우저가 못 읽는 형식이면 null */
 function videoDuration(file){
   return new Promise(function(resolve){
@@ -2578,52 +2638,98 @@ async function uploadHomeVideo(file){
     toast('✅ 업로드 완료 — 저장을 눌러야 최종 반영됩니다');
   }catch(e){toast('업로드 오류: '+e.message)}
 }
+var HERO_IMG_MAX_MB=30;
+async function uploadHeroImage(file){
+  if(!file) return;
+  if(!/^image\//.test(file.type||'')){ toast('이미지 파일을 골라 주세요'); $('#hvImageInput').value=''; return; }
+  var mb=file.size/1024/1024;
+  if(mb>HERO_IMG_MAX_MB){ toast('⚠️ 파일이 '+mb.toFixed(0)+'MB라 올릴 수 없어요(최대 '+HERO_IMG_MAX_MB+'MB)'); $('#hvImageInput').value=''; return; }
+  $('#hvImagePrev').innerHTML='<img alt="" src="'+URL.createObjectURL(file)+'">';
+  toast('이미지 업로드 중…');
+  try{
+    var ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    var path='home-hero/'+Date.now()+'.'+ext;
+    var up=await sb.storage.from('artwork-masters').upload(path, file, { contentType:file.type||'image/jpeg', upsert:false });
+    if(up.error) throw up.error;
+    $('#hvBody [name=image_file]').value='sb:'+path;
+    toast('✅ 업로드 완료 — 저장을 눌러야 최종 반영됩니다');
+  }catch(e){ toast('업로드 오류: '+e.message); }
+}
 function openHvEdit(r,neu){
   hvIsNew=neu; hvCurrent=r;
-  $('#hvTitle').textContent=neu?'영상 등록':'영상 수정';
+  var kind = r.kind || (HV_HAS_KIND ? 'work' : 'video');
+  $('#hvTitle').textContent=neu?'홈 히어로 장 추가':'홈 히어로 장 수정';
   var F=(label,inner,hint)=>'<div class="row"><label>'+label+'</label><div>'+inner+(hint?'<div class="hint">'+hint+'</div>':'')+'</div></div>';
+  var pubWorks=hvWorksRows.filter(function(w){ return w.publish_web === true; });
+  var opts=function(list, sel){ return list.map(function(w){ return '<option value="'+esc(w.id)+'"'+(sel===w.id?' selected':'')+'>'+esc(String(w.title_ko||'').split('\n')[0])+' ('+esc(w.work_no)+')</option>'; }).join(''); };
+  var workPickList=pubWorks.filter(function(w){ return w.image_file; });
+  var cur=hvWork(r.work_id);
+  if(kind==='work' && cur && workPickList.indexOf(cur)<0) workPickList=[cur].concat(workPickList); // 지금 연결된 작품이 비공개가 됐어도 보이게
+  var imgNow=r.kind==='image'?hvImageUrl(r.image_file):'';
   $('#hvBody').innerHTML=
-    F('영상 파일',
+    F('종류', '<div class="hv-kinds">'+['work','image','video'].map(function(k){
+        return '<label><input type="radio" name="kind" value="'+k+'"'+(kind===k?' checked':'')+((!HV_HAS_KIND&&k!=='video')?' disabled':'')+'> '+{work:'작품 한 점',image:'이미지 올리기',video:'영상'}[k]+'</label>';
+      }).join('')+'</div>',
+      HV_HAS_KIND ? '작품·이미지는 자르지 않고 화면 가운데에 크게, 영상은 PC에서 화면을 꽉 채웁니다'
+                  : '작품·이미지 장을 쓰려면 Supabase SQL Editor에서 home_hero_2026-09.sql을 먼저 실행하세요')+
+    '<div data-for="work">'+F('작품', '<select name="work_pick"><option value="">작품 고르기…</option>'+opts(workPickList, kind==='work'?r.work_id:'')+'</select><div class="hv-pick-prev" id="hvWorkPrev"></div>',
+      '홈페이지에 공개된 작품만 나옵니다. 크레딧(작품명, 연도)과 "작품 보기"도 이 작품으로 갑니다')+'</div>'+
+    '<div data-for="image">'+F('이미지', '<input type="file" accept="image/*" id="hvImageInput"><input type="hidden" name="image_file" value="'+esc(r.image_file||'')+'">'+
+      '<div class="hv-pick-prev" id="hvImagePrev">'+(imgNow?'<img alt="" src="'+esc(imgNow)+'">':'')+'</div>',
+      '자르지 않고 화면 가운데에 크게 나옵니다(긴 변 2000px 이상 권장, 최대 '+HERO_IMG_MAX_MB+'MB). 반영할 때 홈페이지용으로 줄여 저장합니다')+'</div>'+
+    '<div data-for="video">'+F('영상 파일',
       '<input type="file" accept="video/*" id="hvFileInput">'+
       '<input type="hidden" name="video_master" value="'+esc(r.video_master||'')+'">'+
       '<div id="hvVideoName" class="hint">'+(r.video_master?'✅ 기존 영상 있음 (다시 선택하면 교체됩니다)':'')+'</div>',
       '16:9 원본 그대로(8~15초 권장, 최대 '+HV_MAX_MB+'MB). 반영할 때 웹용으로 다시 인코딩하고 모바일용·포스터도 자동으로 만듭니다. '+
-      '폰 설정에서 HDR 영상은 끄고, 배경은 검정으로, 영상 안에 자막·별 배경은 넣지 마세요')+
-    F('이름 (관리용)', '<input name="name" value="'+esc(r.name||'')+'" placeholder="예: 아트토이 자개 회전">', '홈페이지에는 노출되지 않고 이 목록에서만 보여요')+
-    F('연결 작품', '<select name="work_id"><option value=""'+(!r.work_id?' selected':'')+'>연결 안 함</option>'+
-      hvWorksRows.map(function(w){return '<option value="'+esc(w.id)+'"'+(r.work_id===w.id?' selected':'')+'>'+esc(w.title_ko||'')+' ('+esc(w.work_no)+')</option>'}).join('')+
-      '</select>', '영상 위에 "작품 보기" 배지가 뜨고, 눌렀을 때 이 작품으로 이동합니다')+
-    F('영상 배경색', '<input type="color" name="bg_color" value="'+esc(r.bg_color||'#000000')+'" style="width:60px;height:36px;padding:2px">', '영상 비율과 화면 비율이 안 맞을 때 남는 여백을 채우는 색이에요. 영상 배경색과 비슷하게 맞추면 자연스러워요')+
-    F('버튼·배지 테마', '<select name="ui_theme">'+
-      '<option value="dark"'+(r.ui_theme!=='light'?' selected':'')+'>어두운 배경용 (밝은 글씨)</option>'+
-      '<option value="light"'+(r.ui_theme==='light'?' selected':'')+'>밝은 배경용 (어두운 글씨)</option>'+
-      '</select>', '영상이 전체적으로 밝으면 "밝은 배경용"을 선택하세요')+
-    F('순서', '<input type="number" name="sort_order" value="'+esc(r.sort_order||0)+'" style="width:80px">', '영상이 2개 이상이면 홈에 들어올 때마다 그중 하나로 시작하고, 이 순서대로 이어서 재생됩니다. 최대 3개까지만 홈페이지에 쓰여요')+
-    F('모바일에서', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
-      '<input type="checkbox" name="mobile_image_fallback"'+(r.mobile_image_fallback?' checked':'')+'> 모바일에서는 영상 대신 원래 이미지 화면 보여주기'+
-      '</label>', '영상이 모바일 화면에 잘 안 맞거나 데이터가 부담될 때 체크하세요. PC에서는 그대로 영상이 나옵니다')+
+      '폰 설정에서 HDR 영상은 끄고, 배경은 검정으로, 영상 안에 작품명·자막은 넣지 마세요(화면 크레딧과 겹칩니다)')+'</div>'+
+    '<div data-for="image video">'+F('크레딧 작품', '<select name="work_id"><option value="">연결 안 함(크레딧 없음)</option>'+opts(pubWorks, kind!=='work'?r.work_id:'')+'</select>',
+      '고르면 화면에 작품명, 연도와 "작품 보기"가 나옵니다. 공개된 작품만 고를 수 있습니다')+'</div>'+
+    F('이름 (관리용)', '<input name="name" value="'+esc(r.name||'')+'" placeholder="비우면 작품명으로 표시">', '홈페이지에는 나오지 않고 이 목록에서만 보여요')+
+    '<div data-for="video">'+F('모바일에서', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
+      '<input type="checkbox" name="mobile_image_fallback"'+(r.mobile_image_fallback?' checked':'')+'> 폰에서는 영상 대신 정지 화면(포스터) 보여주기'+
+      '</label>', '데이터가 부담될 때 체크하세요. 태블릿·PC에서는 그대로 영상이 나옵니다')+'</div>'+
     F('공개', '<label style="display:flex;align-items:center;gap:8px;font-weight:400">'+
       '<input type="checkbox" name="is_public"'+(r.is_public?' checked':'')+'> 홈페이지에 공개'+
-      '</label>', '<b>체크해야 홈페이지에 나옵니다.</b> 체크를 풀면 홈 화면 후보에서 빠집니다. 공개된 영상이 하나도 안 남으면 원래 이미지 화면(얼빵해달)으로 돌아가고, 다른 공개 영상이 남아 있으면 그 영상들로만 계속 재생됩니다.');
+      '</label>', '<b>체크해야 홈페이지에 나옵니다.</b> 최대 '+HERO_MAX+'장(기본 이미지 포함) · 영상 '+HERO_MAX_VIDEO+'개. 저장한 뒤 위의 <b>👁 미리보기</b>로 PC·태블릿·모바일을 확인하세요');
+  function sync(){
+    var k=(document.querySelector('#hvBody [name=kind]:checked')||{}).value||'video';
+    document.querySelectorAll('#hvBody [data-for]').forEach(function(el){ el.hidden=el.dataset.for.split(' ').indexOf(k)<0; });
+  }
+  document.querySelectorAll('#hvBody [name=kind]').forEach(function(x){ x.onchange=sync; });
+  sync();
+  var wp=document.querySelector('#hvBody [name=work_pick]');
+  function workPrev(){ var u=wp.value?hvWorkThumb(wp.value):''; $('#hvWorkPrev').innerHTML=u?'<img alt="" src="'+esc(u)+'">':''; }
+  wp.onchange=workPrev; workPrev();
   $('#btnDeleteHv').style.display=neu?'none':'';
-  $('#hvVideoName').textContent='';
   dlgHvEdit.showModal();
   pushDialogHistory();
   $('#hvFileInput').onchange=e=>uploadHomeVideo(e.target.files[0]);
+  $('#hvImageInput').onchange=e=>uploadHeroImage(e.target.files[0]);
 }
 async function saveHomeVideoToDb(rec, neu, cur){
+  var kind = HV_HAS_KIND ? (rec.kind || 'video') : 'video';
   var payload = {
     name: String(rec.name||'').trim() || null,
     video_master: String(rec.video_master||'').trim() || null,
-    work_id: String(rec.work_id||'').trim() || null,
-    bg_color: String(rec.bg_color||'#000000').trim(),
-    ui_theme: String(rec.ui_theme||'dark').trim(),
-    sort_order: parseInt(rec.sort_order,10) || 0,
+    work_id: String((kind === 'work' ? rec.work_pick : rec.work_id) || '').trim() || null,
     is_public: !!rec.is_public,
     mobile_image_fallback: !!rec.mobile_image_fallback
   };
-  if(payload.is_public && !payload.video_master)
-    throw new Error('공개하려면 영상 파일을 먼저 업로드하세요');
+  if(HV_HAS_KIND){ payload.kind = kind; payload.image_file = String(rec.image_file||'').trim() || null; }
+  if(neu) payload.sort_order = hvRows.length ? Math.max.apply(null, hvRows.map(function(r){ return r.sort_order || 0; })) + 1 : 1;
+  if(kind === 'work'){
+    if(!payload.work_id) throw new Error('작품을 고르세요');
+    var w = hvWork(payload.work_id);
+    if(payload.is_public && (!w || w.publish_web !== true)) throw new Error('홈페이지에 공개되지 않은 작품이라 이 장은 나오지 않습니다 — 작품을 공개하거나 다른 작품을 고르세요');
+  }
+  if(kind === 'image' && payload.is_public && !payload.image_file) throw new Error('공개하려면 이미지를 먼저 올리세요');
+  if(kind === 'video' && payload.is_public && !payload.video_master) throw new Error('공개하려면 영상 파일을 먼저 업로드하세요');
+  if(payload.is_public){
+    var pc = hvPublicCount(cur && cur._id), total = pc.all + 1 + (HV_DEFAULT.enabled ? 1 : 0);
+    if(total > HERO_MAX) throw new Error('공개할 수 있는 장은 '+HERO_MAX+'장까지입니다(기본 이미지 포함) — 다른 장을 비공개로 바꾸거나 기본 이미지를 끄세요');
+    if(kind === 'video' && pc.video + 1 > HERO_MAX_VIDEO) throw new Error('공개 영상은 '+HERO_MAX_VIDEO+'개까지입니다');
+  }
   if(neu){
     var ins = await sb.from('home_videos').insert(payload);
     if(ins.error) throw ins.error;
@@ -2633,7 +2739,7 @@ async function saveHomeVideoToDb(rec, neu, cur){
     .eq('id', cur._id).eq('version', cur._version).select('id');
   if(upd.error) throw upd.error;
   if(!upd.data || upd.data.length === 0)
-    throw new Error('이 영상이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+    throw new Error('이 장이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
 }
 async function softDeleteHomeVideo(cur){
   var upd = await sb.from('home_videos')
@@ -2641,37 +2747,36 @@ async function softDeleteHomeVideo(cur){
     .eq('id', cur._id).eq('version', cur._version).select('id');
   if(upd.error) throw upd.error;
   if(!upd.data || upd.data.length === 0)
-    throw new Error('이 영상이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
+    throw new Error('이 장이 다른 곳에서 수정됐습니다. ↻ 새로고침 후 다시 시도해 주세요.');
 }
 $('#hvEditForm').onsubmit=async e=>{
   e.preventDefault();
   var g=n=>{var el=document.querySelector('#hvBody [name="'+n+'"]');return el?el.value.trim():''};
-  var rec={ name:g('name'), video_master:g('video_master'), work_id:g('work_id'),
-             bg_color:g('bg_color'), ui_theme:g('ui_theme'), sort_order:g('sort_order') };
+  var rec={ name:g('name'), video_master:g('video_master'), work_id:g('work_id'), work_pick:g('work_pick'),
+             image_file:g('image_file'), kind:(document.querySelector('#hvBody [name=kind]:checked')||{}).value||'video' };
   rec.is_public=!!document.querySelector('#hvBody [name="is_public"]')?.checked;
   rec.mobile_image_fallback=!!document.querySelector('#hvBody [name="mobile_image_fallback"]')?.checked;
   try{
     await saveHomeVideoToDb(rec, hvIsNew, hvCurrent);
-    toast(hvIsNew?'영상이 등록되었습니다':'저장되었습니다');
+    toast(hvIsNew?'장을 추가했습니다 — 👁 미리보기로 확인하고 🚀 반영하세요':'저장되었습니다');
     dlgHvEdit.close();await loadHomeVideos();
   }catch(err){toast('오류: '+(err.message||err))}
 };
 $('#btnDeleteHv').onclick=async()=>{
   if(!hvCurrent||hvIsNew)return;
-  if(!confirm('\''+(hvCurrent.name||'이름 없는 영상')+'\' 영상을 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.'))return;
+  if(!confirm('\''+(hvCurrent.name||hvWorkLabel(hvCurrent.work_id)||'이름 없는 장')+'\' 장을 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.'))return;
   try{
     await softDeleteHomeVideo(hvCurrent);
-    toast('🗑 영상이 삭제되었습니다');
+    toast('🗑 장을 삭제했습니다');
     dlgHvEdit.close();await loadHomeVideos();
   }catch(err){toast('삭제 오류: '+(err.message||err))}
 };
 $('#hvTbody').onclick=e=>{
-  var mv=e.target.closest('[data-move]');
-  if(mv){ e.stopPropagation(); moveHomeVideo(+mv.dataset.i, mv.dataset.move); return; }
   var tr=e.target.closest('tr[data-idx]');
   if(tr)openHvEdit(window._hvList[+tr.dataset.idx],false);
 };
-$('#btnHvAdd').onclick=()=>openHvEdit({name:'',video_master:'',work_id:'',bg_color:'#000000',ui_theme:'dark',sort_order:(hvRows.length?Math.max.apply(null,hvRows.map(function(r){return r.sort_order||0}))+1:1),is_public:false},true);
+$('#btnHvAdd').onclick=()=>openHvEdit({name:'',video_master:'',work_id:'',image_file:'',kind:'',is_public:false},true);
+$('#btnHvPreview').onclick=()=>openPreview('home');
 $('#btnHvReload').onclick=()=>{loadHomeVideos();toast('새로고침')};
 $('#btnCloseHvEdit').onclick=()=>dlgHvEdit.close();
 $('#btnCancelHvEdit').onclick=()=>dlgHvEdit.close();
@@ -2821,6 +2926,14 @@ function pvOrig(v, signed, big){
   if(/^https?:\/\//.test(v)) return v;
   return new URL('images/'+v, location.href).href;
 }
+function pvImgSize(url){
+  return new Promise(function(resolve){
+    var im=new Image(), t=setTimeout(function(){ resolve(null); }, 8000);
+    im.onload=function(){ clearTimeout(t); resolve(im.naturalWidth?[im.naturalWidth, im.naturalHeight]:null); };
+    im.onerror=function(){ clearTimeout(t); resolve(null); };
+    im.src=url;
+  });
+}
 async function pvLiveJson(path){
   try{
     const r=await fetch(PV_SITE+'/data/'+path+'?t='+Date.now(), {cache:'no-store'});
@@ -2891,11 +3004,35 @@ async function pvBuildFiles(){
     if(pvS(e.poster_url)&&!same&&pvS(e.poster_url).indexOf('sb:')===0) need.push(pvS(e.poster_url).slice(3));
     exPlan.push({e, id, same});
   }
+  // 옛 home-videos.json(영상만) — 옛 홈페이지 코드용
   const hvPlan=[];
-  for(const v of hvs.slice(0,3)){
+  for(const v of hvs.filter(x=>(pvS(x.kind)||'video')==='video').slice(0,3)){
     const id=pvS(v.id), same=pvS(v.video_master)&&src.home_videos&&src.home_videos[id]&&src.home_videos[id]===await addHash(v.video_master);
     if(pvS(v.video_master)&&!same&&pvS(v.video_master).indexOf('sb:')===0) need.push(pvS(v.video_master).slice(3));
     hvPlan.push({v, id, same});
+  }
+  // 홈 히어로(발행 스크립트 publish_sb.py '홈 히어로'와 같은 규칙: 최대 5장·영상 2개, 비공개 작품 장은 빠짐)
+  const heroDefRow=settingsRows.find(x=>x.key==='hero_default');
+  const heroDefaultOn=!(heroDefRow&&heroDefRow.value&&heroDefRow.value.enabled===false);
+  const heroPlan=[]; let heroVideos=0;
+  for(const v of hvs){
+    const id=pvS(v.id), kind=pvS(v.kind)||'video';
+    if(!id||heroPlan.length+(heroDefaultOn?1:0)>=5) continue;
+    if(kind==='video'){
+      if(heroVideos>=2||!pvS(v.video_master)) continue;
+      const same=src.home_videos&&src.home_videos[id]&&src.home_videos[id]===await addHash(v.video_master);
+      if(!same&&pvS(v.video_master).indexOf('sb:')===0) need.push(pvS(v.video_master).slice(3));
+      heroVideos++; heroPlan.push({kind, v, id, same});
+    }else if(kind==='work'){
+      const px=plan.find(x=>x.w.id===pvS(v.work_id));
+      if(!px||!pvS(px.w.image_file)) continue;
+      heroPlan.push({kind, v, id, px});
+    }else if(kind==='image'){
+      if(!pvS(v.image_file)) continue;
+      const same=src.hero_images&&src.hero_images[id]&&src.hero_images[id]===await addHash(v.image_file);
+      if(!same&&pvS(v.image_file).indexOf('sb:')===0) need.push(pvS(v.image_file).slice(3));
+      heroPlan.push({kind, v, id, same});
+    }
   }
   const signed={};
   if(need.length){
@@ -2997,8 +3134,33 @@ async function pvBuildFiles(){
       bg_color:pvS(v.bg_color)||'#000000', ui_theme:pvS(v.ui_theme)||'dark', mobile_image_fallback:!!v.mobile_image_fallback};
   });
 
+  const heroCredit=wid=>{
+    const x=plan.find(y=>y.w.id===pvS(wid)); if(!x) return null;
+    const w=x.w; return {no:pvS(w.work_no), title:pvS(w.title_ko), title_en:pvS(w.title_en), year:Number.isInteger(w.year)?w.year:pvS(w.year)};
+  };
+  const heroSlides=[];
+  heroPlan.forEach(h=>{
+    if(h.kind==='video'){
+      const d='assets/home-video/'+h.id+'/';
+      heroSlides.push({id:h.id, kind:'video', video:h.same?d+'video.mp4':pvOrig(h.v.video_master,signed,true),
+        video_mobile:h.same?d+'video_mobile.mp4':'', poster:h.same?d+'poster.webp':'',
+        mobile_image_fallback:!!h.v.mobile_image_fallback, work:heroCredit(h.v.work_id)});
+    }else if(h.kind==='work'){
+      const no=h.px.no, url=h.px.imgSame?'assets/works/'+no+'/detail.webp':pvOrig(h.px.w.image_file,signed,true);
+      heroSlides.push({id:h.id, kind:'image', image:url, work:heroCredit(h.px.w.id), _probe:h.px.imgSame?PV_SITE+'/'+url:url});
+    }else{
+      const url=h.same?'assets/home-hero/'+h.id+'/image.webp':pvOrig(h.v.image_file,signed,true);
+      heroSlides.push({id:h.id, kind:'image', image:url, work:heroCredit(h.v.work_id), _probe:h.same?PV_SITE+'/'+url:url});
+    }
+  });
+  if(heroDefaultOn||!heroSlides.length) heroSlides.unshift({id:'default', kind:'image', image:'assets/landing/hero-bg.webp', w:1448, h:1086, work:null});
+  // 사진 가로·세로 — 홈페이지가 작품 칸을 잡는 데 쓴다
+  await Promise.all(heroSlides.filter(x=>x._probe).map(async x=>{ const sz=await pvImgSize(x._probe); if(sz){ x.w=sz[0]; x.h=sz[1]; } }));
+  heroSlides.forEach(x=>{ delete x._probe; });
+  files['home-hero.json']={slides:heroSlides};
+
   // 바뀔 내용 비교용: 사진이 바뀌었는지(지문 비교)
-  const assetChanged={works:{}, posters:{}, home_videos:{}};
+  const assetChanged={works:{}, posters:{}, home_videos:{}, hero:{}};
   plan.forEach(x=>{
     const ch=[];
     if(pvS(x.w.image_file)&&!x.imgSame) ch.push('대표 사진');
@@ -3008,6 +3170,7 @@ async function pvBuildFiles(){
   });
   exPlan.forEach(x=>{ if(pvS(x.e.poster_url)&&!x.same) assetChanged.posters[x.id]=true; });
   hvPlan.forEach(x=>{ if(pvS(x.v.video_master)&&!x.same) assetChanged.home_videos[x.id]=true; });
+  heroPlan.forEach(x=>{ if((x.kind==='image'||x.kind==='video')&&!x.same) assetChanged.hero[x.id]=true; });
   return {files, assetChanged, hasSources:!!sources};
 }
 
@@ -3015,7 +3178,7 @@ async function pvBuildFiles(){
 async function pvDiff(built){
   const f=built.files;
   const [lIndex, lEx, lPress, lHv, lSeries, lPage] = await Promise.all(
-    ['works-index.json','exhibitions.json','press.json','home-videos.json','series.json','works-page.json'].map(pvLiveJson));
+    ['works-index.json','exhibitions.json','press.json','home-hero.json','series.json','works-page.json'].map(pvLiveJson));
   if(!lIndex) throw new Error('지금 홈페이지 데이터를 읽지 못했습니다');
   const out={works:[], wp:[], ex:[], press:[], hv:[], notes:[]};
   const lById={}; lIndex.forEach(e=>{ lById[e.id]=e; });
@@ -3073,22 +3236,27 @@ async function pvDiff(built){
   });
   (lPress||[]).forEach(p=>{ if(!f['press.json'].some(x=>x.no===p.no)) out.press.push({k:'del', text:(p.outlet||'')+' · '+String(p.title||'').slice(0,28)+' — 홈페이지에서 내려감'}); });
 
-  const lHvById={}; (lHv||[]).forEach(v=>{ lHvById[v.id]=v; });
-  f['home-videos.json'].forEach(v=>{
-    const l=lHvById[v.id], name=v.name||'(이름 없음)';
-    if(!l){ out.hv.push({k:'add', text:name+' — 새로 공개'}); return; }
-    const ch=[];
-    if(built.hasSources?built.assetChanged.home_videos[v.id]:false) ch.push('영상 파일');
-    if(!same(v.work_no,l.work_no)) ch.push('연결 작품');
-    if(ch.length) out.hv.push({k:'mod', text:name+' — '+ch.join('·')});
-  });
-  (lHv||[]).forEach(v=>{ if(!f['home-videos.json'].some(x=>x.id===v.id)) out.hv.push({k:'del', text:(v.name||'(이름 없음)')+' — 홈에서 내려감'}); });
-  const hvSeqN=f['home-videos.json'].map(v=>v.id).filter(id=>lHvById[id]), hvSeqL=(lHv||[]).map(v=>v.id).filter(id=>f['home-videos.json'].some(x=>x.id===id));
-  if(JSON.stringify(hvSeqN)!==JSON.stringify(hvSeqL)) out.hv.push({k:'mod', text:'홈 영상 순서가 바뀝니다'});
+  const heroName=x=>(x.id==='default'?'기본 이미지':((x.work&&(x.work.title||x.work.title_en))||(x.kind==='video'?'영상':'이미지')))+(x.id==='default'?'':' ('+(x.kind==='video'?'영상':'사진')+')');
+  const nHero=(f['home-hero.json']||{}).slides||[];
+  if(!lHv){
+    out.hv.push({k:'mod', text:'홈 첫 화면이 새 방식(작품 한 점·이미지·영상 장)으로 바뀝니다 — '+nHero.length+'장: '+nHero.map(heroName).join(', ')});
+  }else{
+    const lSlides=lHv.slides||[], lHById={}; lSlides.forEach(x=>{ lHById[x.id]=x; });
+    nHero.forEach(x=>{
+      const l=lHById[x.id];
+      if(!l){ out.hv.push({k:'add', text:heroName(x)+' — 새로 공개'}); return; }
+      const ch=[];
+      if(built.hasSources&&built.assetChanged.hero[x.id]) ch.push(x.kind==='video'?'영상 파일':'이미지');
+      if(!same(x.work&&x.work.no, l.work&&l.work.no)) ch.push(x.kind==='image'&&x.image.indexOf('assets/works/')>=0?'작품':'크레딧 작품');
+      if(x.kind==='image'&&x.image.indexOf('assets/works/')>=0&&x.image!==l.image&&ch.indexOf('작품')<0) ch.push('작품 사진');
+      if(ch.length) out.hv.push({k:'mod', text:heroName(x)+' — '+ch.join('·')});
+    });
+    lSlides.forEach(x=>{ if(!nHero.some(y=>y.id===x.id)) out.hv.push({k:'del', text:heroName(x)+' — 홈에서 내려감'}); });
+  }
   if(!built.hasSources) out.notes.push('사진·영상 파일이 바뀌었는지는 다음 반영 이후부터 비교할 수 있습니다(글·순서·공개 여부는 지금도 비교).');
   return out;
 }
-const PV_CHG_GROUPS=[['works','작품'],['wp','Works 구성'],['ex','전시'],['press','기사'],['hv','홈 영상']];
+const PV_CHG_GROUPS=[['works','작품'],['wp','Works 구성'],['ex','전시'],['press','기사'],['hv','홈 히어로']];
 const PV_K={add:'새로', mod:'수정', del:'내려감'};
 function pvChangeCount(c){ return c?PV_CHG_GROUPS.reduce((n,g)=>n+c[g[0]].length,0):0; }
 
@@ -3250,7 +3418,7 @@ function goSection(v){
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 영상', works:'작품', workspage:'Works 구성', exhibitions:'전시',
+  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 히어로', works:'작품', workspage:'Works 구성', exhibitions:'전시',
                 press:'기사', feecalc:'수수료 계산', activity:'작업 기록', settings:'설정'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
   $('#cnt').hidden=section!=='works';
@@ -3611,7 +3779,7 @@ function bindWorksPage(){
 function renderHome(){
   const pub = rows.filter(r=>r.publish_web && !r.deleted_at).length;
   const cards = [
-    {go:'homevideos', t:'홈 영상', d:'홈페이지 첫 화면 영상', n:hvRows.length, unit:'개'},
+    {go:'homevideos', t:'홈 히어로', d:'홈페이지 첫 화면 — 작품·이미지·영상', n:hvRows.filter(function(r){return r.is_public}).length+(HV_DEFAULT.enabled?1:0), unit:'장 공개'},
     {go:'works', t:'작품', d:'작품 등록·수정, 사진과 판매 기록', n:rows.length, unit:'점', sub:pub?('공개 '+pub):''},
     {go:'workspage', t:'Works 구성', d:'홈페이지 작품 페이지 — Selected works, 연작, 목록 순서',
       n:WP_READY?WORKS_SELECTED.length:undefined, unit:'/'+SELECTED_MAX+' Selected'},
@@ -3742,7 +3910,7 @@ const TRASH_KINDS=[
    cols:'id, exhibition_no, title_ko, start_date, venue_ko, deleted_at'},
   {t:'press',       ko:'기사',    title:'title_ko', no:'press_no',
    cols:'id, press_no, outlet_ko, title_ko, deleted_at'},
-  {t:'home_videos', ko:'홈 영상', title:'name',     no:null,
+  {t:'home_videos', ko:'홈 히어로', title:'name',     no:null,
    cols:'id, name, deleted_at'}
 ];
 let trashRows=[];
@@ -3861,7 +4029,7 @@ const FIELD_KO={
   // 홈 영상
   name:'이름(관리용)', video_master:'영상 파일', work_id:'연결 작품',
   bg_color:'영상 배경색', ui_theme:'버튼·배지 테마', sort_order:'순서',
-  is_public:'공개', mobile_image_fallback:'모바일에서 이미지로',
+  is_public:'공개', mobile_image_fallback:'모바일에서 이미지로', image_file:'이미지',
   exhibition_id:'전시'
 };
 
@@ -3907,7 +4075,7 @@ function logChanges(oldRow, newRow){
 }
 
 const LOG_TABLE_KO={works:'작품', editions:'작품 판매정보', exhibitions:'전시',
-                    exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 영상',
+                    exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 히어로',
                     series:'연작', site_settings:'Works 구성'};
 const LOG_ACTION_KO={insert:'등록', update:'수정', soft_delete:'삭제',
                      restore:'되살림', delete:'완전 삭제'};

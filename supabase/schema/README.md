@@ -37,6 +37,7 @@ alter table 표이름 add column if not exists 열이름 타입 ...;   -- 열은
 | `activity_log_2026-09.sql` | 작업 기록 — 표와 트리거 |
 | `press_outlet_en_2026-09.sql` | 기사 영문 매체명 열(outlet_en) 추가 |
 | `works_page_2026-09.sql` | Works 구성 — 작품 목록 순서·연작 안 순서 열, 연작(series)·사이트 설정(site_settings) 표 |
+| `home_hero_2026-09.sql` | 홈 히어로 — home_videos에 장 종류(kind: 영상·작품·이미지)·올린 이미지(image_file) 열 |
 
 ## `retired/`
 

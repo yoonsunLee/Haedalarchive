@@ -235,6 +235,28 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .st-ins > div{display:flex; gap:9px; align-items:baseline; font-size:.86rem; line-height:1.6}
 .st-ins .lab{flex:none; min-width:34px; padding:1px 7px; border:1px solid var(--line); border-radius:999px; font-size:.72rem; color:var(--sub); text-align:center}
 .st-ins .up{color:#2f7a52} .st-ins .down{color:#b0402a}
+/* 홈 첫 화면 일정(달력) */
+.hv-sched{margin-top:22px}
+.hv-sched h3{font-size:.98rem; margin:0 0 6px}
+.sched-now{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:0 0 12px; background:var(--card); font-size:.88rem; line-height:1.7}
+.sched-now b{font-weight:700}
+.sched-now .warn{color:var(--sold)}
+.sched-legend{display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; font-size:.78rem; color:var(--sub); margin:0 0 10px}
+.sched-legend i{display:inline-block; width:22px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+.cal-nav{display:flex; align-items:center; gap:8px; margin:0 0 10px}
+.cal-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(272px,1fr)); gap:12px}
+.cal-m{border:1px solid var(--line); border-radius:10px; padding:10px 12px 12px; background:var(--card); min-width:0}
+.cal-m h4{margin:0 0 8px; font-size:.86rem; font-weight:700}
+.cal-dow{display:grid; grid-template-columns:repeat(7,1fr); font-size:.7rem; color:var(--sub); text-align:center; padding-bottom:4px; border-bottom:1px solid var(--line)}
+.cal-wk{padding-top:3px}
+.cal-d{display:grid; grid-template-columns:repeat(7,1fr); font-size:.72rem; text-align:center; color:var(--sub)}
+.cal-d span{padding:1px 0}
+.cal-d .is-today{font-weight:700; color:var(--ink); background:#fff3c4; border-radius:5px}
+.cal-bars{position:relative; height:15px; margin:1px 0 2px}
+.cal-bar{position:absolute; top:0; height:14px; border-radius:3px; font-size:.64rem; line-height:14px; padding:0 5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+.m-now{background:#2f7a52; color:#fff}
+.m-up{background:#2e6da4; color:#fff}
+.m-recent{background:#eceadf; color:#7b8190}
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
 .st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
@@ -523,6 +545,24 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <thead><tr><th>종류</th><th>미리보기</th><th>이름(관리용)</th><th>크레딧 작품</th><th>공개</th></tr></thead>
       <tbody id="hvTbody"></tbody>
     </table></div>
+
+    <div class="hv-sched">
+      <h3>🗓 홈 첫 화면 일정</h3>
+      <p class="hint" style="margin:0 0 10px">첫 화면 아래 작품 구역이 날짜에 따라 <b>Recent works → Upcoming exhibition → Now on view</b>로 바뀝니다.
+        전시 카드는 <b>개막 30일 전부터</b>, 그리고 그 전시에 <b>공개 출품작이 1점 이상</b> 연결돼 있을 때만 뜹니다.</p>
+      <div class="sched-now" id="hvSchedNow"></div>
+      <div class="sched-legend">
+        <span><i class="m-recent"></i>Recent works — 최근 작품 6점</span>
+        <span><i class="m-up"></i>Upcoming exhibition — 전시 예고</span>
+        <span><i class="m-now"></i>Now on view — 전시 중</span>
+      </div>
+      <div class="cal-nav">
+        <button class="btn" id="hvCalPrev">◀ 이전 달</button>
+        <button class="btn" id="hvCalToday">이번 달</button>
+        <button class="btn" id="hvCalNext">다음 달 ▶</button>
+      </div>
+      <div class="cal-grid" id="hvCal"></div>
+    </div>
   </section>
 
   <section id="vFeeCalc" hidden>
@@ -2610,6 +2650,106 @@ function hvPublicCount(excludeId){
   var list = hvRows.filter(function(r){ return r.is_public && r._id !== excludeId; });
   return {all:list.length, video:list.filter(function(r){ return r.kind === 'video'; }).length};
 }
+/* ---------- 홈 첫 화면 일정(달력) ----------
+   홈페이지 index.html이 쓰는 규칙을 그대로 따라 그린다:
+     · 오늘이 전시 기간 안이면 Now on view(전시 목록에서 먼저 만나는 것)
+     · 아니면 개막 30일 전부터 Upcoming(개막이 가장 이른 것)
+     · 고른 전시에 공개 출품작이 없으면 카드가 안 뜨고 Recent works
+   규칙이 바뀌면 index.html의 UPCOMING_WINDOW_DAYS와 여기를 같이 고쳐야 한다. */
+const HOME_UPCOMING_DAYS = 30;
+var HV_CAL_M = 0;   // 이번 달에서 몇 달 옮겨 보는 중인지
+function hvYmd(d){ return d.toISOString().slice(0,10); }
+function hvAdd(day, n){ const d=new Date(day+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return hvYmd(d); }
+function hvKorDay(day){ return Number(day.slice(5,7))+'월 '+Number(day.slice(8,10))+'일'; }
+/* 홈에 나갈 수 있는 전시 — 공개 출품작 수까지 세어 둔다(exhibitions.json과 같은 차례: 개막 늦은 것부터) */
+function hvExList(){
+  const pub=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'')));
+  return exRows.filter(e=>e.publish_web!==false&&e.start_date&&e.end_date)
+    .map(e=>({id:e.id, title:e.title||e.id, start:e.start_date, end:e.end_date,
+              pub:String(e.work_nos||'').split(',').map(s=>s.trim()).filter(s=>pub.has(s)).length}))
+    .sort((a,b)=>String(b.start).localeCompare(String(a.start)));
+}
+function hvModeOn(day, list){
+  let ex=list.find(e=>day>=e.start&&day<=e.end), mode='now';
+  if(!ex){
+    ex=list.filter(e=>day<e.start&&day>=hvAdd(e.start,-HOME_UPCOMING_DAYS))
+           .sort((a,b)=>a.start.localeCompare(b.start))[0];
+    mode='upcoming';
+  }
+  if(!ex) return {mode:'recent', ex:null};
+  if(!ex.pub) return {mode:'recent', ex:null, blocked:ex};   // 출품작이 없어 카드가 안 뜬다
+  return {mode:mode, ex:ex};
+}
+function hvModeName(m){ return {now:'Now on view', upcoming:'Upcoming exhibition', recent:'Recent works'}[m]; }
+function hvModeClass(m){ return {now:'m-now', upcoming:'m-up', recent:'m-recent'}[m]; }
+function hvBarText(s){ return s.mode==='recent'?'Recent works':(hvModeName(s.mode)+' · '+s.ex.title); }
+/* 오늘부터 앞으로 어떻게 바뀌는지 — 바뀌는 날만 추려서 */
+function hvChanges(list, today, days){
+  const out=[]; let prev=hvModeOn(today,list), start=today;
+  for(let i=1;i<=days;i++){
+    const day=hvAdd(today,i), cur=hvModeOn(day,list);
+    const same=cur.mode===prev.mode&&String(cur.ex&&cur.ex.id)===String(prev.ex&&prev.ex.id);
+    if(!same){ out.push({from:start, to:hvAdd(day,-1), st:prev}); prev=cur; start=day; }
+  }
+  out.push({from:start, to:hvAdd(today,days), st:prev});
+  return out;
+}
+function renderHomeSchedule(){
+  const box=$('#hvSchedNow'); if(!box) return;
+  const list=hvExList(), today=kstDay(0);
+  const segs=hvChanges(list, today, 180);
+  const now=segs[0];
+  let html='<div>지금 <b>'+hvKorDay(today)+'</b> — 홈 첫 화면은 <b>'+hvModeName(now.st.mode)+'</b>'+
+    (now.st.ex?' · '+esc(now.st.ex.title):'')+'입니다.</div>';
+  const next=segs.slice(1,4).map(s=>{
+    const end=s.st.mode==='now'&&s.st.ex?s.st.ex.end:null;
+    return '<div>'+hvKorDay(s.from)+(end?' ~ '+hvKorDay(end):'부터')+' — <b>'+hvModeName(s.st.mode)+'</b>'+(s.st.ex?' · '+esc(s.st.ex.title):'')+'</div>';
+  }).join('');
+  html+=next||'<div class="hint">앞으로 6개월 동안은 바뀌지 않습니다.</div>';
+  /* 출품작이 없어 예고가 막힌 전시 알리기 */
+  const blocked={};
+  segs.forEach(s=>{ if(s.st.blocked) blocked[s.st.blocked.id]=s.st.blocked; });
+  Object.keys(blocked).forEach(id=>{
+    const e=blocked[id];
+    html+='<div class="warn">⚠ '+esc(e.title)+' — 공개 출품작이 0점이라 전시 카드가 뜨지 않습니다. '+
+      hvKorDay(hvAdd(e.start,-HOME_UPCOMING_DAYS))+'까지 전시 관리에서 작품을 연결하세요.</div>';
+  });
+  box.innerHTML=html;
+  renderHomeCal(list, today);
+}
+function renderHomeCal(list, today){
+  const cal=$('#hvCal'); if(!cal) return;
+  const base=new Date(today+'T00:00:00Z'); base.setUTCDate(1); base.setUTCMonth(base.getUTCMonth()+HV_CAL_M);
+  let out='';
+  for(let k=0;k<3;k++){
+    const d=new Date(base.getTime()); d.setUTCMonth(d.getUTCMonth()+k);
+    out+=hvCalMonth(d.getUTCFullYear(), d.getUTCMonth(), list, today);
+  }
+  cal.innerHTML=out;
+}
+function hvCalMonth(y, m, list, today){
+  const last=new Date(Date.UTC(y,m+1,0)).getUTCDate(), lead=new Date(Date.UTC(y,m,1)).getUTCDay();
+  const cells=[]; for(let i=0;i<lead;i++) cells.push(null);
+  for(let i=1;i<=last;i++) cells.push(new Date(Date.UTC(y,m,i)).toISOString().slice(0,10));
+  while(cells.length%7) cells.push(null);
+  let weeks='';
+  for(let w=0;w<cells.length/7;w++){
+    const row=cells.slice(w*7,w*7+7);
+    let nums='', bars='', i=0;
+    row.forEach(day=>{ nums+='<span'+(day===today?' class="is-today"':'')+'>'+(day?Number(day.slice(8,10)):'')+'</span>'; });
+    while(i<7){
+      if(!row[i]){ i++; continue; }
+      const st=hvModeOn(row[i],list), key=st.mode+'|'+(st.ex?st.ex.id:'');
+      let j=i+1;
+      while(j<7&&row[j]){ const s2=hvModeOn(row[j],list); if(s2.mode+'|'+(s2.ex?s2.ex.id:'')!==key) break; j++; }
+      bars+='<span class="cal-bar '+hvModeClass(st.mode)+'" style="left:'+(i/7*100).toFixed(2)+'%;width:'+((j-i)/7*100).toFixed(2)+'%" title="'+esc(hvBarText(st))+'">'+esc(hvBarText(st))+'</span>';
+      i=j;
+    }
+    weeks+='<div class="cal-wk"><div class="cal-d">'+nums+'</div><div class="cal-bars">'+bars+'</div></div>';
+  }
+  return '<div class="cal-m"><h4>'+y+'년 '+(m+1)+'월</h4><div class="cal-dow">'+
+    ['일','월','화','수','목','금','토'].map(s=>'<span>'+s+'</span>').join('')+'</div>'+weeks+'</div>';
+}
 function renderHomeVideosList(){
   var list=hvRows.slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)});
   window._hvList=list;
@@ -3878,7 +4018,7 @@ function goSection(v){
   if(section==='works')render();
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
-  if(section==='homevideos')renderHomeVideosList();
+  if(section==='homevideos'){ renderHomeVideosList(); renderHomeSchedule(); }
   if(section==='feecalc')renderFeeCalc();
   if(section==='workspage')renderWorksPage();
   if(section==='home')renderHome();
@@ -3891,6 +4031,9 @@ $('#brandHome').onclick=()=>goSection('home');
 $('#homeCards').onclick=e=>{const c=e.target.closest('[data-go]'); if(c) goSection(c.dataset.go);};
 $('#homeAddWork').onclick=()=>{ goSection('works'); $('#btnAdd').click(); };
 $('#homeAddVideo').onclick=()=>{ goSection('homevideos'); $('#btnHvAdd').click(); };
+$('#hvCalPrev').onclick=()=>{ HV_CAL_M--; renderHomeSchedule(); };
+$('#hvCalNext').onclick=()=>{ HV_CAL_M++; renderHomeSchedule(); };
+$('#hvCalToday').onclick=()=>{ HV_CAL_M=0; renderHomeSchedule(); };
 $('#btnFilters').onclick=()=>{
   const open = $('#filterBar').classList.toggle('open');
   $('#btnFilters').classList.toggle('toggled', open);

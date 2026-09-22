@@ -112,6 +112,45 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .home-hello{display:flex; align-items:center; gap:14px; margin:18px 0 20px}
 .home-hello img{width:56px; height:56px; border-radius:12px; flex:none}
 .home-hello h2{font-size:1.15rem; margin-bottom:2px}
+/* Works 구성 */
+.wp{max-width:980px; margin:0 auto; display:flex; flex-direction:column; gap:16px}
+.wp-intro{font-size:.85rem; margin:0}
+.wp-need{background:#fbf3e4; border:1px solid #ecd9b2; color:#6d5324; border-radius:12px; padding:12px 14px; font-size:.88rem}
+.wp-box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow)}
+.wp-box h3{font-size:1rem; margin:0}
+.wp-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 12px; margin-bottom:6px}
+.wp-box > .hint{margin:0 0 12px; font-size:.8rem}
+.wp-actions{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:12px}
+.wp .btn:disabled{opacity:.4; cursor:default}  /* 바뀐 게 없으면 저장 버튼이 흐리게 */
+.wp-sel{display:flex; flex-direction:column; gap:6px; margin:0 0 10px; padding:0; list-style:none}
+.wp-sel li{display:flex; align-items:center; gap:10px; padding:6px 8px; border:1px solid var(--line); border-radius:10px}
+.wp-sel .n{flex:0 0 1.4em; text-align:right; font-variant-numeric:tabular-nums; color:var(--sub); font-size:.85rem}
+.wp-sel img, .wp-ord img{width:44px; height:44px; object-fit:cover; border-radius:6px; background:#eee; flex:none}
+.wp-sel .t{flex:1 1 auto; min-width:0; font-size:.88rem; overflow-wrap:anywhere}
+.wp-sel .t small{display:block; color:var(--sub); font-size:.76rem}
+.wp-sel .warn, .wp-warn{color:var(--sold); font-size:.78rem}
+.wp-mini{padding:4px 9px; border:1px solid var(--line); border-radius:7px; background:var(--card); cursor:pointer; font-size:.85rem; line-height:1.2}
+.wp-mini:disabled{opacity:.35; cursor:default}
+.wp-add{display:flex; flex-wrap:wrap; gap:8px}
+.wp-add select{flex:1 1 260px; min-width:0; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:.88rem; background:var(--card)}
+.wp-box table{box-shadow:none; border:1px solid var(--line)}
+.wp-box th{position:static}
+.wp-box td input[type=text], .wp-box td input[inputmode]{width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:7px; font:inherit; font-size:.86rem}
+.wp-box td input[inputmode]{width:5.2em; text-align:right; font-variant-numeric:tabular-nums}
+.wp-box td input.changed{border-color:var(--accent2); background:#eef4fa}
+.wp-ord td{vertical-align:middle}
+/* 칸 배치만 보는 작은 미리보기 — PC 3열은 한 칸 약 110px, 2열은 같은 칸 크기로 */
+.wp-pv{display:grid; grid-template-columns:minmax(0,360px) minmax(0,240px); justify-content:start; gap:28px; margin-top:14px}
+.wp-pv h4{font-size:.82rem; margin:0 0 6px; color:var(--sub); font-weight:600}
+.wp-pv .sec{font-size:.72rem; color:var(--sub); margin:8px 0 4px; letter-spacing:.02em}
+.wp-grid{display:grid; gap:6px}
+.wp-grid .c{aspect-ratio:1; border-radius:4px; overflow:hidden; background:#ece8e0; position:relative}
+.wp-grid .c img{width:100%; height:100%; object-fit:cover; display:block}
+.wp-grid .c span{position:absolute; left:3px; bottom:2px; font-size:.62rem; color:#fff; text-shadow:0 0 3px rgba(0,0,0,.7)}
+.wp-grid .pr{grid-column:span 2; display:grid; grid-template-columns:1fr 1fr; gap:2px}
+.wp-grid .gap{aspect-ratio:1; border:1.5px dashed #d9a79f; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:.66rem; color:var(--sold)}
+@media (max-width:720px){ .wp-pv{grid-template-columns:minmax(0,1fr) minmax(0,.66fr); gap:14px} .wp-box{padding:14px} }
+
 .home-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px}
 .home-card{display:flex; flex-direction:column; gap:4px; text-align:left; padding:16px; background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); cursor:pointer; font:inherit; color:var(--ink)}
 .home-card:hover{border-color:var(--accent)}
@@ -270,6 +309,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="home" class="on">메인</button>
   <button data-v="homevideos">홈 영상</button>
   <button data-v="works">작품</button>
+  <button data-v="workspage">Works 구성</button>
   <button data-v="exhibitions">전시</button>
   <button data-v="press">기사</button>
   <button data-v="feecalc">수수료 계산</button>
@@ -353,6 +393,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </table></div>
   </section>
 
+  <section id="vWorksPage" hidden>
+    <div id="wpBody"></div>
+  </section>
+
   <section id="vExhibitions" hidden>
     <div id="exBody"></div>
   </section>
@@ -428,6 +472,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
           <option value="exhibitions">전시</option>
           <option value="press">기사</option>
           <option value="home_videos">홈 영상</option>
+          <option value="workspage">Works 구성</option>
         </select>
         <button class="btn" id="btnLogReload">↻ 새로고침</button>
       </div>
@@ -545,6 +590,11 @@ const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡�
 
 let rows=[], lastList=[], view='gallery', section='home', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
 let PHOTO_ROWS=[], MEDIA_ROWS=[];
+/* Works 구성(works_page_2026-09.sql). 열·표가 아직 없으면 관련 칸을 숨기고 안내만 한다. */
+let WORKS_HAS_ORDER=false;   // works.display_order·series_order 열이 있는지
+let WP_READY=null;           // series·site_settings 표: true 있음 / false SQL 실행 전 / null 못 읽음
+let SERIES_ROWS=[], WORKS_SELECTED=[];
+const SELECTED_MAX=6;         // Selected works 칸 수(홈페이지 3열 × 2줄)
 
 /* ---------- 모바일 뒤로가기가 사이트를 통째로 나가버리지 않도록: 다이얼로그만 히스토리에 걸기 ----------
    (탭 전환은 데이터 손실이 없어 굳이 히스토리에 안 걸음 — 다이얼로그 열린 채로 뒤로가기 누르면
@@ -639,7 +689,7 @@ var SOLD_TO_STATUS = { '●':'sold', 'NFS':'nfs', '':'available' };
 function recToWork(rec){
   var sz = parseSize(rec.size);
   var planned = String(rec.sold||'').trim() === '등록 예정';
-  return {
+  var out = {
     work_no: String(rec.no||'').trim(),
     title_ko: String(rec.title||'').trim(),
     title_en: textOrNull(rec.title_en),
@@ -660,6 +710,11 @@ function recToWork(rec){
     transcript_en: textOrNull(rec.transcript_en),
     docent_enabled: !!rec.docent_enabled
   };
+  if(WORKS_HAS_ORDER){
+    out.display_order = numOrNull(rec.display_order);
+    out.series_order = numOrNull(rec.series_order);
+  }
+  return out;
 }
 /* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
 function recToEdition(rec){
@@ -687,6 +742,12 @@ async function saveWorkToDb(rec, neu, cur){
   if(!w.work_no && !(String(rec.sold||'').trim()==='등록 예정'))
     throw new Error('작품번호를 입력하세요');
   if(!w.title_ko) throw new Error('작품명을 입력하세요');
+  if(WORKS_HAS_ORDER){
+    [['display_order','목록 순서'],['series_order','연작 안 순서']].forEach(function(k){
+      var v = String(rec[k[0]] == null ? '' : rec[k[0]]).trim();
+      if(v && !/^\d+$/.test(v)) throw new Error(k[1] + '는 0 이상의 정수로 입력하세요 (비워 두면 자동)');
+    });
+  }
 
   if(neu){
     var ins = await sb.from('works').insert(w).select('id').single();
@@ -981,6 +1042,10 @@ function flattenWork(w, exText, statusRow, photoCount){
     transcript_en: w.transcript_en || '',
     docent_enabled: !!w.docent_enabled,
     _id: w.id, _version: w.version, _editions: eds,
+    // 발행은 publish_web=true인 작품만 내보낸다(scripts/publish_sb.py) — 판정을 같게
+    publish_web: w.publish_web === true,
+    display_order: w.display_order == null ? '' : String(w.display_order),
+    series_order: w.series_order == null ? '' : String(w.series_order),
     _publish_web: w.publish_web, _kind: w.kind, _photoCount: photoCount || 0
   };
 }
@@ -1107,6 +1172,9 @@ async function load(){
     });
     exLoaded = true;
 
+    if((wq.data || []).length)
+      WORKS_HAS_ORDER = Object.prototype.hasOwnProperty.call(wq.data[0], 'display_order');
+    await loadWorksPageData();
     rows = (wq.data || []).map(function(w){
       var list = (exOfWork[w.id] || []).filter(Boolean).sort(function(a,b){
         return String(b.start_date||'').localeCompare(String(a.start_date||''));
@@ -1180,7 +1248,7 @@ function renderStats(){
 /* ---------- Needs Attention: 누락·오류 자동 탐지 (읽기 전용, 클릭하면 해당 작품/전시로 이동) ---------- */
 /* 빠진 정보 점검. sev: 'impact'(홈페이지에 바로 영향) / 'rec'(보완 권장). area로 메뉴를 묶는다.
    알려 주기만 하고 내용을 자동으로 채우지 않는다. */
-const ISSUE_AREAS=['작품','전시','기사','홈 영상'];
+const ISSUE_AREAS=['작품','Works 구성','전시','기사','홈 영상'];
 function computeIssues(){
   const issues=[];
   const add=(area,sev,text,extra)=>issues.push(Object.assign({area,sev,text},extra||{}));
@@ -1253,6 +1321,22 @@ function computeIssues(){
   if(typeof pressRows!=='undefined'&&pressRows.length&&!PRESS_HAS_OUTLET_EN)
     add('기사','rec','영문 매체명 칸 준비 필요 — Supabase SQL Editor에서 press_outlet_en_2026-09.sql 실행',{});
 
+  if(rows.length&&(!WORKS_HAS_ORDER||WP_READY===false))
+    add('Works 구성','rec','Works 구성 칸 준비 필요 — Supabase SQL Editor에서 works_page_2026-09.sql 실행',{wp:true});
+  if(WP_READY){
+    const byId={}; rows.forEach(r=>{byId[r._id]=r});
+    WORKS_SELECTED.forEach(id=>{
+      const r=byId[id];
+      if(!r) add('Works 구성','impact','Selected에 넣은 작품이 지워져 빈자리 — 다른 작품으로 채우기',{wp:true});
+      else if(!r.publish_web) add('Works 구성','impact',`Selected · ${r.no||r.title} 비공개라 홈페이지에 안 나옴`,{wp:true});
+    });
+    wpPublicCountBySeries(); // 아래 함수가 두 폭 연작 점검에 쓰는 개수를 계산
+    SERIES_ROWS.filter(x=>x.joined).forEach(x=>{
+      const n=WP_SERIES_COUNT[x.key]||0;
+      if(n!==2) add('Works 구성','rec',`연작 ${x.name_ko||x.key} · 두 폭 붙이기인데 공개 작품이 ${n}점이라 붙지 않음(2점일 때만)`,{wp:true});
+    });
+  }
+
   (typeof hvRows!=='undefined'?hvRows:[]).forEach(v=>{
     if(v.is_public&&!String(v.video_master||'').trim())
       add('홈 영상','impact',`${v.name||'(이름 없음)'} · 공개인데 영상 파일 없음`,{hv:v});
@@ -1265,12 +1349,13 @@ function openIssue(it){
   if(it.ex){ openEx().then(()=>renderExForm(it.ex,false)); return; }
   if(it.press){ goSection('press'); openPressEdit(it.press,false); return; }
   if(it.hv){ goSection('homevideos'); openHvEdit(it.hv,false); return; }
+  if(it.wp){ goSection('workspage'); return; }
 }
 function renderIssues(){
   const box=$('#issues');
   if(!box)return;
   const issues=computeIssues().filter(it=>it.area==='작품'||it.area==='전시');
-  if(!issues.length){box.hidden=true;return}
+  if(!issues.length||section!=='works'){box.hidden=true;return}
   box.hidden=false;
   box.innerHTML=`<div class="issues-head">⚠ 확인 필요 ${issues.length}건</div>`+
     `<div class="issues-list">`+issues.map((it,i)=>
@@ -1453,7 +1538,11 @@ function openEdit(r,neu){
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
-    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 홈페이지 작품 상세에서 "시리즈 작품"으로 묶여 표시됩니다. 비워두면 묶이지 않습니다')+
+    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 연작으로 묶입니다 — 홈페이지 작품 목록에서 연이어 나오고, 작품 상세에서 "시리즈 작품"으로 표시됩니다. 연작 이름과 두 폭 붙이기는 <b>Works 구성</b> 화면에서 정합니다. 비워두면 묶이지 않습니다')+
+    (WORKS_HAS_ORDER
+      ? F('목록 순서',`<input name="display_order" inputmode="numeric" value="${esc(r.display_order||'')}" placeholder="비우면 최신순">`,'홈페이지 작품 목록에서 작은 수부터 앞에 나옵니다. 비워 둔 작품은 순서를 정한 작품 뒤에 최신순으로 이어집니다. <b>Works 구성</b> 화면에서 한꺼번에 정할 수도 있습니다')+
+        F('연작 안 순서',`<input name="series_order" inputmode="numeric" value="${esc(r.series_order||'')}" placeholder="비우면 작품번호 순">`,'같은 연작 안에서 작은 수부터 나옵니다. 두 폭 작품은 1이 왼쪽, 2가 오른쪽')
+      : '')+
     F('도슨트',
       `<label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:10px">
          <input type="checkbox" name="docent_enabled" style="width:auto"${r.docent_enabled?' checked':''}> 홈페이지에 도슨트 노출
@@ -1799,6 +1888,7 @@ $('#editForm').onsubmit=async e=>{
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
   rec.series=g('series');
+  if(WORKS_HAS_ORDER){ rec.display_order=g('display_order'); rec.series_order=g('series_order'); }
   rec.audio_master=g('audio_master');
   rec.transcript_ko=g('transcript_ko');
   rec.transcript_en=g('transcript_en');
@@ -2616,6 +2706,8 @@ function goSection(v){
   section=v;
   $('#vHome').hidden=section!=='home';
   $('#vWorks').hidden=section!=='works';
+  $('#vWorksPage').hidden=section!=='workspage';
+  if(section!=='works') $('#issues').hidden=true;   // 작품 화면 전용 띠(메인에는 '빠진 정보'가 따로 있다)
   $('#vExhibitions').hidden=section!=='exhibitions';
   $('#vPress').hidden=section!=='press';
   $('#vHomeVideos').hidden=section!=='homevideos';
@@ -2624,7 +2716,7 @@ function goSection(v){
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 영상', works:'작품', exhibitions:'전시',
+  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 영상', works:'작품', workspage:'Works 구성', exhibitions:'전시',
                 press:'기사', feecalc:'수수료 계산', activity:'작업 기록', settings:'설정'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
   $('#cnt').hidden=section!=='works';
@@ -2633,6 +2725,7 @@ function goSection(v){
   if(section==='press')renderPressList();
   if(section==='homevideos')renderHomeVideosList();
   if(section==='feecalc')renderFeeCalc();
+  if(section==='workspage')renderWorksPage();
   if(section==='home')renderHome();
   if(section==='activity'){ loadTrash(); loadActivityLog(); }
   window.scrollTo(0, 0);
@@ -2648,12 +2741,358 @@ $('#btnFilters').onclick=()=>{
   $('#btnFilters').setAttribute('aria-expanded', open ? 'true' : 'false');
 };
 
+/* ---------- Works 구성 ----------
+   홈페이지 works/ 페이지 = Selected works(작가가 고른 최대 6점) → All works(공개 작품 전부).
+   · Selected: site_settings 'works_selected' = 작품 id(uuid) 배열, 순서 그대로
+   · 연작: series 표(키·국영문 이름·두 폭 붙이기). 키는 작품의 '시리즈 키'와 같은 값
+   · 목록 순서: works.display_order(작은 수부터, 비우면 그 뒤 최신순), 연작 안 순서: works.series_order
+   발행 스크립트(publish_sb.py·prerender_lists.py)와 works/index.html이 같은 규칙으로 그린다. */
+function wpIsMissing(err){
+  var m = String((err && ((err.code||'') + ' ' + (err.message||''))) || '');
+  return /PGRST205|42P01|does not exist|schema cache/i.test(m);
+}
+async function loadWorksPageData(){
+  try{
+    var r = await Promise.all([
+      sb.from('series').select('*'),
+      sb.from('site_settings').select('key, value').eq('key', 'works_selected')
+    ]);
+    var err = r[0].error || r[1].error;
+    if(err){
+      WP_READY = wpIsMissing(err) ? false : null;
+      SERIES_ROWS = []; WORKS_SELECTED = [];
+      if(WP_READY === null) console.warn('Works 구성 불러오기 실패', err);
+      return;
+    }
+    WP_READY = true;
+    SERIES_ROWS = r[0].data || [];
+    var v = (r[1].data && r[1].data[0]) ? r[1].data[0].value : null;
+    WORKS_SELECTED = Array.isArray(v) ? v.filter(function(x){ return typeof x === 'string'; }) : [];
+  }catch(e){
+    WP_READY = null; console.warn('Works 구성 불러오기 실패', e);
+  }
+}
+
+const WP_NO_RE=/^[A-Z]+-(\d{4})-(\d+)$/i;
+function wpNoKey(r){ const m=WP_NO_RE.exec(String(r.no||'').trim()); return m?[+m[1],+m[2]]:[0,0]; }
+function wpOrd(v){ return (v===''||v==null)?null:+v; }
+/* 홈페이지 목록 순서: 순서 정한 작품(작은 수부터) → 나머지 최신순. draft는 화면에서 고치는 중인 값 */
+function wpSiteOrder(list, draft){
+  const d=draft||{};
+  const ord=r=>wpOrd(d[r._id]&&d[r._id].display_order!==undefined?d[r._id].display_order:r.display_order);
+  return list.slice().sort((a,b)=>{
+    const oa=ord(a), ob=ord(b);
+    if((oa==null)!==(ob==null)) return oa==null?1:-1;
+    if(oa!=null&&oa!==ob) return oa-ob;
+    const ka=wpNoKey(a), kb=wpNoKey(b);
+    return (kb[0]-ka[0])||(kb[1]-ka[1]);
+  });
+}
+function wpSeriesCmp(draft){
+  const d=draft||{};
+  const so=r=>wpOrd(d[r._id]&&d[r._id].series_order!==undefined?d[r._id].series_order:r.series_order);
+  return (a,b)=>{
+    const oa=so(a), ob=so(b);
+    if((oa==null)!==(ob==null)) return oa==null?1:-1;
+    if(oa!=null&&oa!==ob) return oa-ob;
+    return String(a.no).localeCompare(String(b.no));
+  };
+}
+/* 연작은 첫 작품 자리에 연작 안 순서대로 연이어(works/index.html groupSeries와 같음) */
+function wpGroupSeries(list, draft){
+  const out=[], seen=new Set(), cmp=wpSeriesCmp(draft);
+  list.forEach(w=>{
+    const k=String(w.series||'').trim();
+    if(!k){ out.push(w); return; }
+    if(seen.has(k)) return;
+    seen.add(k);
+    list.filter(x=>String(x.series||'').trim()===k).sort(cmp).forEach(x=>out.push(x));
+  });
+  return out;
+}
+function wpPublicRows(){ return rows.filter(r=>r.publish_web); } // 발행과 같은 기준(publish_web=true)
+var WP_SERIES_COUNT={};   // var: 알림 계산이 이 줄보다 먼저 불려도 안전하게
+function wpPublicCountBySeries(){
+  WP_SERIES_COUNT={};
+  rows.filter(r=>r.publish_web).forEach(r=>{
+    const k=String(r.series||'').trim(); if(k) WP_SERIES_COUNT[k]=(WP_SERIES_COUNT[k]||0)+1;
+  });
+  return WP_SERIES_COUNT;
+}
+function wpJoinedKeys(seriesDraft){
+  const j=new Set();
+  SERIES_ROWS.forEach(x=>{ if(x.joined) j.add(x.key); });
+  Object.keys(seriesDraft||{}).forEach(k=>{ if(seriesDraft[k].joined) j.add(k); else j.delete(k); });
+  return j;
+}
+/* 칸 배치를 계산한다: 두 폭 연작(공개 2점)은 두 칸 한 단위, 줄 끝에 한 칸만 남으면 빈 칸이 생긴다(CSS 그리드와 같음) */
+function wpLayout(list, cols, joined){
+  const cells=[]; let col=0, gaps=0;
+  for(let i=0;i<list.length;i++){
+    const r=list[i], n=list[i+1], k=String(r.series||'').trim();
+    const pair = n && k && joined.has(k) && String(n.series||'').trim()===k &&
+                 list.filter(x=>String(x.series||'').trim()===k).length===2;
+    if(pair){
+      if(col===cols-1){ cells.push({gap:true}); gaps++; col=0; }
+      cells.push({pair:[r,n]}); col=(col+2)%cols; i++;
+    }else{
+      cells.push({one:r}); col=(col+1)%cols;
+    }
+  }
+  return {cells, gaps};
+}
+function wpSelectedRows(joined){
+  const byId={}; rows.forEach(r=>{byId[r._id]=r});
+  const out=[], added=new Set(), pub=wpPublicRows();
+  WP_SEL.forEach(id=>{
+    const w=byId[id];
+    if(!w||!w.publish_web||added.has(w._id)) return;
+    const k=String(w.series||'').trim();
+    let group=[w];
+    if(k&&joined.has(k)){
+      const g=pub.filter(x=>String(x.series||'').trim()===k).sort(wpSeriesCmp(WP_ORDER_DRAFT));
+      if(g.length===2) group=g;
+    }
+    group.forEach(x=>{ if(!added.has(x._id)){ added.add(x._id); out.push(x); } });
+  });
+  return out;
+}
+function wpGridHtml(layout, cols){
+  const t=r=>{ const u=imgUrl(r,true); return `<div class="c">${u?`<img src="${esc(u)}" alt="">`:''}<span>${esc(r.no||'')}</span></div>`; };
+  return `<div class="wp-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">`+
+    layout.cells.map(c=>c.gap?'<div class="gap">빈 칸</div>':c.pair?`<div class="pr">${t(c.pair[0])}${t(c.pair[1])}</div>`:t(c.one)).join('')+
+    '</div>';
+}
+
+var WP_SEL=[], WP_SEL_DIRTY=false, WP_SERIES_DRAFT={}, WP_ORDER_DRAFT={};
+function renderWorksPage(){
+  WP_SEL=WORKS_SELECTED.slice(); WP_SEL_DIRTY=false; WP_SERIES_DRAFT={}; WP_ORDER_DRAFT={};
+  drawWorksPage();
+}
+function drawWorksPage(){
+  const box=$('#wpBody'); if(!box) return;
+  const intro=`<p class="hint wp-intro">홈페이지 <b>Works</b> 페이지는 위에서부터 <b>Selected works → All works</b> 순서로 보입니다.
+    여기서 저장한 내용은 위의 <b>🚀 홈페이지에 반영</b>을 눌러야 나갑니다(안 누르면 자정에 자동 반영).</p>`;
+  if(WP_READY===false||!WORKS_HAS_ORDER){
+    box.innerHTML=`<div class="wp">${intro}<div class="wp-need"><b>먼저 한 번만 준비가 필요합니다.</b><br>
+      Supabase 콘솔 → SQL Editor에 <b>supabase/schema/works_page_2026-09.sql</b> 내용을 통째로 붙여넣고 Run 한 뒤,
+      아래 버튼을 누르세요. 실행 전에는 홈페이지 Works가 지금처럼 최신순으로 보이고 Selected works는 나오지 않습니다.
+      <div style="margin-top:8px"><button class="wp-mini" id="wpRetry">실행했으면 다시 확인</button></div></div></div>`;
+    $('#wpRetry').onclick=async()=>{ await load(); renderWorksPage(); };
+    return;
+  }
+  if(WP_READY===null){
+    box.innerHTML=`<div class="wp">${intro}<div class="wp-need">Works 구성 정보를 불러오지 못했습니다. 인터넷 연결을 확인하고
+      <button class="wp-mini" id="wpRetry">다시 불러오기</button></div></div>`;
+    $('#wpRetry').onclick=async()=>{ await loadWorksPageData(); renderWorksPage(); };
+    return;
+  }
+  const byId={}; rows.forEach(r=>{byId[r._id]=r});
+  const pub=wpPublicRows();
+  const joined=wpJoinedKeys(WP_SERIES_DRAFT);
+  wpPublicCountBySeries();
+
+  // ── Selected ──
+  const selItems=WP_SEL.map((id,i)=>{
+    const r=byId[id];
+    if(!r) return `<li><span class="n">${i+1}</span><span class="t"><span class="warn">지워진 작품</span></span>
+      <button class="wp-mini" data-sel-del="${i}" title="빼기">✕</button></li>`;
+    const u=imgUrl(r,true), k=String(r.series||'').trim();
+    const partner = k&&joined.has(k)&&WP_SERIES_COUNT[k]===2 ? '<small>두 폭 연작 — 짝 작품도 함께 나옵니다</small>' : '';
+    return `<li><span class="n">${i+1}</span>${u?`<img src="${esc(u)}" alt="">`:'<img alt="">'}
+      <span class="t">${esc(r.title||'(제목 없음)')}<small>${esc(r.no||'')}${r.year?' · '+esc(r.year):''}</small>${partner}
+        ${r.publish_web?'':'<span class="warn">비공개 — 홈페이지에 안 나옵니다</span>'}</span>
+      <button class="wp-mini" data-sel-up="${i}" ${i===0?'disabled':''} title="위로">↑</button>
+      <button class="wp-mini" data-sel-down="${i}" ${i===WP_SEL.length-1?'disabled':''} title="아래로">↓</button>
+      <button class="wp-mini" data-sel-del="${i}" title="빼기">✕</button></li>`;
+  }).join('');
+  const candidates=wpSiteOrder(pub).filter(r=>WP_SEL.indexOf(r._id)<0);
+  const full=WP_SEL.length>=SELECTED_MAX;
+  const selHtml=`<div class="wp-box">
+    <div class="wp-head"><h3>Selected works</h3><span class="hint">최대 ${SELECTED_MAX}점 · 위에서부터 이 순서로 · 비워 두면 이 구역이 안 보입니다</span></div>
+    ${WP_SEL.length?`<ol class="wp-sel">${selItems}</ol>`:'<p class="hint" style="margin:0 0 10px">아직 고른 작품이 없습니다.</p>'}
+    <div class="wp-add">
+      <select id="wpSelAdd" ${full?'disabled':''}>
+        <option value="">${full?`${SELECTED_MAX}점이 다 찼습니다 — 하나를 빼면 추가할 수 있어요`:'공개 작품에서 고르기…'}</option>
+        ${candidates.map(r=>`<option value="${esc(r._id)}">${esc(r.no||'')} · ${esc(r.title||'')}${r.year?' ('+esc(r.year)+')':''}</option>`).join('')}
+      </select>
+      <button class="btn" id="wpSelAddBtn" ${full?'disabled':''}>추가</button>
+    </div>
+    <div class="wp-actions"><button class="btn primary" id="wpSelSave" ${WP_SEL_DIRTY?'':'disabled'}>Selected 저장</button>
+      <span class="hint" id="wpSelMsg">${WP_SEL_DIRTY?'저장하지 않은 변경이 있습니다':''}</span></div>
+  </div>`;
+
+  // ── 연작 ──
+  const keys=[...new Set(rows.map(r=>String(r.series||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const serByKey={}; SERIES_ROWS.forEach(x=>{serByKey[x.key]=x});
+  const serVal=(k,f)=>WP_SERIES_DRAFT[k]&&WP_SERIES_DRAFT[k][f]!==undefined?WP_SERIES_DRAFT[k][f]:(serByKey[k]?serByKey[k][f]:(f==='joined'?false:''));
+  const serRows=keys.map(k=>{
+    const members=rows.filter(r=>String(r.series||'').trim()===k).sort(wpSeriesCmp(WP_ORDER_DRAFT));
+    const n=WP_SERIES_COUNT[k]||0, j=!!serVal(k,'joined');
+    return `<tr>
+      <td><b>${esc(k)}</b><div class="hint">공개 ${n}점 / 전체 ${members.length}점</div></td>
+      <td class="wrap" style="font-size:.8rem">${members.map(r=>esc(r.no||'')+(r.publish_web?'':' (비공개)')).join('<br>')}</td>
+      <td><input type="text" data-ser="${esc(k)}" data-f="name_ko" value="${esc(serVal(k,'name_ko')||'')}" placeholder="예: 우주조약"></td>
+      <td><input type="text" data-ser="${esc(k)}" data-f="name_en" value="${esc(serVal(k,'name_en')||'')}" placeholder="English"></td>
+      <td style="text-align:center"><input type="checkbox" data-ser="${esc(k)}" data-f="joined" ${j?'checked':''} style="width:auto">
+        ${j&&n!==2?`<div class="wp-warn">공개 2점일 때만 붙습니다</div>`:''}</td>
+    </tr>`;
+  }).join('');
+  const serDirty=Object.keys(WP_SERIES_DRAFT).length>0;
+  const serHtml=`<div class="wp-box">
+    <div class="wp-head"><h3>연작</h3><span class="hint">작품 수정 화면의 '시리즈 키'가 같은 작품끼리 연작입니다</span></div>
+    <p class="hint">연작은 작품 목록에서 연이어 나옵니다. <b>이름</b>을 적은 연작만 작품 페이지 '모아 보기'에 나옵니다.
+      <b>두 폭 붙이기</b>를 켜면 ㅁㅁ처럼 두 작품을 두 칸짜리 한 단위로, 사이를 살짝 띄워 보여 줍니다(공개 작품이 딱 2점일 때만).</p>
+    ${keys.length?`<div class="tablewrap"><table><thead><tr><th>시리즈 키</th><th>작품</th><th>연작 이름</th><th>영문 이름</th><th>두 폭 붙이기</th></tr></thead>
+      <tbody>${serRows}</tbody></table></div>`:'<p class="hint">아직 시리즈 키를 입력한 작품이 없습니다.</p>'}
+    <div class="wp-actions"><button class="btn primary" id="wpSerSave" ${serDirty?'':'disabled'}>연작 저장</button>
+      <span class="hint">${serDirty?'저장하지 않은 변경이 있습니다':''}</span></div>
+  </div>`;
+
+  // ── 목록 순서 + 미리보기 ──
+  const ordered=wpGroupSeries(wpSiteOrder(pub, WP_ORDER_DRAFT), WP_ORDER_DRAFT);
+  const dv=(r,f)=>WP_ORDER_DRAFT[r._id]&&WP_ORDER_DRAFT[r._id][f]!==undefined?WP_ORDER_DRAFT[r._id][f]:(r[f]||'');
+  const ordRows=ordered.map(r=>{
+    const u=imgUrl(r,true), k=String(r.series||'').trim();
+    const ch=f=>WP_ORDER_DRAFT[r._id]&&WP_ORDER_DRAFT[r._id][f]!==undefined&&String(WP_ORDER_DRAFT[r._id][f])!==String(r[f]||'')?' changed':'';
+    return `<tr>
+      <td><input inputmode="numeric" class="${ch('display_order')}" data-ord="${esc(r._id)}" data-f="display_order" value="${esc(dv(r,'display_order'))}" placeholder="—"></td>
+      <td>${u?`<img src="${esc(u)}" alt="">`:'<img alt="">'}</td>
+      <td style="white-space:nowrap">${esc(r.no||'')}</td>
+      <td class="wrap">${esc(r.title||'')}</td>
+      <td>${k?esc(k):'<span class="hint">—</span>'}</td>
+      <td>${k?`<input inputmode="numeric" class="${ch('series_order')}" data-ord="${esc(r._id)}" data-f="series_order" value="${esc(dv(r,'series_order'))}" placeholder="—">`:''}</td>
+    </tr>`;
+  }).join('');
+  const ordDirty=Object.keys(WP_ORDER_DRAFT).some(id=>{
+    const r=byId[id], d=WP_ORDER_DRAFT[id];
+    return r&&['display_order','series_order'].some(f=>d[f]!==undefined&&String(d[f])!==String(r[f]||''));
+  });
+  const selRows=wpSelectedRows(joined);
+  const lay=(list,c)=>wpLayout(list,c,joined);
+  const pcSel=lay(selRows,3), pcAll=lay(ordered,3), mSel=lay(selRows,2), mAll=lay(ordered,2);
+  const gaps=pcSel.gaps+pcAll.gaps+mSel.gaps+mAll.gaps;
+  const pvBlock=(title,cols,sl,al)=>`<div><h4>${title}</h4>
+    ${selRows.length?`<div class="sec">SELECTED WORKS</div>${wpGridHtml(sl,cols)}`:''}
+    <div class="sec">ALL WORKS</div>${wpGridHtml(al,cols)}</div>`;
+  const ordHtml=`<div class="wp-box">
+    <div class="wp-head"><h3>All works 순서</h3><span class="hint">공개 작품 ${pub.length}점 · 지금 홈페이지에 보일 순서대로</span></div>
+    <p class="hint"><b>목록 순서</b>는 작은 수부터 앞에 나오고, 비워 둔 작품은 그 뒤에 최신순으로 이어집니다(새로 올린 작품도 비워 두면 최신순 자리).
+      10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다. 연작은 첫 작품 자리에 모여 나오고, 그 안의 순서는 <b>연작 안 순서</b>로 정합니다.
+      숫자를 바꾸면 아래 미리보기가 바로 바뀝니다.</p>
+    <div class="tablewrap"><table class="wp-ord"><thead><tr><th>목록 순서</th><th></th><th>No.</th><th>작품명</th><th>연작</th><th>연작 안 순서</th></tr></thead>
+      <tbody>${ordRows||'<tr><td colspan="6" class="hint">공개 작품이 없습니다</td></tr>'}</tbody></table></div>
+    <div class="wp-actions"><button class="btn primary" id="wpOrdSave" ${ordDirty?'':'disabled'}>순서 저장</button>
+      <button class="btn" id="wpOrdClear">순서 모두 비우기(최신순으로)</button>
+      <span class="hint">${ordDirty?'저장하지 않은 변경이 있습니다':''}</span></div>
+    <div class="wp-head" style="margin-top:18px"><h3>미리보기</h3>
+      <span class="hint">칸 배치만 보여 줍니다(실제 사진 비율·캡션은 홈페이지에서 확인)</span></div>
+    ${gaps?`<p class="wp-warn" style="margin:0 0 4px">빈 칸 ${gaps}곳 — 두 폭 작품이 줄 끝 한 칸에 못 들어가 다음 줄로 넘어간 자리입니다. 두 폭 작품의 순서를 한 칸 앞이나 뒤로 옮기면 메워집니다(PC 3열과 모바일 2열은 칸 수가 달라 한쪽만 메워질 수도 있습니다).</p>`:''}
+    <div class="wp-pv">${pvBlock('PC · 3열',3,pcSel,pcAll)}${pvBlock('태블릿·모바일 · 2열',2,mSel,mAll)}</div>
+  </div>`;
+
+  box.innerHTML=`<div class="wp">${intro}${selHtml}${serHtml}${ordHtml}</div>`;
+  bindWorksPage();
+}
+function wpKeepFocus(fn){
+  // 숫자를 입력하는 도중 화면을 다시 그려도 커서가 그 칸에 남게 한다
+  const a=document.activeElement, key=a&&a.dataset?(a.dataset.ord||a.dataset.ser):null, f=a&&a.dataset?a.dataset.f:null;
+  const pos=a&&typeof a.selectionStart==='number'?a.selectionStart:null;
+  fn();
+  if(key&&f){
+    const el=[...document.querySelectorAll('#wpBody [data-f="'+f+'"]')].find(x=>(x.dataset.ord||x.dataset.ser)===key);
+    if(el){ el.focus(); if(pos!=null&&el.setSelectionRange&&el.type!=='checkbox'){ try{el.setSelectionRange(pos,pos)}catch(e){} } }
+  }
+}
+function bindWorksPage(){
+  const box=$('#wpBody');
+  box.querySelectorAll('[data-sel-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.selUp; [WP_SEL[i-1],WP_SEL[i]]=[WP_SEL[i],WP_SEL[i-1]]; WP_SEL_DIRTY=true; drawWorksPage();});
+  box.querySelectorAll('[data-sel-down]').forEach(b=>b.onclick=()=>{const i=+b.dataset.selDown; [WP_SEL[i+1],WP_SEL[i]]=[WP_SEL[i],WP_SEL[i+1]]; WP_SEL_DIRTY=true; drawWorksPage();});
+  box.querySelectorAll('[data-sel-del]').forEach(b=>b.onclick=()=>{WP_SEL.splice(+b.dataset.selDel,1); WP_SEL_DIRTY=true; drawWorksPage();});
+  const addBtn=$('#wpSelAddBtn');
+  if(addBtn) addBtn.onclick=()=>{const v=$('#wpSelAdd').value; if(!v||WP_SEL.length>=SELECTED_MAX)return; WP_SEL.push(v); WP_SEL_DIRTY=true; drawWorksPage();};
+  const selSave=$('#wpSelSave');
+  if(selSave) selSave.onclick=async()=>{
+    selSave.disabled=true;
+    const q=await sb.from('site_settings').upsert({key:'works_selected', value:WP_SEL, updated_at:new Date().toISOString()},{onConflict:'key'});
+    if(q.error){ toast('저장 실패: '+q.error.message); selSave.disabled=false; return; }
+    WORKS_SELECTED=WP_SEL.slice(); WP_SEL_DIRTY=false; toast('✅ Selected works를 저장했습니다 — 🚀 반영을 누르면 홈페이지에 나갑니다'); drawWorksPage();
+  };
+
+  box.querySelectorAll('input[data-ser]').forEach(inp=>{
+    const on=()=>{
+      const k=inp.dataset.ser, f=inp.dataset.f;
+      (WP_SERIES_DRAFT[k]=WP_SERIES_DRAFT[k]||{})[f]=inp.type==='checkbox'?inp.checked:inp.value;
+      if(inp.type==='checkbox') wpKeepFocus(drawWorksPage);
+      else{ const b=$('#wpSerSave'); if(b){ b.disabled=false; b.nextElementSibling.textContent='저장하지 않은 변경이 있습니다'; } }
+    };
+    inp.addEventListener(inp.type==='checkbox'?'change':'input', on);
+  });
+  const serSave=$('#wpSerSave');
+  if(serSave) serSave.onclick=async()=>{
+    serSave.disabled=true;
+    const cur={}; SERIES_ROWS.forEach(x=>{cur[x.key]=x});
+    const up=Object.keys(WP_SERIES_DRAFT).map(k=>{
+      const d=WP_SERIES_DRAFT[k], c=cur[k]||{};
+      const pick=(f,def)=>d[f]!==undefined?d[f]:(c[f]!==undefined?c[f]:def);
+      const nk=String(pick('name_ko','')||'').trim(), ne=String(pick('name_en','')||'').trim();
+      return {key:k, name_ko:nk||null, name_en:ne||null, joined:!!pick('joined',false), updated_at:new Date().toISOString()};
+    }).filter(x=>cur[x.key]||x.name_ko||x.name_en||x.joined); // 아무것도 안 적은 새 연작은 만들지 않는다
+    if(up.length){
+      const q=await sb.from('series').upsert(up,{onConflict:'key'});
+      if(q.error){ toast('저장 실패: '+q.error.message); serSave.disabled=false; return; }
+    }
+    await loadWorksPageData(); WP_SERIES_DRAFT={}; toast('✅ 연작을 저장했습니다'); drawWorksPage();
+  };
+
+  box.querySelectorAll('input[data-ord]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const v=inp.value.replace(/[^\d]/g,'');
+      if(v!==inp.value) inp.value=v;
+      (WP_ORDER_DRAFT[inp.dataset.ord]=WP_ORDER_DRAFT[inp.dataset.ord]||{})[inp.dataset.f]=v;
+    });
+    // 입력을 마치면(칸을 벗어나거나 Enter) 표 순서와 미리보기를 다시 그린다 — 입력 중에 줄이 움직이면 헷갈린다
+    inp.addEventListener('change',()=>drawWorksPage());
+  });
+  const clr=$('#wpOrdClear');
+  if(clr) clr.onclick=()=>{
+    wpPublicRows().forEach(r=>{ (WP_ORDER_DRAFT[r._id]=WP_ORDER_DRAFT[r._id]||{}).display_order=''; });
+    drawWorksPage();
+  };
+  const ordSave=$('#wpOrdSave');
+  if(ordSave) ordSave.onclick=async()=>{
+    ordSave.disabled=true;
+    const byId={}; rows.forEach(r=>{byId[r._id]=r});
+    const jobs=Object.keys(WP_ORDER_DRAFT).map(id=>{
+      const r=byId[id], d=WP_ORDER_DRAFT[id]; if(!r) return null;
+      const patch={};
+      ['display_order','series_order'].forEach(f=>{
+        if(d[f]!==undefined&&String(d[f])!==String(r[f]||'')) patch[f]=d[f]===''?null:+d[f];
+      });
+      return Object.keys(patch).length?{r,patch}:null;
+    }).filter(Boolean);
+    const failed=[];
+    for(const j of jobs){
+      // 작품 수정과 같은 규칙: 그 사이 다른 곳에서 바뀐 작품은 덮어쓰지 않는다
+      const q=await sb.from('works').update(j.patch).eq('id',j.r._id).eq('version',j.r._version).select('id');
+      if(q.error||!q.data||!q.data.length) failed.push(j.r.no||j.r.title);
+    }
+    await load();
+    WP_ORDER_DRAFT={};
+    if(failed.length) toast('⚠ '+failed.length+'점은 저장하지 못했습니다(다른 곳에서 먼저 바뀜): '+failed.join(', ')+' — 다시 입력해 주세요');
+    else toast('✅ 순서를 저장했습니다('+jobs.length+'점) — 🚀 반영을 누르면 홈페이지에 나갑니다');
+    if(section==='workspage') drawWorksPage();
+  };
+}
+
 /* ---------- 메인 화면 ---------- */
 function renderHome(){
   const pub = rows.filter(r=>r.publish_web && !r.deleted_at).length;
   const cards = [
     {go:'homevideos', t:'홈 영상', d:'홈페이지 첫 화면 영상', n:hvRows.length, unit:'개'},
     {go:'works', t:'작품', d:'작품 등록·수정, 사진과 판매 기록', n:rows.length, unit:'점', sub:pub?('공개 '+pub):''},
+    {go:'workspage', t:'Works 구성', d:'홈페이지 작품 페이지 — Selected works, 연작, 목록 순서',
+      n:WP_READY?WORKS_SELECTED.length:undefined, unit:'/'+SELECTED_MAX+' Selected'},
     {go:'exhibitions', t:'전시', d:'전시 이력과 포스터', n:exRows.length, unit:'건'},
     {go:'press', t:'기사', d:'언론 보도 기록', n:pressRows.length, unit:'건'},
     {go:'feecalc', t:'수수료 계산', d:'판매가·수수료 계산기'},
@@ -2890,7 +3329,9 @@ const FIELD_KO={
   exhibition_no:'전시번호', venue_ko:'장소', venue_en:'장소(영문)',
   start_date:'시작일', end_date:'종료일', type:'구분', note_public_ko:'공개 메모',
   poster_url:'포스터', map_url:'지도 링크', featured_work_nos:'대표 작품',
-  about_selected:'About 고정 노출', display_order:'순서',
+  about_selected:'About 고정 노출', display_order:'순서', series_order:'연작 안 순서',
+  // 연작·사이트 설정
+  key:'키', name_ko:'연작 이름', name_en:'연작 이름(영문)', joined:'두 폭 붙이기', value:'값',
   // 기사
   press_no:'기사번호', outlet_ko:'매체', published_date:'보도일', url:'기사 주소',
   quote_ko:'인용구', quote_en:'인용구(영문)', image_source_url:'대표 이미지',
@@ -2944,11 +3385,12 @@ function logChanges(oldRow, newRow){
 }
 
 const LOG_TABLE_KO={works:'작품', editions:'작품 판매정보', exhibitions:'전시',
-                    exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 영상'};
+                    exhibition_works:'전시 출품작', press:'기사', home_videos:'홈 영상',
+                    series:'연작', site_settings:'Works 구성'};
 const LOG_ACTION_KO={insert:'등록', update:'수정', soft_delete:'삭제',
                      restore:'되살림', delete:'완전 삭제'};
 const LOG_GROUP={works:['works','editions'], exhibitions:['exhibitions','exhibition_works'],
-                 press:['press'], home_videos:['home_videos']};
+                 press:['press'], home_videos:['home_videos'], workspage:['series','site_settings']};
 
 async function loadActivityLog(){
   $('#logBox').innerHTML='<span class="hint">불러오는 중…</span>';

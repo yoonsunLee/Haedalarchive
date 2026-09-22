@@ -3489,7 +3489,8 @@ async function stFetch(from,to){
   const j=await res.json().catch(()=>({}));
   if(!res.ok||!j.ok){
     const msg={auth:'로그인 확인 실패 — 다시 로그인해 주세요', aal2:'2단계 인증을 마친 로그인이 필요합니다',
-      forbidden:'통계를 볼 수 있는 계정이 아닙니다(카페24 config.php의 STATS_ADMIN_EMAILS)', db:'통계 DB에 연결하지 못했습니다(카페24 config.php의 DB 이름·아이디·비밀번호 확인)'+(j.message?' — '+j.message:'')}[j.code]||('통계 서버 오류('+res.status+')');
+      forbidden:'통계를 볼 수 있는 계정이 아닙니다 — 로그인한 이메일 '+(j.message||'?')+'이(가) 카페24 config.php의 STATS_ADMIN_EMAILS에 없습니다'+(j.listed===0?'(지금 비어 있음)':''),
+      verify:'서버가 로그인을 확인하지 못했습니다('+(j.message||'')+') — 카페24 config.php의 SUPABASE_URL·SUPABASE_ANON_KEY 확인', db:'통계 DB에 연결하지 못했습니다(카페24 config.php의 DB 이름·아이디·비밀번호 확인)'+(j.message?' — '+j.message:'')}[j.code]||('통계 서버 오류('+res.status+')');
     const er=new Error(msg); er.code=j.code; er.notReady=j.code==='db'; throw er;
   }
   return j;

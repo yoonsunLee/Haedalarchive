@@ -115,10 +115,19 @@ function require_admin(array $origins): string
     ]);
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $cerr = curl_errno($ch);
     curl_close($ch);
-    $user = $code === 200 ? json_decode((string)$res, true) : null;
+    // 설치 중 원인이 보이게: Supabase 확인 자체가 안 된 것(verify)과 이메일이 목록에 없는 것(forbidden)을 나눈다
+    if ($code !== 200) {
+        respond_json(403, ['ok' => false, 'code' => 'verify',
+                           'message' => 'HTTP ' . $code . ($cerr ? ' · curl ' . $cerr : '')], $origins);
+    }
+    $user = json_decode((string)$res, true);
     $email = strtolower((string)($user['email'] ?? ''));
     $allowed = array_map('strtolower', list_cfg('STATS_ADMIN_EMAILS', ''));
-    if ($email === '' || !in_array($email, $allowed, true)) respond_json(403, ['ok' => false, 'code' => 'forbidden'], $origins);
+    if ($email === '' || !in_array($email, $allowed, true)) {
+        // Supabase가 확인해 준 본인 이메일만 돌려준다(목록 내용은 알려 주지 않음)
+        respond_json(403, ['ok' => false, 'code' => 'forbidden', 'message' => $email, 'listed' => count($allowed)], $origins);
+    }
     return $email;
 }

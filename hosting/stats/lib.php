@@ -52,7 +52,7 @@ function respond_json(int $status, $body, array $origins, string $methods = 'GET
         header('Vary: Origin');
     }
     header('Access-Control-Allow-Methods: ' . $methods);
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-SH-Auth');
     header('Access-Control-Max-Age: 3600');
     header('Cache-Control: no-store');
     if ($status !== 204) echo json_encode($body, JSON_UNESCAPED_UNICODE);
@@ -93,7 +93,13 @@ function ip16(string $ip)
    2단계 인증까지 마친 토큰(aal2)이고, 허용된 이메일일 때만 통과. */
 function require_admin(array $origins): string
 {
+    // 카페24처럼 PHP를 CGI로 돌리는 호스팅은 Authorization 머리를 PHP에 넘기지 않는다 —
+    // 아카이브는 같은 토큰을 X-SH-Auth 머리에도 실어 보낸다
     $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if ($auth === '' && function_exists('getallheaders')) {
+        foreach ((array)getallheaders() as $k => $v) if (strcasecmp($k, 'Authorization') === 0) $auth = (string)$v;
+    }
+    if ($auth === '') $auth = $_SERVER['HTTP_X_SH_AUTH'] ?? '';
     if (!preg_match('/^Bearer\s+([A-Za-z0-9._-]+)$/', $auth, $m)) respond_json(401, ['ok' => false, 'code' => 'auth'], $origins);
     $token = $m[1];
     $parts = explode('.', $token);

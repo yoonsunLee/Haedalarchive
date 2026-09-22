@@ -3482,7 +3482,8 @@ async function stFetch(from,to){
   const tok=ss.data&&ss.data.session?ss.data.session.access_token:'';
   if(!tok){ const e=new Error('로그인이 필요합니다'); throw e; }
   let res;
-  try{ res=await fetch(STATS_API+'report.php?from='+from+'&to='+to, {headers:{Authorization:'Bearer '+tok}}); }
+  // X-SH-Auth: 카페24 PHP는 Authorization 머리를 받지 못해 같은 토큰을 한 번 더 싣는다(hosting/stats/lib.php)
+  try{ res=await fetch(STATS_API+'report.php?from='+from+'&to='+to, {headers:{Authorization:'Bearer '+tok, 'X-SH-Auth':'Bearer '+tok}}); }
   catch(e){ const er=new Error('통계 서버에 연결하지 못했습니다'); er.notReady=true; throw er; }
   if(res.status===404){ const er=new Error('통계 서버 파일이 아직 없습니다'); er.notReady=true; throw er; }
   const j=await res.json().catch(()=>({}));
@@ -3712,7 +3713,7 @@ function stBindBar(){
 }
 async function stGeoPost(body){
   const ss=await sb.auth.getSession(), tok=ss.data&&ss.data.session?ss.data.session.access_token:'';
-  const res=await fetch(STATS_API+'geoip.php', {method:'POST', headers:{Authorization:'Bearer '+tok, 'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams(body)});
+  const res=await fetch(STATS_API+'geoip.php', {method:'POST', headers:{Authorization:'Bearer '+tok, 'X-SH-Auth':'Bearer '+tok, 'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams(body)});
   const j=await res.json().catch(()=>({}));
   if(!res.ok||!j.ok) throw new Error(j.message||j.code||('오류 '+res.status));
   return j;

@@ -3468,7 +3468,7 @@ function stSrc(s){ return s&&s.indexOf('c:')===0?'캠페인 '+s.slice(2):(ST_SRC
 function stPage(k){
   const m=String(k||'').match(/^\/works\/w\/([^/]+)\/$/);
   if(m) return '작품 페이지 '+m[1];
-  return {'/':'홈', '/works/':'Works', '/about/':'About', '/ip/':'IP', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/other/':'기타'}[k]||k;
+  return {'/':'홈', '/works/':'Works', '/about/':'About', '/ip/':'IP', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/copyright/':'저작권 안내', '/other/':'기타'}[k]||k;
 }
 function stWork(no){ return rows.find(r=>String(r.no)===String(no)); }
 function stN(v){ return (v||0).toLocaleString('ko-KR'); }

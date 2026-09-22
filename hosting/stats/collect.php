@@ -90,7 +90,7 @@ try {
     };
     $page = function ($v) {
         $v = (string)$v;
-        if (preg_match('#^/(works/w/[A-Za-z0-9-]{1,24}/|works/|about/|ip/|press/|contact/|privacy/|copyright/)?$#', $v)) return $v;
+        if (preg_match('#^/(works/w/[A-Za-z0-9-]{1,24}/|works/|about/|ip/|press/|contact/|privacy/history/|privacy/|copyright/|404/)?$#', $v)) return $v;
         return '/other/';
     };
     $bucket = function ($sec) {

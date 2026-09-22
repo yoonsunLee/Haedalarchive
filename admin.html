@@ -231,6 +231,10 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .st-sec .hint{margin:-4px 0 10px}
 .st-sum{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
 .st-sum div{border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+.st-ins{display:grid; gap:7px; margin:12px 0 0}
+.st-ins > div{display:flex; gap:9px; align-items:baseline; font-size:.86rem; line-height:1.6}
+.st-ins .lab{flex:none; min-width:34px; padding:1px 7px; border:1px solid var(--line); border-radius:999px; font-size:.72rem; color:var(--sub); text-align:center}
+.st-ins .up{color:#2f7a52} .st-ins .down{color:#b0402a}
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
 .st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
@@ -3448,7 +3452,7 @@ $('#btnPubPreview').onclick=()=>{ $('#dlgPublish').close(); openPreview(pvPageFo
    로그인 토큰(2단계 인증까지 마친 것)을 그대로 보내 서버가 Supabase에 확인한다.
    agg 한 줄: [항목, k1, k2, 국가, 들어온 곳, 기기, 언어, 수, 합(초)] / daily 한 줄: [날짜, 항목, 국가, 들어온 곳, 기기, 언어, 수] */
 const STATS_API='https://shinhaedalapi.mycafe24.com/stats/';
-var ST={data:null, from:'', to:'', preset:'30', f:{cc:'', src:'', dev:''}, home:null, homeAt:0, err:null};
+var ST={data:null, from:'', to:'', preset:'30', f:{cc:'', src:'', dev:''}, home:null, homeAt:0, err:null, ins:null, insAt:0};
 const ST_BTN={hero_work:'히어로 작품 보기', hero_pause:'히어로 정지·재생', all_works:'모든 작품 보기', about_teaser:'작가 소개 보기',
   ip_teaser:'얼빵해달 배너', ex_poster:'전시 포스터 보기', open_work:'작품 열기', wm_large:'크게 보기', wm_video:'영상 재생',
   wm_photo:'상세 사진 넘김', wm_step:'이전·다음', wm_series:'같은 시리즈', wm_share:'공유', wm_copy:'링크 복사', wm_docent:'도슨트',
@@ -3606,6 +3610,112 @@ function stTable(id, title, hint, head, body, fmt){
       body.map(r=>'<tr>'+r.map((c,i)=>'<td'+(numCol[i]?' class="num"':'')+'>'+(fmt&&fmt[i]?fmt[i](c,r):esc(typeof c==='number'?stN(c):c))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'
       :'<p class="hint">이 기간에는 기록이 없습니다.</p>')+'</div>';
 }
+/* ---------- 흐름 한 줄로 읽기(일간·주간·월간) ----------
+   요약 숫자 밑에 "그래서 늘었나 줄었나"를 적는다. 고른 기간·걸러 보기와 상관없이
+   최근 60일 날짜별 수를 따로 한 번 받아(5분 동안 다시 쓰지 않는다) 앞 기간과 견준다. */
+async function stInsData(){
+  const to=kstDay(0), from=kstDay(-59);
+  if(ST.ins&&ST.ins.to===to&&Date.now()-ST.insAt<300e3) return ST.ins;
+  const j=await stFetch(from,to);
+  ST.ins={from,to,daily:j.daily||[]}; ST.insAt=Date.now();
+  return ST.ins;
+}
+function stInsSeries(ins){
+  const days=stDays(ins.from,ins.to), idx={}; days.forEach((d,i)=>{ idx[d]=i; });
+  const zero=()=>days.map(()=>0);
+  const v={visitor:zero(), visit:zero(), pv:zero(), abroad:zero(), known:zero()};
+  const src=days.map(()=>({}));
+  let first='';
+  (ins.daily||[]).forEach(r=>{
+    const i=idx[r[0]]; if(i===undefined) return;
+    const m=r[1], cc=r[2], s=r[3], n=r[6]||0;
+    if(v[m]) v[m][i]+=n;
+    if(m==='visit'){
+      if(cc&&cc!=='--'){ v.known[i]+=n; if(cc!=='KR') v.abroad[i]+=n; }
+      src[i][s]=(src[i][s]||0)+n;
+    }
+    if(n>0&&(!first||r[0]<first)) first=r[0];
+  });
+  return {days,v,src,first};
+}
+/* 끝에서 n일치 합(skip: 오늘부터 몇 칸 건너뛸지) */
+function stTail(arr,n,skip){ const e=arr.length-(skip||0); return arr.slice(Math.max(0,e-n),e).reduce((a,b)=>a+b,0); }
+function stAvg(x,n){ return n?(Math.round(x/n*10)/10).toLocaleString('ko-KR'):'0'; }
+/* 받침 있는 말이면 앞것, 없으면 뒷것(104회'와' / 210명'과') */
+function stJosa(word, yes, no){ const c=word.charCodeAt(word.length-1); return (c>=0xAC00&&c<=0xD7A3&&(c-0xAC00)%28!==0)?yes:no; }
+/* 앞 기간과 견줘 한 마디 — 조사까지 붙여 돌려준다(앞이 0이면 그 말만) */
+function stDelta(label, cur, prev, unit){
+  const u=unit||'명';
+  if(!prev) return label+stJosa(label,'은','는')+' 없었습니다';
+  const pct=Math.round((cur-prev)/prev*100);
+  if(Math.abs(pct)<10) return label+' '+stN(prev)+u+stJosa(u,'과','와')+' <b>비슷합니다</b>';
+  return label+' '+stN(prev)+u+'보다 '+(pct>0?'<b class="up">'+pct+'% 늘었습니다</b>':'<b class="down">'+Math.abs(pct)+'% 줄었습니다</b>');
+}
+function stInsLines(ins){
+  const S=stInsSeries(ins), d=S.days, v=S.v, n=d.length;
+  if(!S.first) return [['','아직 들어온 방문이 없습니다. 쌓이기 시작하면 여기에 흐름이 보입니다.']];
+  const started=S.first, sinceDays=Math.max(1,Math.round((Date.parse(d[n-1])-Date.parse(started))/86400e3)+1);
+  const ymd=s=>Number(s.slice(5,7))+'월 '+Number(s.slice(8,10))+'일';
+  const since='<span class="hint">'+ymd(started)+'부터 '+sinceDays+'일째 모으는 중</span>';
+  const has=i=>d[i]!==undefined&&d[i]>=started;   // 그 날이 수집 시작 뒤인가
+  const dow=s=>['일','월','화','수','목','금','토'][new Date(s+'T00:00:00Z').getUTCDay()];
+  const out=[];
+
+  /* 일간 — 오늘 */
+  const tv=v.visitor[n-1], tp=v.pv[n-1], yv=v.visitor[n-2]||0;
+  let l='';
+  if(!tv&&!tp){
+    l='오늘은 아직 기록이 없습니다'+(has(n-2)?' — 어제는 방문자 '+stN(yv)+'명이었습니다.':'.');
+  }else{
+    l='오늘 방문자 <b>'+stN(tv)+'명</b> · 페이지뷰 '+stN(tp)+'회';
+    if(has(n-2)){
+      l+=' — '+stDelta('어제',tv,yv,'명');
+      const base=stTail(v.visitor,7,1), bdays=Math.min(7,Math.max(1,sinceDays-1));
+      l+='.';
+      if(bdays>=3) l+=' 최근 '+bdays+'일 평균 '+stAvg(base,bdays)+'명과 견주면 '+(tv>base/bdays*1.1?'많은':(tv<base/bdays*0.9?'적은':'비슷한'))+' 날입니다.';
+      l+=' 오늘은 아직 지나는 중입니다.';
+    }else{ l+='. '+since+'.'; }
+  }
+  out.push(['일간',l]);
+
+  /* 주간 — 최근 7일 */
+  const w=stTail(v.visit,7,0), wp=stTail(v.visit,7,7), wv=stTail(v.visitor,7,0);
+  l='최근 7일 방문 <b>'+stN(w)+'회</b> · 방문자 '+stN(wv)+'명(하루 평균 '+stAvg(w,Math.min(7,sinceDays))+'회)';
+  if(has(n-14)) l+=' — '+stDelta('앞 7일',w,wp,'회');
+  else l+=' — 앞 7일은 모으기 전이라 견줄 수 없습니다';
+  if(sinceDays>=3){
+    const bits=[];
+    let bi=-1,bv=-1; for(let i=Math.max(0,n-7);i<n;i++){ if(v.visit[i]>bv){ bv=v.visit[i]; bi=i; } }
+    if(bv*7>w+1) bits.push('가장 붐빈 날은 '+ymd(d[bi])+'('+dow(d[bi])+') '+stN(bv)+'회');
+    const sm={}; for(let i=Math.max(0,n-7);i<n;i++) Object.keys(S.src[i]).forEach(k=>{ sm[k]=(sm[k]||0)+S.src[i][k]; });
+    const top=Object.keys(sm).sort((a,b)=>sm[b]-sm[a])[0];
+    if(top!==undefined) bits.push('들어온 곳 1위는 '+esc(stSrc(top))+'('+stN(sm[top])+'회)');
+    if(bits.length) l+='. '+bits.join(', ');
+  }
+  out.push(['주간',l+'.']);
+
+  /* 월간 — 최근 30일 */
+  const m=stTail(v.visitor,30,0), mp=stTail(v.visitor,30,30);
+  const ab=stTail(v.abroad,30,0), kn=stTail(v.known,30,0), abp=stTail(v.abroad,30,30), knp=stTail(v.known,30,30);
+  l='최근 30일 방문자 <b>'+stN(m)+'명</b> · 페이지뷰 '+stN(stTail(v.pv,30,0))+'회(하루 평균 '+stAvg(m,Math.min(30,sinceDays))+'명)';
+  if(has(n-60)) l+=' — '+stDelta('앞 30일',m,mp,'명');
+  else if(sinceDays<30) l+=' — '+since;
+  else l+=' — 앞 30일은 모으기 전이라 견줄 수 없습니다';
+  if(kn) l+='. 해외 비중 '+stPct(ab,kn)+(knp?'(앞 30일 '+stPct(abp,knp)+')':'');
+  out.push(['월간',l+'.']);
+  return out;
+}
+async function stInsFill(){
+  const box=$('#stIns'); if(!box) return;
+  try{
+    const ins=await stInsData();
+    if(!$('#stIns')) return;
+    $('#stIns').innerHTML=stInsLines(ins).map(([lab,text])=>'<div>'+(lab?'<span class="lab">'+lab+'</span>':'')+'<span>'+text+'</span></div>').join('')+
+      '<p class="hint" style="margin:2px 0 0">고른 기간·걸러 보기와 상관없이 오늘까지의 흐름입니다(한국 시간 기준).</p>';
+  }catch(e){
+    if($('#stIns')) $('#stIns').innerHTML='<p class="hint">흐름을 읽지 못했습니다 — '+esc(e.message||'')+'</p>';
+  }
+}
 function drawStats(){
   const box=$('#stBody');
   const presetBtns=[['today','오늘'],['yesterday','어제'],['7','7일'],['30','30일'],['custom','직접']];
@@ -3637,6 +3747,7 @@ function drawStats(){
     '<div><small>방문자</small><b>'+stN(sumv('visitor'))+'</b></div><div><small>방문</small><b>'+stN(sumv('visit'))+'</b></div>'+
     '<div><small>페이지뷰</small><b>'+stN(sumv('pv'))+'</b></div><div><small>평균 머문 시간(페이지)</small><b>'+stSec(dwAll.t,dwAll.n)+'</b></div>'+
     '<div><small>해외 비중(방문)</small><b>'+stPct(abroad,known)+'</b></div></div>'+
+    '<div class="st-ins" id="stIns"><p class="hint">흐름 읽는 중…</p></div>'+
     '<p class="hint" style="margin:10px 0 0">방문자는 하루 기준 브라우저 수라 같은 사람이 폰·PC로 보면 둘로 잡힙니다(추세를 보는 숫자). 개인은 알 수 없습니다.</p></div>';
   if(dl.days.length>1) html+='<div class="st-sec"><h3>추이</h3>'+stChart(dl.days,[{name:'방문자',c:'#2e6da4',v:dl.v.visitor},{name:'방문',c:'#2f7a52',v:dl.v.visit},{name:'페이지뷰',c:'#b07a2a',v:dl.v.pv}])+'</div>';
 
@@ -3704,6 +3815,7 @@ function drawStats(){
   const cl=$('#stClear'); if(cl) cl.onclick=()=>{ ST.f={cc:'',src:'',dev:''}; drawStats(); };
   $('#stGeoUpdate').onclick=stGeoUpdate;
   stBindBar();
+  stInsFill();   // 흐름 한 줄(따로 받아 채운다)
 }
 function stBindBar(){
   const pb=$('#stPreset'); if(pb) pb.onclick=e=>{ const b=e.target.closest('[data-p]'); if(!b) return; ST.preset=b.dataset.p; if(ST.preset!=='custom') openStats(); else drawStats(); };

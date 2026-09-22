@@ -1,0 +1,11 @@
+# 공통 코드·표 정의·내려받은 국가 DB 파일은 웹으로 열 수 없게
+<FilesMatch "^(lib\.php|schema\.sql)$">
+  Require all denied
+</FilesMatch>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(lib\.php|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
+RedirectMatch 404 /_data(/.*)?$

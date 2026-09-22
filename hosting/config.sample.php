@@ -24,4 +24,17 @@ return [
 
     // 메일 본문의 작품 링크 기준 주소
     'SITE_BASE' => 'https://shinhaedal.com',
+
+    // ── 방문 통계(stats/) ──
+    // 카페24 나의서비스관리 → 데이터베이스(MariaDB)에서 만든 값. 채팅·저장소에 적지 말 것
+    'STATS_DB_HOST' => 'localhost',
+    'STATS_DB_NAME' => '',
+    'STATS_DB_USER' => '',
+    'STATS_DB_PASS' => '',
+    // 통계 조회·국가 DB 갱신을 허락할 아카이브 주소와 로그인 이메일(쉼표로 여럿)
+    'ADMIN_ORIGINS' => 'https://yoonsunlee.github.io',
+    'STATS_ADMIN_EMAILS' => '',
+    // 아카이브 로그인 확인용(공개돼도 되는 값 — admin.html의 SB_URL·SB_KEY와 같음)
+    'SUPABASE_URL' => '',
+    'SUPABASE_ANON_KEY' => '',
 ];

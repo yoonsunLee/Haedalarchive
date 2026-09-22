@@ -45,6 +45,7 @@ function meta_set(PDO $db, string $k, string $v): void
 
 try {
     $db = db();
+    ensure_schema($db);
     if ($op === 'status') {
         $rows = (int)$db->query('SELECT COUNT(*) FROM ip_country')->fetchColumn();
         out(['version' => meta_get($db, 'geoip_version'), 'rows' => $rows]);

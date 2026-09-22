@@ -28,6 +28,19 @@ function db()
     return $pdo;
 }
 
+/* 통계 표가 없으면 만든다 — 같은 폴더의 schema.sql을 그대로 실행(CREATE TABLE IF NOT EXISTS라 몇 번 돌려도 안전).
+   카페24는 phpMyAdmin(MySQL 웹어드민)을 닫아서, 관리 화면이 통계를 처음 열 때 여기서 만든다. */
+function ensure_schema(PDO $db): void
+{
+    static $done = false;
+    if ($done) return;
+    $sql = preg_replace('/^\s*--.*$/m', '', (string)file_get_contents(__DIR__ . '/schema.sql'));
+    foreach (explode(';', $sql) as $stmt) {
+        if (trim($stmt) !== '') $db->exec($stmt);
+    }
+    $done = true;
+}
+
 /* JSON 응답. $origins: 허용할 Origin 목록(CORS) */
 function respond_json(int $status, $body, array $origins, string $methods = 'GET, POST, OPTIONS'): void
 {

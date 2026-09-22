@@ -3488,7 +3488,7 @@ async function stFetch(from,to){
   const j=await res.json().catch(()=>({}));
   if(!res.ok||!j.ok){
     const msg={auth:'로그인 확인 실패 — 다시 로그인해 주세요', aal2:'2단계 인증을 마친 로그인이 필요합니다',
-      forbidden:'통계를 볼 수 있는 계정이 아닙니다(카페24 config.php의 STATS_ADMIN_EMAILS)', db:'통계 DB에 연결하지 못했습니다(카페24 DB 설정·schema.sql 확인)'}[j.code]||('통계 서버 오류('+res.status+')');
+      forbidden:'통계를 볼 수 있는 계정이 아닙니다(카페24 config.php의 STATS_ADMIN_EMAILS)', db:'통계 DB에 연결하지 못했습니다(카페24 config.php의 DB 이름·아이디·비밀번호 확인)'+(j.message?' — '+j.message:'')}[j.code]||('통계 서버 오류('+res.status+')');
     const er=new Error(msg); er.code=j.code; er.notReady=j.code==='db'; throw er;
   }
   return j;
@@ -3616,8 +3616,8 @@ function drawStats(){
   if(!ST.data){
     const e=ST.err||{};
     box.innerHTML=bar+'<div class="st-sec"><h3>방문 통계를 불러오지 못했습니다</h3><p>'+esc(e.message||'')+'</p>'+
-      (e.notReady?'<ol class="hint" style="margin:8px 0 0 18px"><li>카페24 나의서비스관리 → 데이터베이스(MariaDB) 사용 신청</li><li>phpMyAdmin → SQL에 <code>hosting/stats/schema.sql</code> 붙여넣고 실행</li>'+
-        '<li><code>config.php</code>에 통계 칸 채우기(DB·이메일·Supabase) 후 <code>stats/</code> 폴더와 함께 FTP로 올리기</li><li>여기서 국가 데이터 갱신 → 처리방침 4차 게시일에 홈페이지 수집 켜기</li></ol>':'')+'</div>';
+      (e.notReady?'<ol class="hint" style="margin:8px 0 0 18px"><li>카페24 나의서비스관리 → 서비스 접속관리 → <b>DB 비밀번호 변경</b>(DB 이름·아이디는 카페24 호스팅 아이디)</li>'+
+        '<li><code>config.php</code>에 통계 칸 채우기(DB·이메일·Supabase) 후 <code>stats/</code> 폴더와 함께 FTP로 올리기</li><li>이 화면을 새로고침 — 통계 표는 처음 열 때 자동으로 만들어진다</li><li>아래 나라 데이터 갱신 → 처리방침 4차 게시일에 홈페이지 수집 켜기</li></ol>':'')+'</div>';
     stBindBar(); return;
   }
   const d=ST.data, agg=d.agg||[];

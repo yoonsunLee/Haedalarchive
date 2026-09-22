@@ -24,6 +24,7 @@ if ((strtotime($to) - strtotime($from)) / 86400 > 400) respond_json(400, ['ok' =
 
 try {
     $db = db();
+    ensure_schema($db);   // 처음 열 때 표 만들기(카페24엔 phpMyAdmin이 없다)
     $q = $db->prepare("SELECT day, metric, cc, src, dev, lang, SUM(n) FROM stat_counts
                        WHERE day BETWEEN ? AND ? AND metric IN ('pv','visit','visitor')
                        GROUP BY day, metric, cc, src, dev, lang ORDER BY day");
@@ -42,5 +43,6 @@ try {
                        'daily' => $daily, 'agg' => $agg, 'geoip' => $g ?: ''], $adminOrigins, 'GET, OPTIONS');
 } catch (Throwable $err) {
     error_log('stats report: ' . $err->getMessage());
-    respond_json(500, ['ok' => false, 'code' => 'db'], $adminOrigins, 'GET, OPTIONS');
+    // 로그인·2단계 인증·허용 이메일을 통과한 관리자에게만 가는 응답 — 설치 중 원인을 바로 보이게 DB 오류 문구를 싣는다
+    respond_json(500, ['ok' => false, 'code' => 'db', 'message' => $err->getMessage()], $adminOrigins, 'GET, OPTIONS');
 }

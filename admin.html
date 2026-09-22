@@ -201,6 +201,45 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .wp-grid .gap{aspect-ratio:1; border:1.5px dashed #d9a79f; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:.66rem; color:var(--sold)}
 @media (max-width:720px){ .wp-pv{grid-template-columns:minmax(0,1fr) minmax(0,.66fr); gap:14px} .wp-box{padding:14px} }
 
+/* 방문 통계 */
+.st-cards{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 16px}
+@media (max-width:1100px){ .st-cards{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:640px){ .st-cards{grid-template-columns:1fr} }
+.st-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); min-width:0; display:flex; flex-direction:column; gap:8px}
+.st-card h3{font-size:.86rem; color:var(--sub); font-weight:600; margin:0; display:flex; justify-content:space-between; gap:8px}
+.st-card h3 a{font-weight:400; color:var(--accent2); cursor:pointer}
+.st-big{display:flex; gap:14px; flex-wrap:wrap; align-items:baseline}
+.st-big div{display:flex; flex-direction:column}
+.st-big b{font-size:1.35rem; font-variant-numeric:tabular-nums; line-height:1.2}
+.st-big small{font-size:.74rem; color:var(--sub)}
+.st-big .y{font-size:.74rem; color:var(--sub); font-variant-numeric:tabular-nums}
+.st-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; font-size:.86rem}
+.st-list li{display:flex; align-items:center; gap:8px; min-width:0}
+.st-list li span.l{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.st-list li b{font-variant-numeric:tabular-nums; font-weight:600}
+.st-list img{width:34px; height:34px; object-fit:cover; border-radius:5px; background:#eee; flex:none}
+.st-spark{width:100%; height:44px; display:block}
+.st-note{font-size:.84rem; color:var(--sub); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:12px 14px; margin:0 0 16px}
+.st-bar{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin:0 0 14px}
+.st-seg{display:flex; flex-wrap:wrap; gap:2px; background:#ece8df; padding:3px; border-radius:9px}
+.st-seg button{border:0; background:none; padding:6px 11px; border-radius:7px; font:inherit; font-size:.84rem; cursor:pointer; color:var(--ink)}
+.st-seg button.on{background:var(--card); box-shadow:0 1px 2px rgba(0,0,0,.12); font-weight:700}
+.st-bar input[type=date], .st-bar select{padding:6px 8px; border:1px solid var(--line); border-radius:8px; font:inherit; font-size:.84rem; background:var(--card)}
+.st-sec{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:0 0 14px; box-shadow:var(--shadow); min-width:0}
+.st-sec h3{font-size:.98rem; margin:0 0 10px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap}
+.st-sec h3 .btn{padding:4px 10px; font-size:.78rem}
+.st-sec .hint{margin:-4px 0 10px}
+.st-sum{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+.st-sum div{border:1px solid var(--line); border-radius:10px; padding:10px 12px}
+.st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
+.st-sum small{color:var(--sub); font-size:.76rem}
+.st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.st-tbl img{width:36px; height:36px; object-fit:cover; border-radius:5px; background:#eee; display:block}
+.st-chart{width:100%; height:auto; display:block}
+.st-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--sub); margin:0 0 6px}
+.st-legend i{display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px}
+.st-geo{font-size:.8rem; color:var(--sub); display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center}
+
 .home-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px}
 .home-card{display:flex; flex-direction:column; gap:4px; text-align:left; padding:16px; background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); cursor:pointer; font:inherit; color:var(--ink)}
 .home-card:hover{border-color:var(--accent)}
@@ -362,6 +401,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="workspage">Works 구성</button>
   <button data-v="exhibitions">전시</button>
   <button data-v="press">기사</button>
+  <button data-v="stats">방문 통계</button>
   <button data-v="feecalc">수수료 계산</button>
   <button data-v="activity">작업 기록</button>
   <button data-v="settings">설정</button>
@@ -420,6 +460,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <button class="btn primary" id="homeAddWork">＋ 작품 등록</button>
       <button class="btn" id="homeAddVideo">＋ 홈 히어로 장 추가</button>
     </div>
+    <div id="homeStats"></div>
     <div class="home-cards" id="homeCards"></div>
     <p class="home-meta" id="homeMeta"></p>
     <p class="home-links">
@@ -505,6 +546,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       </tr></thead>
       <tbody id="fcTbody"></tbody>
     </table></div>
+  </section>
+
+  <section id="vStats" hidden>
+    <div id="stBody"><p class="hint">불러오는 중…</p></div>
   </section>
 
   <section id="vActivity" hidden>
@@ -3398,6 +3443,299 @@ $('#btnPubCancel').onclick=()=>$('#dlgPublish').close();
 $('#btnClosePublish').onclick=()=>$('#dlgPublish').close();
 $('#btnPubPreview').onclick=()=>{ $('#dlgPublish').close(); openPreview(pvPageForSection()); };
 
+/* ---------- 방문 통계 ----------
+   카페24 서버(hosting/stats/)의 report.php에서 '날짜 × 항목별 합계'를 받아 여기서 표로 만든다.
+   로그인 토큰(2단계 인증까지 마친 것)을 그대로 보내 서버가 Supabase에 확인한다.
+   agg 한 줄: [항목, k1, k2, 국가, 들어온 곳, 기기, 언어, 수, 합(초)] / daily 한 줄: [날짜, 항목, 국가, 들어온 곳, 기기, 언어, 수] */
+const STATS_API='https://shinhaedalapi.mycafe24.com/stats/';
+var ST={data:null, from:'', to:'', preset:'30', f:{cc:'', src:'', dev:''}, home:null, homeAt:0, err:null};
+const ST_BTN={hero_work:'히어로 작품 보기', hero_pause:'히어로 정지·재생', all_works:'모든 작품 보기', about_teaser:'작가 소개 보기',
+  ip_teaser:'얼빵해달 배너', ex_poster:'전시 포스터 보기', open_work:'작품 열기', wm_large:'크게 보기', wm_video:'영상 재생',
+  wm_photo:'상세 사진 넘김', wm_step:'이전·다음', wm_series:'같은 시리즈', wm_share:'공유', wm_copy:'링크 복사', wm_docent:'도슨트',
+  wm_ask:'이 작품 문의', wp_viewer:'작품 페이지 → 작품 보기', wp_back:'작품 페이지 → 목록', press_ex:'Press 전시 작품 보기',
+  press_article:'기사 원문', press_shop:'Press 브랜드 샵', about_ex:'About 전시 작품 보기', ex_works:'전시 작품 보기',
+  ip_profile:'IP 프로필 열기', ip_friend:'IP 친구들 넘김', ip_toy:'IP 아트토이', ip_license:'IP 라이선싱', contact_copy:'이메일 복사',
+  contact_mail:'이메일로 문의', contact_type:'문의 유형 선택', contact_start:'문의 입력 시작', contact_sent:'문의 보냄',
+  contact_mailapp:'메일 앱으로 넘김', menu:'메뉴', lang:'언어 전환', out:'바깥 링크', filter:'Works 전시별로 보기'};
+const ST_SRC={direct:'직접·앱', instagram:'인스타그램', threads:'스레드', kakao:'카카오톡', facebook:'페이스북', x:'X(트위터)', naver:'네이버',
+  naver_blog:'네이버 블로그', google:'구글', daum:'다음', bing:'빙', search:'기타 검색', idus:'아이디어스', youtube:'유튜브', other:'기타 사이트'};
+const ST_DEV={m:'폰', t:'태블릿', d:'컴퓨터'};
+const ST_ZONE={recent:'Recent works', about:'작가 소개', ip:'얼빵해달 배너', note:'작가 노트', credentials:'학력', exhibitions:'전시 이력',
+  intro:'첫 화면', story:'스토리', pool:'수영장', identity:'이름', toy:'아트토이', friends:'친구들(일월오봉단)', licensing:'라이선싱'};
+const ST_REGION=(typeof Intl!=='undefined'&&Intl.DisplayNames)?new Intl.DisplayNames(['ko'],{type:'region'}):null;
+function stCountry(cc){ if(!cc||cc==='--') return '알 수 없음'; try{ return ST_REGION?ST_REGION.of(cc):cc; }catch(e){ return cc; } }
+function stSrc(s){ return s&&s.indexOf('c:')===0?'캠페인 '+s.slice(2):(ST_SRC[s]||s||'—'); }
+function stPage(k){
+  const m=String(k||'').match(/^\/works\/w\/([^/]+)\/$/);
+  if(m) return '작품 페이지 '+m[1];
+  return {'/':'홈', '/works/':'Works', '/about/':'About', '/ip/':'IP', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/other/':'기타'}[k]||k;
+}
+function stWork(no){ return rows.find(r=>String(r.no)===String(no)); }
+function stN(v){ return (v||0).toLocaleString('ko-KR'); }
+function stSec(t,n){ if(!n) return '—'; const s=Math.round(t/n); return s>=60?Math.floor(s/60)+'분 '+(s%60)+'초':s+'초'; }
+function stPct(a,b){ return b?Math.round(a/b*100)+'%':'—'; }
+function kstDay(offset){ return new Date(Date.now()+9*3600e3+(offset||0)*86400e3).toISOString().slice(0,10); }
+function stDays(from,to){ const out=[]; let d=new Date(from+'T00:00:00Z'); const e=new Date(to+'T00:00:00Z'); while(d<=e){ out.push(d.toISOString().slice(0,10)); d=new Date(d.getTime()+86400e3); } return out; }
+
+async function stFetch(from,to){
+  const ss=await sb.auth.getSession();
+  const tok=ss.data&&ss.data.session?ss.data.session.access_token:'';
+  if(!tok){ const e=new Error('로그인이 필요합니다'); throw e; }
+  let res;
+  try{ res=await fetch(STATS_API+'report.php?from='+from+'&to='+to, {headers:{Authorization:'Bearer '+tok}}); }
+  catch(e){ const er=new Error('통계 서버에 연결하지 못했습니다'); er.notReady=true; throw er; }
+  if(res.status===404){ const er=new Error('통계 서버 파일이 아직 없습니다'); er.notReady=true; throw er; }
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok||!j.ok){
+    const msg={auth:'로그인 확인 실패 — 다시 로그인해 주세요', aal2:'2단계 인증을 마친 로그인이 필요합니다',
+      forbidden:'통계를 볼 수 있는 계정이 아닙니다(카페24 config.php의 STATS_ADMIN_EMAILS)', db:'통계 DB에 연결하지 못했습니다(카페24 DB 설정·schema.sql 확인)'}[j.code]||('통계 서버 오류('+res.status+')');
+    const er=new Error(msg); er.code=j.code; er.notReady=j.code==='db'; throw er;
+  }
+  return j;
+}
+function stMatch(r, iCc, iSrc, iDev){
+  return (!ST.f.cc||r[iCc]===ST.f.cc)&&(!ST.f.src||r[iSrc]===ST.f.src)&&(!ST.f.dev||r[iDev]===ST.f.dev);
+}
+/* 항목별로 더하기: keyFn(row) → 키, 결과 Map(키 → {n,t}) */
+function stSum(agg, metric, keyFn, filtered){
+  const m=new Map();
+  agg.forEach(r=>{
+    if(r[0]!==metric||(filtered!==false&&!stMatch(r,3,4,5))) return;
+    const k=keyFn(r), o=m.get(k)||{n:0,t:0}; o.n+=r[7]; o.t+=r[8]; m.set(k,o);
+  });
+  return m;
+}
+function stTotal(agg, metric, pred){ let n=0,t=0; agg.forEach(r=>{ if(r[0]===metric&&stMatch(r,3,4,5)&&(!pred||pred(r))){ n+=r[7]; t+=r[8]; } }); return {n,t}; }
+function stTop(map, k){ return [...map.entries()].sort((a,b)=>b[1].n-a[1].n).slice(0,k); }
+function stSpark(vals){
+  const w=200,h=44,mx=Math.max(1,...vals);
+  const pts=vals.map((v,i)=>(vals.length>1?i/(vals.length-1)*w:0).toFixed(1)+','+(h-3-(v/mx)*(h-8)).toFixed(1)).join(' ');
+  return '<svg class="st-spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="#2e6da4" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>';
+}
+function stChart(days, series){
+  const W=800,H=230,L=40,R=10,T=12,B=26, mx=Math.max(1,...series.flatMap(s=>s.v));
+  const step=Math.pow(10,Math.floor(Math.log10(mx))), nice=Math.ceil(mx/step)*step, ticks=[0,nice/2,nice];
+  const x=i=>L+(days.length>1?i/(days.length-1)*(W-L-R):0), y=v=>T+(1-v/nice)*(H-T-B);
+  let g='';
+  ticks.forEach(t=>{ g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'" stroke="#e5e1d8"/><text x="'+(L-6)+'" y="'+(y(t)+4)+'" text-anchor="end" font-size="11" fill="#6b7280">'+stN(t)+'</text>'; });
+  const every=Math.max(1,Math.ceil(days.length/8));
+  days.forEach((d,i)=>{ const last=i===days.length-1; if((i%every===0&&(last||days.length-1-i>=every*0.6))||last) g+='<text x="'+x(i)+'" y="'+(H-8)+'" text-anchor="middle" font-size="11" fill="#6b7280">'+d.slice(5).replace('-','.')+'</text>'; });
+  series.forEach(s=>{
+    g+='<polyline fill="none" stroke="'+s.c+'" stroke-width="2" points="'+s.v.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1)).join(' ')+'"/>';
+    if(days.length<=40) s.v.forEach((v,i)=>{ g+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.4" fill="'+s.c+'"><title>'+days[i]+' '+s.name+' '+stN(v)+'</title></circle>'; });
+  });
+  return '<div class="st-legend">'+series.map(s=>'<span><i style="background:'+s.c+'"></i>'+s.name+'</span>').join('')+'</div>'+
+    '<svg class="st-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="날짜별 추이">'+g+'</svg>';
+}
+function stDaily(d, from, to){
+  const days=stDays(from,to), idx={}; days.forEach((dd,i)=>{ idx[dd]=i; });
+  const v={pv:days.map(()=>0), visit:days.map(()=>0), visitor:days.map(()=>0)};
+  (d.daily||[]).forEach(r=>{ if(idx[r[0]]!==undefined&&v[r[1]]&&stMatch(r,2,3,4)) v[r[1]][idx[r[0]]]+=r[6]; });
+  return {days, v};
+}
+
+/* ── 메인 화면 카드 4개(최근 28일) ── */
+async function renderHomeStats(){
+  const box=$('#homeStats'); if(!box) return;
+  if(ST.home&&Date.now()-ST.homeAt<5*60e3){ drawHomeStats(); return; }
+  try{
+    ST.home=await stFetch(kstDay(-27), kstDay(0)); ST.homeAt=Date.now(); ST.err=null;
+  }catch(e){ ST.home=null; ST.err=e; }
+  drawHomeStats();
+}
+function drawHomeStats(){
+  const box=$('#homeStats'); if(!box) return;
+  if(!ST.home){
+    const e=ST.err||{};
+    box.innerHTML='<p class="st-note"><b>방문 통계</b> — '+esc(e.notReady?'준비 전입니다. 카페24 데이터베이스를 만들고 통계 파일을 올린 뒤, 처리방침 4차 개정을 게시하는 날 켭니다.':(e.message||'불러오지 못했습니다'))+'</p>';
+    return;
+  }
+  const d=ST.home, keep=ST.f; ST.f={cc:'',src:'',dev:''};
+  const dl=stDaily(d, kstDay(-27), kstDay(0)), n=dl.days.length-1;
+  const tpv=stSum(d.agg,'pv',r=>r[1]), twork=stSum(d.agg,'wview',r=>r[2]), tcc=stSum(d.agg,'visit',r=>r[3]);
+  let known=0, abroad=0; tcc.forEach((o,cc)=>{ if(cc!=='--'){ known+=o.n; if(cc!=='KR') abroad+=o.n; } });
+  ST.f=keep;
+  const big=(label,key)=>'<div><small>'+label+'</small><b>'+stN(dl.v[key][n])+'</b><span class="y">어제 '+stN(dl.v[key][n-1])+'</span></div>';
+  box.innerHTML='<div class="st-cards">'+
+    '<div class="st-card"><h3>오늘 <a data-go-stats>자세히 →</a></h3><div class="st-big">'+big('방문자','visitor')+big('방문','visit')+big('페이지뷰','pv')+'</div>'+
+      stSpark(dl.v.visitor)+'<span class="hint">최근 28일 방문자</span></div>'+
+    '<div class="st-card"><h3>많이 본 페이지 <span class="hint">28일</span></h3><ol class="st-list">'+
+      (stTop(tpv,5).map(([k,o])=>'<li><span class="l">'+esc(stPage(k))+'</span><b>'+stN(o.n)+'</b></li>').join('')||'<li class="hint">아직 없음</li>')+'</ol></div>'+
+    '<div class="st-card"><h3>많이 본 작품 <span class="hint">28일</span></h3><ol class="st-list">'+
+      (stTop(twork,3).map(([k,o])=>{ const w=stWork(k), u=w?imgUrl(w,true):''; return '<li>'+(u?'<img src="'+esc(u)+'" alt="">':'')+'<span class="l">'+esc(w?w.title:k)+'</span><b>'+stN(o.n)+'</b></li>'; }).join('')||'<li class="hint">아직 없음</li>')+'</ol></div>'+
+    '<div class="st-card"><h3>나라 <span class="hint">28일 방문</span></h3><ol class="st-list">'+
+      (stTop(tcc,3).map(([k,o])=>'<li><span class="l">'+esc(stCountry(k))+'</span><b>'+stN(o.n)+'</b></li>').join('')||'<li class="hint">아직 없음</li>')+'</ol>'+
+      '<span class="hint">해외 비중 '+stPct(abroad,known)+'</span></div>'+
+  '</div>';
+  box.querySelectorAll('[data-go-stats]').forEach(a=>a.onclick=()=>goSection('stats'));
+}
+
+/* ── 통계 화면 ── */
+function stRange(){
+  const p=ST.preset;
+  if(p==='today') return [kstDay(0), kstDay(0)];
+  if(p==='yesterday') return [kstDay(-1), kstDay(-1)];
+  if(p==='7') return [kstDay(-6), kstDay(0)];
+  if(p==='30') return [kstDay(-29), kstDay(0)];
+  return [ST.from||kstDay(-29), ST.to||kstDay(0)];
+}
+async function openStats(){
+  const [from,to]=stRange();
+  $('#stBody').innerHTML='<p class="hint">불러오는 중…</p>';
+  try{ ST.data=await stFetch(from,to); ST.err=null; ST.from=from; ST.to=to; }
+  catch(e){ ST.data=null; ST.err=e; }
+  drawStats();
+}
+function stCsv(name, head, body){
+  const q=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const text='\ufeff'+[head].concat(body).map(r=>r.map(q).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));
+  a.download='shinhaedal-'+name+'-'+ST.from+'_'+ST.to+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+var ST_TABLES={};
+function stTable(id, title, hint, head, body, fmt){
+  ST_TABLES[id]={title, head, body};
+  const numCol=head.map((h,i)=>i>0&&body.length&&body.every(r=>typeof r[i]==='number'||r[i]==='—'||/^\d/.test(String(r[i]))));
+  return '<div class="st-sec"><h3>'+esc(title)+(body.length?' <button class="btn" data-csv="'+id+'">CSV</button>':'')+'</h3>'+
+    (hint?'<p class="hint">'+hint+'</p>':'')+
+    (body.length?'<div class="tablewrap"><table class="st-tbl"><thead><tr>'+head.map((h,i)=>'<th'+(numCol[i]?' class="num"':'')+'>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+      body.map(r=>'<tr>'+r.map((c,i)=>'<td'+(numCol[i]?' class="num"':'')+'>'+(fmt&&fmt[i]?fmt[i](c,r):esc(typeof c==='number'?stN(c):c))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'
+      :'<p class="hint">이 기간에는 기록이 없습니다.</p>')+'</div>';
+}
+function drawStats(){
+  const box=$('#stBody');
+  const presetBtns=[['today','오늘'],['yesterday','어제'],['7','7일'],['30','30일'],['custom','직접']];
+  const solo=(exRows||[]).filter(e=>e.type==='개인전'&&e.start_date&&e.end_date);
+  const [from,to]=stRange();
+  let bar='<div class="st-bar"><div class="st-seg" id="stPreset">'+presetBtns.map(b=>'<button data-p="'+b[0]+'" class="'+(ST.preset===b[0]?'on':'')+'">'+b[1]+'</button>').join('')+'</div>'+
+    '<input type="date" id="stFrom" value="'+from+'"> ~ <input type="date" id="stTo" value="'+to+'">'+
+    (solo.length?'<select id="stSolo"><option value="">개인전 기간…</option>'+solo.map(e=>'<option value="'+esc(e.start_date+'|'+e.end_date)+'">'+esc(e.title)+'</option>').join('')+'</select>':'')+
+    '<button class="btn" id="stReload">↻</button></div>';
+  if(!ST.data){
+    const e=ST.err||{};
+    box.innerHTML=bar+'<div class="st-sec"><h3>방문 통계를 불러오지 못했습니다</h3><p>'+esc(e.message||'')+'</p>'+
+      (e.notReady?'<ol class="hint" style="margin:8px 0 0 18px"><li>카페24 나의서비스관리 → 데이터베이스(MariaDB) 사용 신청</li><li>phpMyAdmin → SQL에 <code>hosting/stats/schema.sql</code> 붙여넣고 실행</li>'+
+        '<li><code>config.php</code>에 통계 칸 채우기(DB·이메일·Supabase) 후 <code>stats/</code> 폴더와 함께 FTP로 올리기</li><li>여기서 국가 데이터 갱신 → 처리방침 4차 게시일에 홈페이지 수집 켜기</li></ol>':'')+'</div>';
+    stBindBar(); return;
+  }
+  const d=ST.data, agg=d.agg||[];
+  // 걸러 보기 선택지(이 기간에 있는 값만)
+  const opts=(i)=>[...new Set(agg.filter(r=>r[0]==='visit').map(r=>r[i]))].sort();
+  const sel=(id,label,vals,cur,name)=>'<select id="'+id+'"><option value="">'+label+' 전체</option>'+vals.map(v=>'<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(name(v))+'</option>').join('')+'</select>';
+  bar+='<div class="st-bar">'+sel('stCc','나라',opts(3),ST.f.cc,stCountry)+sel('stSrc','들어온 곳',opts(4),ST.f.src,stSrc)+sel('stDev','기기',opts(5),ST.f.dev,v=>ST_DEV[v]||v)+
+    (ST.f.cc||ST.f.src||ST.f.dev?'<button class="btn" id="stClear">걸러 보기 해제</button>':'')+'</div>';
+
+  const dl=stDaily(d, ST.from, ST.to);
+  const sumv=k=>dl.v[k].reduce((a,b)=>a+b,0);
+  const dwAll=stTotal(agg,'dwell');
+  const ccV=stSum(agg,'visit',r=>r[3]); let known=0, abroad=0; ccV.forEach((o,cc)=>{ if(cc!=='--'){ known+=o.n; if(cc!=='KR') abroad+=o.n; } });
+  let html=bar+'<div class="st-sec"><h3>요약 <span class="hint">'+ST.from+' ~ '+ST.to+'</span></h3><div class="st-sum">'+
+    '<div><small>방문자</small><b>'+stN(sumv('visitor'))+'</b></div><div><small>방문</small><b>'+stN(sumv('visit'))+'</b></div>'+
+    '<div><small>페이지뷰</small><b>'+stN(sumv('pv'))+'</b></div><div><small>평균 머문 시간(페이지)</small><b>'+stSec(dwAll.t,dwAll.n)+'</b></div>'+
+    '<div><small>해외 비중(방문)</small><b>'+stPct(abroad,known)+'</b></div></div>'+
+    '<p class="hint" style="margin:10px 0 0">방문자는 하루 기준 브라우저 수라 같은 사람이 폰·PC로 보면 둘로 잡힙니다(추세를 보는 숫자). 개인은 알 수 없습니다.</p></div>';
+  if(dl.days.length>1) html+='<div class="st-sec"><h3>추이</h3>'+stChart(dl.days,[{name:'방문자',c:'#2e6da4',v:dl.v.visitor},{name:'방문',c:'#2f7a52',v:dl.v.visit},{name:'페이지뷰',c:'#b07a2a',v:dl.v.pv}])+'</div>';
+
+  // 페이지별
+  const pv=stSum(agg,'pv',r=>r[1]), land=stSum(agg,'visit',r=>r[1]), sc=stSum(agg,'scroll',r=>r[1]+'|'+r[2]), dw=stSum(agg,'dwell',r=>r[1]), dwb=stSum(agg,'dwell',r=>r[1]+'|'+r[2]);
+  const pages=stTop(pv,200).map(([k,o])=>{
+    const s=m=>(sc.get(k+'|'+m)||{n:0}).n, w=dw.get(k)||{n:0,t:0};
+    const b=m=>stPct((dwb.get(k+'|'+m)||{n:0}).n, w.n);
+    return [stPage(k), o.n, (land.get(k)||{n:0}).n, stPct(s('25'),o.n), stPct(s('50'),o.n), stPct(s('75'),o.n), stPct(s('100'),o.n), stSec(w.t,w.n),
+      b('0-10')+' · '+b('10-30')+' · '+b('30-60')+' · '+b('60-180')+' · '+b('180+')];
+  });
+  html+=stTable('pages','페이지별','스크롤은 그 페이지를 연 수 중 그 깊이까지 내려간 비율. 머문 시간 분포: 10초 미만 · 10~30초 · 30초~1분 · 1~3분 · 3분 이상',
+    ['페이지','페이지뷰','방문 시작','스크롤 25%','50%','75%','100%','평균 머문 시간','머문 시간 분포'], pages);
+
+  // 작품별
+  const wv=stSum(agg,'wview',r=>r[2]), wd=stSum(agg,'wdwell',r=>r[2]), clk=stSum(agg,'click',r=>r[1]+'|'+r[2]);
+  const cw=(n,no)=>(clk.get(n+'|'+no)||{n:0}).n;
+  const works=stTop(wv,500).map(([no,o])=>{ const w=stWork(no), t=wd.get(no)||{n:0,t:0};
+    return [no, w?w.title:no, o.n, cw('wm_large',no), cw('wm_share',no), cw('wm_copy',no), cw('wm_ask',no), cw('wm_docent',no), stSec(t.t,t.n)]; });
+  html+=stTable('works','작품별','열람은 작품 창(팝업)과 작품 페이지를 연 수. 머문 시간은 그 작품이 화면에 떠 있던 시간',
+    ['','작품','열람','크게 보기','공유','링크 복사','문의','도슨트','평균 머문 시간'], works,
+    {0:(no)=>{ const w=stWork(no), u=w?imgUrl(w,true):''; return u?'<img src="'+esc(u)+'" alt="">':''; }});
+
+  // 버튼별
+  const clv=stSum(agg,'clickv',r=>r[1]+'|'+r[2]);
+  const btns=stTop(clk,500).map(([k,o])=>{ const [n,t]=k.split('|'); const w=stWork(t);
+    const OUT={brand_shop:'Brand Shop(아이디어스)', instagram:'인스타그램', threads:'스레드', youtube:'유튜브', other:'기타 사이트'};
+    let tgt=t; if(n==='menu') tgt=OUT[t]||stPage(t); else if(n==='out') tgt=OUT[t]||t; else if(n==='lang') tgt=t==='en'?'영문으로':'국문으로'; else if(n==='filter') tgt=t==='all'?'전체 작품':(((exRows||[]).find(x=>x.id===t)||{}).title||t); else if(n==='contact_type') tgt=t; else if(w) tgt=w.title+' ('+t+')'; else if(/^(recent|all|selected):/.test(t)){ const [where,no]=t.split(':'); const ww=stWork(no); tgt={recent:'홈 Recent',all:'All works',selected:'Selected'}[where]+' · '+(ww?ww.title:no); }
+    return [ST_BTN[n]||n, tgt||'—', o.n, (clv.get(k)||{n:0}).n]; });
+  html+=stTable('buttons','버튼별','누른 방문 수: 한 방문에서 여러 번 눌러도 1 — "몇 명쯤 눌렀는지"에 가장 가까운 숫자',
+    ['버튼','대상','클릭 수','누른 방문 수'], btns);
+
+  // 구역별(홈·About·IP)
+  const rc=stSum(agg,'reach',r=>r[1]+'|'+r[2]), zd=stSum(agg,'zdwell',r=>r[1]+'|'+r[2]);
+  const zones=stTop(rc,100).map(([k,o])=>{ const [pg,z]=k.split('|'), t=zd.get(k)||{n:0,t:0};
+    return [stPage(pg), ST_ZONE[z]||z, o.n, stPct(o.n,(pv.get(pg)||{n:0}).n), stSec(t.t,t.n)]; });
+  html+=stTable('zones','구역별 도달·머문 시간','도달률은 그 페이지를 연 수 중 그 구역까지 본 비율',['페이지','구역','도달','도달률','평균 머문 시간'], zones);
+
+  // Press 기사별
+  const pr=(typeof pressRows!=='undefined'?pressRows:[]);
+  const press=[...clk.entries()].filter(([k])=>/^press_(article|ex|shop)\|/.test(k)).sort((a,b)=>b[1].n-a[1].n).map(([k,o])=>{
+    const [n,t]=k.split('|'), p=pr.find(x=>x.no===t), ex=(exRows||[]).find(x=>x.id===t);
+    return [ST_BTN[n]||n, p?(p.outlet+' · '+String(p.title||'').slice(0,40)):(ex?ex.title:t||'—'), o.n, (clv.get(k)||{n:0}).n]; });
+  html+=stTable('press','Press 기사별','',['종류','기사·전시','클릭 수','누른 방문 수'], press);
+
+  // 나라·들어온 곳·기기·언어
+  const vis=stSum(agg,'visitor',r=>r[3]), pvc=stSum(agg,'pv',r=>r[3]), langV=stSum(agg,'visit',r=>r[3]+'|'+r[6]);
+  html+=stTable('countries','나라','언어: 그 나라 방문 중 영문으로 본 비율',['나라','방문','방문자','페이지뷰','영문으로 봄'],
+    stTop(ccV,300).map(([cc,o])=>[stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, (pvc.get(cc)||{n:0}).n, stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]));
+  const srcV=stSum(agg,'visit',r=>r[4]), srcVis=stSum(agg,'visitor',r=>r[4]);
+  html+=stTable('sources','들어온 곳·캠페인','사이트 종류만 셉니다(전체 주소·검색어는 저장하지 않음). 캠페인은 주소 끝 ?src= 표시(예: ?src=ig_bio)',
+    ['들어온 곳','방문','방문자'], stTop(srcV,100).map(([k,o])=>[stSrc(k), o.n, (srcVis.get(k)||{n:0}).n]));
+  const devV=stSum(agg,'visit',r=>r[5]), devP=stSum(agg,'pv',r=>r[5]), lg=stSum(agg,'visit',r=>r[6]);
+  html+=stTable('devices','기기','',['기기','방문','페이지뷰'], stTop(devV,10).map(([k,o])=>[ST_DEV[k]||k||'—', o.n, (devP.get(k)||{n:0}).n]));
+  html+=stTable('langs','언어','',['언어','방문'], stTop(lg,10).map(([k,o])=>[k==='en'?'영문':(k==='ko'?'국문':'—'), o.n]));
+
+  html+='<div class="st-sec"><div class="st-geo"><span>나라 판별 데이터: <b id="stGeoVer">'+esc(d.geoip||'없음')+'</b></span>'+
+    '<button class="btn" id="stGeoUpdate">나라 데이터 갱신(월 1회)</button><span id="stGeoMsg"></span>'+
+    '<span>IP Geolocation by <a href="https://db-ip.com" target="_blank" rel="noopener">DB-IP</a> (CC BY 4.0)</span></div>'+
+    '<p class="hint" style="margin:8px 0 0">작가님·운영자 본인 방문 빼기: 처리방침 페이지의 "이 브라우저를 통계에서 제외"를 폰·PC·인스타 앱 안 브라우저에서 각각 한 번씩 누르세요.</p></div>';
+  box.innerHTML=html;
+  box.querySelectorAll('[data-csv]').forEach(b=>b.onclick=()=>{ const t=ST_TABLES[b.dataset.csv]; stCsv(b.dataset.csv, t.head, t.body); });
+  const fs=(id,key)=>{ const el=$(id); if(el) el.onchange=()=>{ ST.f[key]=el.value; drawStats(); }; };
+  fs('#stCc','cc'); fs('#stSrc','src'); fs('#stDev','dev');
+  const cl=$('#stClear'); if(cl) cl.onclick=()=>{ ST.f={cc:'',src:'',dev:''}; drawStats(); };
+  $('#stGeoUpdate').onclick=stGeoUpdate;
+  stBindBar();
+}
+function stBindBar(){
+  const pb=$('#stPreset'); if(pb) pb.onclick=e=>{ const b=e.target.closest('[data-p]'); if(!b) return; ST.preset=b.dataset.p; if(ST.preset!=='custom') openStats(); else drawStats(); };
+  const go=()=>{ const f=$('#stFrom').value, t=$('#stTo').value; if(f&&t&&f<=t){ ST.preset='custom'; ST.from=f; ST.to=t; openStats(); } };
+  const fr=$('#stFrom'), to=$('#stTo'); if(fr) fr.onchange=go; if(to) to.onchange=go;
+  const so=$('#stSolo'); if(so) so.onchange=()=>{ if(!so.value) return; const [f,t]=so.value.split('|'); ST.preset='custom'; ST.from=f; ST.to=t; openStats(); };
+  const rl=$('#stReload'); if(rl) rl.onclick=()=>openStats();
+}
+async function stGeoPost(body){
+  const ss=await sb.auth.getSession(), tok=ss.data&&ss.data.session?ss.data.session.access_token:'';
+  const res=await fetch(STATS_API+'geoip.php', {method:'POST', headers:{Authorization:'Bearer '+tok, 'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams(body)});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok||!j.ok) throw new Error(j.message||j.code||('오류 '+res.status));
+  return j;
+}
+async function stGeoUpdate(){
+  const btn=$('#stGeoUpdate'), msg=$('#stGeoMsg');
+  btn.disabled=true;
+  try{
+    msg.textContent='내려받는 중…';
+    const dl=await stGeoPost({op:'download'});
+    let off=0, done=false, rowsIn=0;
+    while(!done){
+      const j=await stGeoPost({op:'import', offset:off});
+      off=j.offset; done=j.done; rowsIn+=j.rows;
+      msg.textContent='옮기는 중… '+Math.round(j.offset/j.size*100)+'%';
+    }
+    const sw=await stGeoPost({op:'swap'});
+    msg.textContent='✅ '+sw.version+'판으로 바꿨습니다('+stN(sw.rows)+'줄)';
+    $('#stGeoVer').textContent=sw.version;
+  }catch(e){ msg.textContent='❌ '+(e.message||e); }
+  btn.disabled=false;
+}
+
 /* ---------- 이벤트 ---------- */
 function goSection(v){
   document.querySelectorAll('.sidebar button[data-v]').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
@@ -3415,10 +3753,11 @@ function goSection(v){
   $('#vHomeVideos').hidden=section!=='homevideos';
   $('#vFeeCalc').hidden=section!=='feecalc';
   $('#vActivity').hidden=section!=='activity';
+  $('#vStats').hidden=section!=='stats';
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={home:'신해달 작품 아카이브', homevideos:'홈 히어로', works:'작품', workspage:'Works 구성', exhibitions:'전시',
+  const TITLES={stats:'방문 통계', home:'신해달 작품 아카이브', homevideos:'홈 히어로', works:'작품', workspage:'Works 구성', exhibitions:'전시',
                 press:'기사', feecalc:'수수료 계산', activity:'작업 기록', settings:'설정'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
   $('#cnt').hidden=section!=='works';
@@ -3430,6 +3769,7 @@ function goSection(v){
   if(section==='workspage')renderWorksPage();
   if(section==='home')renderHome();
   if(section==='activity'){ loadTrash(); loadActivityLog(); }
+  if(section==='stats') openStats();
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
@@ -3818,6 +4158,7 @@ function renderHome(){
       `<span class="hint">${esc(c.d)}</span>`+
     '</button>').join('');
   showLastPublish();
+  renderHomeStats();
 }
 
 /* 마지막으로 홈페이지에 반영된 시각 — 공개 저장소의 최근 커밋 시각을 읽어온다 */

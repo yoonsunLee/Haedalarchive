@@ -1629,10 +1629,10 @@ function openEdit(r,neu){
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
-    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 묶여 작품 상세에서 "시리즈 작품"으로 표시됩니다. 두 폭 연작이면 <b>Works 구성</b> 화면에서 \'두 폭 붙이기\'를 켜면 목록에서 두 칸으로 붙어 나옵니다. 비워두면 묶이지 않습니다')+
+    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 묶여 작품 상세에서 "시리즈 작품"으로 표시됩니다. 두 폭 연작이면 <b>Works 구성</b> 화면에서 \'두 폭 붙이기\'를 켜면 Selected works에 넣었을 때 두 칸으로 붙어 나옵니다. 비워두면 묶이지 않습니다')+
     (WORKS_HAS_ORDER
       ? F('목록 순서',`<input name="display_order" inputmode="numeric" value="${esc(r.display_order||'')}" placeholder="비우면 최신순">`,'홈페이지 작품 목록에서 작은 수부터 앞에 나옵니다. 비워 둔 작품은 순서를 정한 작품 뒤에 최신순으로 이어집니다. <b>Works 구성</b> 화면에서 한꺼번에 정할 수도 있습니다')+
-        F('연작 안 순서',`<input name="series_order" inputmode="numeric" value="${esc(r.series_order||'')}" placeholder="비우면 작품번호 순">`,'같은 연작 안에서 작은 수부터 나옵니다. 두 폭 작품은 1이 왼쪽, 2가 오른쪽')
+        F('연작 안 순서',`<input name="series_order" inputmode="numeric" value="${esc(r.series_order||'')}" placeholder="비우면 작품번호 순">`,'Selected works에 두 폭으로 붙어 나올 때 1이 왼쪽, 2가 오른쪽. 작품 상세의 시리즈 작품 순서에도 쓰입니다')
       : '')+
     F('도슨트',
       `<label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-bottom:10px">
@@ -3332,19 +3332,6 @@ function wpSeriesCmp(draft){
     return String(a.no).localeCompare(String(b.no));
   };
 }
-/* '두 폭 붙이기' 연작만 첫 작품 자리에 연작 안 순서대로 붙인다(works/index.html groupSeries와 같음).
-   시리즈 키만 같은 작품은 목록 순서 그대로 — 작가 결정 2026-09-22 */
-function wpGroupSeries(list, draft, joined){
-  const out=[], seen=new Set(), cmp=wpSeriesCmp(draft);
-  list.forEach(w=>{
-    const k=String(w.series||'').trim();
-    if(!k||!joined.has(k)){ out.push(w); return; }
-    if(seen.has(k)) return;
-    seen.add(k);
-    list.filter(x=>String(x.series||'').trim()===k).sort(cmp).forEach(x=>out.push(x));
-  });
-  return out;
-}
 function wpPublicRows(){ return rows.filter(r=>r.publish_web); } // 발행과 같은 기준(publish_web=true)
 var WP_SERIES_COUNT={};   // var: 알림 계산이 이 줄보다 먼저 불려도 안전하게
 function wpPublicCountBySeries(){
@@ -3474,8 +3461,8 @@ function drawWorksPage(){
   const serDirty=Object.keys(WP_SERIES_DRAFT).length>0;
   const serHtml=`<div class="wp-box">
     <div class="wp-head"><h3>시리즈 · 두 폭 연작</h3><span class="hint">작품 수정 화면의 '시리즈 키'가 같은 작품끼리 한 묶음입니다</span></div>
-    <p class="hint">시리즈는 작품 페이지에서 따로 모아 보여 주지 않고, 작품 상세의 '시리즈 작품'으로만 묶여 나옵니다.
-      두 폭 연작이면 <b>두 폭 붙이기</b>를 켜세요 — 작품 목록에서 ㅁㅁ처럼 두 칸짜리 한 단위로 붙어 나옵니다(사이를 살짝 띄움, 공개 작품이 딱 2점일 때만).</p>
+    <p class="hint">작품 목록(All works)에서는 시리즈·연작도 다른 작품과 똑같이 한 점씩 나오고, 작품 상세의 '시리즈 작품'으로만 묶입니다.
+      두 폭 연작이면 <b>두 폭 붙이기</b>를 켜세요 — <b>Selected works</b>에 넣었을 때만 ㅁㅁ처럼 두 칸짜리 한 단위로 붙어 나옵니다(사이를 살짝 띄움, 한쪽만 골라도 짝이 함께, 공개 작품이 딱 2점일 때만).</p>
     ${keys.length?`<div class="tablewrap"><table><thead><tr><th>시리즈 키</th><th>작품</th><th>두 폭 붙이기</th></tr></thead>
       <tbody>${serRows}</tbody></table></div>`:'<p class="hint">아직 시리즈 키를 입력한 작품이 없습니다.</p>'}
     <div class="wp-actions"><button class="btn primary" id="wpSerSave" ${serDirty?'':'disabled'}>저장</button>
@@ -3483,7 +3470,8 @@ function drawWorksPage(){
   </div>`;
 
   // ── 목록 순서 + 미리보기 ──
-  const ordered=wpGroupSeries(wpSiteOrder(pub, WP_ORDER_DRAFT), WP_ORDER_DRAFT, joined);
+  // All works는 발행 순서 그대로 한 점씩(연작도). 두 폭으로 붙는 건 Selected뿐 — 작가 결정 2026-09-22
+  const ordered=wpSiteOrder(pub, WP_ORDER_DRAFT);
   const dv=(r,f)=>WP_ORDER_DRAFT[r._id]&&WP_ORDER_DRAFT[r._id][f]!==undefined?WP_ORDER_DRAFT[r._id][f]:(r[f]||'');
   const ordRows=ordered.map(r=>{
     const u=imgUrl(r,true), k=String(r.series||'').trim();
@@ -3503,7 +3491,8 @@ function drawWorksPage(){
   });
   const selRows=wpSelectedRows(joined);
   const lay=(list,c)=>wpLayout(list,c,joined);
-  const pcSel=lay(selRows,3), pcAll=lay(ordered,3), mSel=lay(selRows,2), mAll=lay(ordered,2);
+  const none=new Set(), layAll=(list,c)=>wpLayout(list,c,none);
+  const pcSel=lay(selRows,3), pcAll=layAll(ordered,3), mSel=lay(selRows,2), mAll=layAll(ordered,2);
   const gaps=pcSel.gaps+pcAll.gaps+mSel.gaps+mAll.gaps;
   const pvBlock=(title,cols,sl,al)=>`<div><h4>${title}</h4>
     ${selRows.length?`<div class="sec">SELECTED WORKS</div>${wpGridHtml(sl,cols)}`:''}
@@ -3511,7 +3500,7 @@ function drawWorksPage(){
   const ordHtml=`<div class="wp-box">
     <div class="wp-head"><h3>All works 순서</h3><span class="hint">공개 작품 ${pub.length}점 · 지금 홈페이지에 보일 순서대로</span></div>
     <p class="hint"><b>목록 순서</b>는 작은 수부터 앞에 나오고, 비워 둔 작품은 그 뒤에 최신순으로 이어집니다(새로 올린 작품도 비워 두면 최신순 자리).
-      10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다. 두 폭 연작(두 폭 붙이기 켬)은 앞 작품 자리에 붙어 나오고, 왼쪽·오른쪽은 <b>연작 안 순서</b>로 정합니다(1이 왼쪽).
+      10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다. All works에서는 연작도 한 점씩 따로 나옵니다. <b>연작 안 순서</b>는 Selected에 두 폭으로 붙어 나올 때 왼쪽·오른쪽을 정합니다(1이 왼쪽).
       숫자를 바꾸면 아래 미리보기가 바로 바뀝니다.</p>
     <div class="tablewrap"><table class="wp-ord"><thead><tr><th>목록 순서</th><th></th><th>No.</th><th>작품명</th><th>연작</th><th>연작 안 순서</th></tr></thead>
       <tbody>${ordRows||'<tr><td colspan="6" class="hint">공개 작품이 없습니다</td></tr>'}</tbody></table></div>

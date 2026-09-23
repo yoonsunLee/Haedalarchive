@@ -3615,12 +3615,16 @@ const ST_BTN={hero_work:'히어로 작품 보기', hero_pause:'히어로 정지�
   contact_mailapp:'메일 앱으로 넘김', menu:'메뉴', lang:'언어 전환', out:'바깥 링크', filter:'Works 전시별로 보기'};
 const ST_SRC={direct:'직접·앱', instagram:'인스타그램', threads:'스레드', kakao:'카카오톡', facebook:'페이스북', x:'X(트위터)', naver:'네이버',
   naver_blog:'네이버 블로그', google:'구글', daum:'다음', bing:'빙', search:'기타 검색', idus:'아이디어스', youtube:'유튜브', other:'기타 사이트'};
-const ST_DEV={m:'폰', t:'태블릿', d:'컴퓨터'};
+const ST_DEV={m:'모바일', t:'태블릿', d:'PC'};
 const ST_ZONE={recent:'Recent works', about:'작가 소개', ip:'얼빵해달 배너', note:'작가 노트', credentials:'학력', exhibitions:'전시 이력',
   intro:'첫 화면', story:'스토리', pool:'수영장', identity:'이름', toy:'아트토이', friends:'친구들(일월오봉단)', licensing:'라이선싱'};
 const ST_REGION=(typeof Intl!=='undefined'&&Intl.DisplayNames)?new Intl.DisplayNames(['ko'],{type:'region'}):null;
 function stCountry(cc){ if(!cc||cc==='--') return '알 수 없음'; try{ return ST_REGION?ST_REGION.of(cc):cc; }catch(e){ return cc; } }
-function stSrc(s){ return s&&s.indexOf('c:')===0?'캠페인 '+s.slice(2):(ST_SRC[s]||s||'—'); }
+const ST_CAMPAIGN={ig_bio:'인스타그램'};   // ?src= 태그 중 이름 붙여 둔 것(예: 인스타 프로필 링크)
+function stSrc(s){
+  if(s&&s.indexOf('c:')===0){ const tag=s.slice(2); return ST_CAMPAIGN[tag]||('캠페인 '+tag); }
+  return ST_SRC[s]||s||'—';
+}
 function stPage(k){
   const m=String(k||'').match(/^\/works\/w\/([^/]+)\/$/);
   if(m) return '작품 페이지 '+m[1];

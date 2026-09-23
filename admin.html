@@ -556,13 +556,23 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <tbody id="hvTbody"></tbody>
     </table></div>
 
+    <div class="hv-sched" style="margin-top:22px">
+      <h3>Recent works 점수</h3>
+      <p class="hint" style="margin:0 0 10px">홈 첫 화면 Recent works에 보여줄 점수입니다. 최소 2점 · 최대 6점 — 무조건 6점을 채우지 않습니다.</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input type="number" id="hvRecentCount" min="2" max="6" step="1" style="width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;background:var(--card);color:var(--ink)">
+        <button class="btn primary" id="hvRecentCountSave">저장</button>
+        <span class="hint" id="hvRecentCountMsg"></span>
+      </div>
+    </div>
+
     <div class="hv-sched">
       <h3>🗓 홈 첫 화면 일정</h3>
       <p class="hint" style="margin:0 0 10px">첫 화면 아래 작품 구역이 날짜에 따라 <b>Recent works → Upcoming exhibition → Now on view</b>로 바뀝니다.
         전시 카드는 <b>개막 30일 전부터</b>, 그리고 그 전시에 <b>공개 출품작이 1점 이상</b> 연결돼 있을 때만 뜹니다.</p>
       <div class="sched-now" id="hvSchedNow"></div>
       <div class="sched-legend">
-        <span><i class="m-recent"></i>Recent works — 최근 작품 6점</span>
+        <span><i class="m-recent"></i>Recent works — 최근 작품 <b id="hvRecentLegendN">6</b>점</span>
         <span><i class="m-up"></i>Upcoming exhibition — 전시 예고</span>
         <span><i class="m-now"></i>Now on view — 전시 중</span>
       </div>
@@ -794,7 +804,7 @@ let PHOTO_ROWS=[], MEDIA_ROWS=[];
 let WORKS_HAS_ORDER=false;   // works.display_order·series_order 열이 있는지
 let WP_READY=null;           // series·site_settings 표: true 있음 / false SQL 실행 전 / null 못 읽음
 let WP_ORD_IDS=[];           // All works 순서 표에 지금 보이는 차례(끌어 옮기기용)
-const HOME_RECENT_N=6;       // 홈 첫 화면 Recent works에 나가는 점수(index.html ALL_WORKS.slice(0,6))
+var HOME_RECENT_COUNT=6;     // 홈 첫 화면 Recent works 점수(site_settings 'home_recent_count', 2~6, 기본 6) — 홈 운영·Works 운영이 같이 씀
 let SERIES_ROWS=[], WORKS_SELECTED=[];
 const SELECTED_MAX=6;         // Selected works 칸 수(홈페이지 3열 × 2줄)
 
@@ -2612,7 +2622,8 @@ async function loadHomeVideos(){
       sb.from('home_videos').select('*').is('deleted_at', null).order('sort_order'),
       sb.from('works').select('id, work_no, title_ko, title_en, year, publish_web, image_file').is('deleted_at', null).order('work_no'),
       sb.from('home_videos').select('kind, image_file').limit(1),
-      sb.from('site_settings').select('value').eq('key', 'hero_default')
+      sb.from('site_settings').select('value').eq('key', 'hero_default'),
+      sb.from('site_settings').select('value').eq('key', 'home_recent_count')
     ]);
     var vq = q[0], wq = q[1];
     if(vq.error) throw vq.error;
@@ -2620,6 +2631,8 @@ async function loadHomeVideos(){
     HV_HAS_KIND = !q[2].error;
     var dv = q[3].error ? null : ((q[3].data || [])[0] || {}).value;
     HV_DEFAULT = {enabled: !(dv && dv.enabled === false), supported: !q[3].error};
+    var rc = q[4].error ? null : ((q[4].data || [])[0] || {}).value;
+    HOME_RECENT_COUNT = (Number.isInteger(rc) && rc>=2 && rc<=6) ? rc : 6;
     hvWorksRows = wq.data || [];
     hvRows = (vq.data||[]).map(function(v){
       return { name:v.name||'', video_master:v.video_master||'', work_id:v.work_id||'',
@@ -2786,7 +2799,25 @@ function renderHomeVideosList(){
   }).join('') : '<tr><td colspan="5" class="empty">추가한 장이 없습니다 — 홈 첫 화면에는 기본 이미지만 나갑니다</td></tr>');
   var tg = $('#hvDefaultToggle');
   if(tg) tg.onchange = function(){ setHeroDefault(tg.checked); };
+  var rcInput = $('#hvRecentCount');
+  if(rcInput){ rcInput.value = HOME_RECENT_COUNT; }
+  var rcLegend = $('#hvRecentLegendN');
+  if(rcLegend) rcLegend.textContent = HOME_RECENT_COUNT;
 }
+async function setHomeRecentCount(){
+  var input = $('#hvRecentCount'), msg = $('#hvRecentCountMsg');
+  var n = Math.round(Number(input.value));
+  if(!Number.isFinite(n) || n<2 || n>6){ msg.textContent = '2~6 사이 숫자로 입력하세요.'; return; }
+  input.value = n;
+  var btn = $('#hvRecentCountSave'); btn.disabled = true; msg.textContent = '';
+  var q = await sb.from('site_settings').upsert({key:'home_recent_count', value:n, updated_at:new Date().toISOString()}, {onConflict:'key'});
+  btn.disabled = false;
+  if(q.error){ msg.textContent = '저장 실패: ' + q.error.message; return; }
+  HOME_RECENT_COUNT = n;
+  var rcLegend = $('#hvRecentLegendN'); if(rcLegend) rcLegend.textContent = n;
+  toast('✅ Recent works ' + n + '점으로 저장했습니다 — 🚀 반영을 누르면 홈페이지에 나갑니다');
+}
+$('#hvRecentCountSave').onclick = setHomeRecentCount;
 async function setHeroDefault(on){
   if(on){
     var pc = hvPublicCount();
@@ -3306,6 +3337,8 @@ async function pvBuildFiles(){
   const settings={}; settingsRows.forEach(r=>{ settings[r.key]=r.value; });
   const noByUuid={}; works.forEach(w=>{ noByUuid[w.id]=pvS(w.work_no); });
   files['works-page.json']={selected:(Array.isArray(settings.works_selected)?settings.works_selected:[]).filter(i=>i in noByUuid).map(i=>noByUuid[i])};
+  const rc0=Number.isInteger(settings.home_recent_count)?settings.home_recent_count:6;
+  files['site-settings.json']={homeRecentCount:Math.max(2,Math.min(6,rc0))};
 
   const members={}; links.forEach(l=>{ const n=noByUuid[l.work_id]; if(n) (members[l.exhibition_id]=members[l.exhibition_id]||[]).push(n); });
   files['exhibitions.json']=exPlan.slice().sort((a,b)=>cmpStr(a.id,b.id)).map(({e,id,same})=>({
@@ -4070,7 +4103,8 @@ async function loadWorksPageData(){
   try{
     var r = await Promise.all([
       sb.from('series').select('*'),
-      sb.from('site_settings').select('key, value').eq('key', 'works_selected')
+      sb.from('site_settings').select('key, value').eq('key', 'works_selected'),
+      sb.from('site_settings').select('value').eq('key', 'home_recent_count')
     ]);
     var err = r[0].error || r[1].error;
     if(err){
@@ -4083,6 +4117,8 @@ async function loadWorksPageData(){
     SERIES_ROWS = r[0].data || [];
     var v = (r[1].data && r[1].data[0]) ? r[1].data[0].value : null;
     WORKS_SELECTED = Array.isArray(v) ? v.filter(function(x){ return typeof x === 'string'; }) : [];
+    var rc = r[2].error ? null : ((r[2].data || [])[0] || {}).value;
+    if(Number.isInteger(rc) && rc>=2 && rc<=6) HOME_RECENT_COUNT = rc;
   }catch(e){
     WP_READY = null; console.warn('Works 구성 불러오기 실패', e);
   }
@@ -4258,8 +4294,8 @@ function drawWorksPage(){
   const ordRows=ordered.map((r,i)=>{
     const u=imgUrl(r,true), k=String(r.series||'').trim();
     const ch=f=>WP_ORDER_DRAFT[r._id]&&WP_ORDER_DRAFT[r._id][f]!==undefined&&String(WP_ORDER_DRAFT[r._id][f])!==String(r[f]||'')?' changed':'';
-    const cut=i===HOME_RECENT_N-1&&ordered.length>HOME_RECENT_N
-      ? `<tr class="wp-cut"><td colspan="7">⬆ 여기까지 ${HOME_RECENT_N}점이 <b>홈 첫 화면 Recent works</b>에 나갑니다 — 순서를 바꾸면 홈도 함께 바뀝니다</td></tr>`
+    const cut=i===HOME_RECENT_COUNT-1&&ordered.length>HOME_RECENT_COUNT
+      ? `<tr class="wp-cut"><td colspan="7">⬆ 여기까지 ${HOME_RECENT_COUNT}점이 <b>홈 첫 화면 Recent works</b>에 나갑니다 — 순서를 바꾸면 홈도 함께 바뀝니다</td></tr>`
       : '';
     return `<tr draggable="true" data-row="${esc(r._id)}">
       <td class="wp-grip"><span class="g" title="끌어서 순서 바꾸기">⠿</span><button type="button" class="mv" data-ord-up="${i}" title="위로"${i===0?' disabled':''}>▲</button><button type="button" class="mv" data-ord-down="${i}" title="아래로"${i===ordered.length-1?' disabled':''}>▼</button></td>
@@ -4286,7 +4322,7 @@ function drawWorksPage(){
   const ordHtml=`<div class="wp-box">
     <div class="wp-head"><h3>All works 순서</h3><span class="hint">공개 작품 ${pub.length}점 · 지금 홈페이지에 보일 순서대로</span></div>
     <p class="hint"><b>줄을 끌어서</b> 순서를 바꿀 수 있습니다(▲▼ 단추도 같은 일을 합니다). 옮기면 목록 순서가 10, 20, 30…으로 다시 매겨집니다.
-      맨 위 ${HOME_RECENT_N}점은 <b>홈 첫 화면의 Recent works</b>로도 나갑니다 — 다만 전시 예고·전시 중일 때는 그 자리를 전시 카드가 대신합니다(홈 운영 화면의 일정 달력 참고).</p>
+      맨 위 ${HOME_RECENT_COUNT}점은 <b>홈 첫 화면의 Recent works</b>로도 나갑니다 — 다만 전시 예고·전시 중일 때는 그 자리를 전시 카드가 대신합니다(홈 운영 화면의 일정 달력 참고).</p>
     <p class="hint"><b>목록 순서</b>는 작은 수부터 앞에 나오고, 비워 둔 작품은 그 뒤에 최신순으로 이어집니다(새로 올린 작품도 비워 두면 최신순 자리).
       10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다. All works에서는 연작도 한 점씩 따로 나옵니다. <b>연작 안 순서</b>는 Selected에 두 폭으로 붙어 나올 때 왼쪽·오른쪽을 정합니다(1이 왼쪽).
       숫자를 바꾸면 아래 미리보기가 바로 바뀝니다.</p>

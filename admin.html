@@ -1128,6 +1128,10 @@ async function saveExhibitionToDb(row, neu, cur){
     featured_work_nos: textOrNull(row.featured_work_nos),
     about_selected: !!row.about_selected
   };
+  if(EX_HAS_HOME){
+    payload.home_mode = ['auto','pin','hide'].indexOf(row.home_mode) >= 0 ? row.home_mode : 'auto';
+    payload.home_lead_days = numOrNull(row.home_lead_days);
+  }
   if(EX_HAS_AFFIL) payload.affiliation = textOrNull(row.affiliation);   // 비공개 메모 — 발행 스크립트는 필드를 하나씩 뽑으므로 홈페이지로 나가지 않는다
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -1396,7 +1400,10 @@ async function load(){
       (worksOfEx[l.exhibition_id] = worksOfEx[l.exhibition_id] || []).push(worksById[l.work_id]);
     });
 
-    if((xq.data || []).length) EX_HAS_AFFIL = Object.prototype.hasOwnProperty.call(xq.data[0], 'affiliation');
+    if((xq.data || []).length){
+      EX_HAS_AFFIL = Object.prototype.hasOwnProperty.call(xq.data[0], 'affiliation');
+      EX_HAS_HOME  = Object.prototype.hasOwnProperty.call(xq.data[0], 'home_mode');
+    }
     exRows = (xq.data || []).map(function(e){
       var members = (worksOfEx[e.id] || []).filter(Boolean).map(function(w){ return w.work_no; });
       return {
@@ -1408,6 +1415,8 @@ async function load(){
         poster_url: e.poster_url || '', map_url: e.map_url || '',
         featured_work_nos: e.featured_work_nos || '',
         affiliation: e.affiliation || '',
+        home_mode: e.home_mode || 'auto',
+        home_lead_days: (e.home_lead_days == null ? '' : String(e.home_lead_days)),
         about_selected: !!e.about_selected,
         publish_web: e.publish_web !== false,
         work_nos: members.join(','),
@@ -2184,6 +2193,7 @@ $('#editForm').onsubmit=async e=>{
 /* ---------- 전시 관리 (홈페이지 Now 섹션 데이터) ---------- */
 let exRows=[];
 let exLoaded=false;
+let EX_HAS_HOME=false;    // exhibitions.home_mode·home_lead_days 열이 있는지(exhibitions_home_2026-09.sql)
 let EX_HAS_AFFIL=false;   // exhibitions.affiliation 열이 있는지(supabase/schema/exhibitions_affiliation_2026-09.sql 실행 여부). 없으면 칸을 잠근다
 async function loadEx(){
   // 전시는 load()에서 작품과 함께 읽는다(관계를 같이 풀어야 하므로).
@@ -2504,6 +2514,20 @@ function exFormHtml(r,isNew){
     '사진을 선택하면 자동으로 업로드됩니다. 홈페이지 "Now on View" 카드의 배경 이미지로 흐릿하게 깔립니다')}
   ${F('찾아오는 길 (네이버맵 URL)',`<input name="map_url" value="${esc(r.map_url||'')}" placeholder="https://naver.me/… 또는 https://map.naver.com/…">`,'비워두면 홈페이지 카드에 이 링크가 노출되지 않습니다')}
   ${F('유형',`<select name="type">${types.map(t=>`<option${(r.type||'개인전')===t?' selected':''}>${t}</option>`).join('')}</select>`)}
+  ${F('홈 노출',`<div class="pair">
+      <div class="fld"><span class="sub">첫 화면에서</span>
+        <select name="home_mode"${EX_HAS_HOME?'':' disabled'}>
+          <option value="auto"${(r.home_mode||'auto')==='auto'?' selected':''}>규칙대로 (기본)</option>
+          <option value="pin"${r.home_mode==='pin'?' selected':''}>겹치면 이 전시를 앞세움</option>
+          <option value="hide"${r.home_mode==='hide'?' selected':''}>홈에 안 내보냄</option>
+        </select></div>
+      <div class="fld"><span class="sub">예고 기간</span>
+        <input name="home_lead_days" type="number" min="0" max="365" placeholder="비우면 30일"
+               value="${esc(r.home_lead_days||'')}"${EX_HAS_HOME?'':' disabled'}></div>
+    </div>`,
+    EX_HAS_HOME
+      ? '개막 <b>며칠 전</b>부터 홈 첫 화면에 예고할지 정합니다(비우면 30일). 전시가 겹치면 <b>개인전 → 단체전 → 아트페어</b> 차례로 앞세우고, 큰 카드 하나와 함께 최대 3건까지 보여 줍니다. 「홈에 안 내보냄」으로 두어도 전시 이력과 About에는 그대로 남습니다'
+      : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_home_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
   ${F('소속 · 계약',`<input name="affiliation" list="exAffilDL" autocomplete="off" value="${esc(r.affiliation||'')}"${EX_HAS_AFFIL?'':' disabled'} placeholder="예: 갤러리 비브 소속 참가 · 부스비 분담"><datalist id="exAffilDL"></datalist><div class="exchips" id="exAffilChips"></div>`,
     EX_HAS_AFFIL
       ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 어느 갤러리 소속으로 참가하는지, 개인 참가인지 적어 두세요. 계약서 파일은 여기에 올리지 않는 걸 권합니다 — 원본은 따로 보관하고, 참가 형태와 핵심 조건만 한 줄로 적으세요'
@@ -2651,6 +2675,8 @@ function renderExForm(r,isNew){
     row.venue_en = (($('#exBody [name=venue_en]')||{}).value||'').trim();
     row.about_selected = !!(($('#exBody [name=about_selected]')||{}).checked);
     row.affiliation = (($('#exBody [name=affiliation]')||{}).value||'').trim();
+    row.home_mode = (($('#exBody [name=home_mode]')||{}).value||'auto');
+    row.home_lead_days = (($('#exBody [name=home_lead_days]')||{}).value||'').trim();
     const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
     try{
       await saveExhibitionToDb(row, isNew, r);
@@ -2936,33 +2962,49 @@ function hvPublicCount(excludeId){
      · 아니면 개막 30일 전부터 Upcoming(개막이 가장 이른 것)
      · 고른 전시에 공개 출품작이 없으면 카드가 안 뜨고 Recent works
    규칙이 바뀌면 index.html의 UPCOMING_WINDOW_DAYS와 여기를 같이 고쳐야 한다. */
-const HOME_UPCOMING_DAYS = 30;
+const HOME_UPCOMING_DAYS = 30;   // 전시별로 따로 정하지 않았을 때의 예고 기간
+const HOME_ALSO_MAX = 2;         // 겹칠 때 큰 카드 하나 + 한 줄로 몇 건 더 보일지(합쳐 3건)
 var HV_CAL_M = 0;   // 이번 달에서 몇 달 옮겨 보는 중인지
 function hvYmd(d){ return d.toISOString().slice(0,10); }
 function hvAdd(day, n){ const d=new Date(day+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return hvYmd(d); }
 function hvKorDay(day){ return Number(day.slice(5,7))+'월 '+Number(day.slice(8,10))+'일'; }
-/* 홈에 나갈 수 있는 전시 — 공개 출품작 수까지 세어 둔다.
-   차례는 exhibitions.json 과 같아야 한다: publish_sb.py 가 전시 ID 오름차순으로 내보내고
-   홈페이지 pickActiveExhibition 이 그 차례대로 처음 걸리는 전시를 고르기 때문이다.
-   개막일로 정렬하면 안 된다 — 지금 ID가 공교롭게 개막 역순이라 같아 보일 뿐이고,
-   새 전시는 EX-2026-15처럼 뒤 번호를 받아 맨 끝에 붙는다. */
+/* 겹칠 때의 차례 — 유형이 앞선 전시를 앞세운다(2026-09-25 운영자 결정) */
+function homeTypeRank(t){
+  t=String(t||'');
+  if(t==='개인전') return 0;
+  if(t==='단체전'||t==='기획전'||t==='특별전') return 1;
+  if(t==='아트페어'||t==='팝업') return 2;
+  return 3;
+}
+/* 홈에 나갈 수 있는 전시 — 공개 출품작 수, 예고 기간, 앞세움 여부까지 챙긴다.
+   '홈에 안 내보냄'으로 해 둔 전시는 아예 빠진다(전시 이력·About 에는 그대로 남는다). */
 function hvExList(){
   const pub=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'')));
-  return exRows.filter(e=>e.publish_web!==false&&e.start_date&&e.end_date)
-    .map(e=>({id:e.id, title:e.title||e.id, start:e.start_date, end:e.end_date,
+  return exRows.filter(e=>e.publish_web!==false&&e.start_date&&e.end_date&&e.home_mode!=='hide')
+    .map(e=>({id:e.id, title:e.title||e.id, start:e.start_date, end:e.end_date, type:e.type||'',
+              pin:e.home_mode==='pin',
+              lead:(e.home_lead_days===''||e.home_lead_days==null)?HOME_UPCOMING_DAYS:Number(e.home_lead_days),
               pub:String(e.work_nos||'').split(',').map(s=>s.trim()).filter(s=>pub.has(s)).length}))
     .sort((a,b)=>String(a.id).localeCompare(String(b.id)));
 }
+/* 그날 홈에 나갈 수 있는 전시를 앞선 차례대로.
+   이 규칙은 홈페이지 index.html 의 homeCandidates 와 글자 그대로 같아야 한다 —
+   다르면 관리 화면 미리보기와 실제 홈페이지가 서로 다른 전시를 가리킨다. */
+function hvCandidates(day, list){
+  return list.filter(e=>day<=e.end && day>=hvAdd(e.start,-e.lead))
+    .sort((a,b)=>
+      (a.pin?0:1)-(b.pin?0:1) ||
+      homeTypeRank(a.type)-homeTypeRank(b.type) ||
+      (day>=a.start?0:1)-(day>=b.start?0:1) ||
+      String(a.start).localeCompare(String(b.start)) ||
+      String(a.id).localeCompare(String(b.id)));
+}
 function hvModeOn(day, list){
-  let ex=list.find(e=>day>=e.start&&day<=e.end), mode='now';
-  if(!ex){
-    ex=list.filter(e=>day<e.start&&day>=hvAdd(e.start,-HOME_UPCOMING_DAYS))
-           .sort((a,b)=>a.start.localeCompare(b.start))[0];
-    mode='upcoming';
-  }
-  if(!ex) return {mode:'recent', ex:null};
-  if(!ex.pub) return {mode:'recent', ex:null, blocked:ex};   // 출품작이 없어 카드가 안 뜬다
-  return {mode:mode, ex:ex};
+  const cand=hvCandidates(day, list);
+  const ex=cand.find(e=>e.pub);            // 공개 출품작이 없으면 카드를 못 그리니 다음 후보로 넘어간다
+  if(!ex) return {mode:'recent', ex:null, blocked:cand[0]||null, also:[]};
+  return {mode: day>=ex.start?'now':'upcoming', ex:ex,
+          also: cand.filter(e=>e.id!==ex.id).slice(0, HOME_ALSO_MAX)};
 }
 function hvModeName(m){ return {now:'Now on view', upcoming:'Upcoming exhibition', recent:'Recent works'}[m]; }
 function hvModeClass(m){ return {now:'m-now', upcoming:'m-up', recent:'m-recent'}[m]; }
@@ -2984,35 +3026,38 @@ function hvDiagHtml(today){
   const pub=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'')));
   const cand=exRows.filter(e=>e.start_date&&e.end_date&&e.end_date>=today)
     .map(e=>({id:e.id, title:e.title||e.id, start:e.start_date, end:e.end_date, type:e.type||'', on:e.publish_web!==false,
+              mode:e.home_mode||'auto',
+              lead:(e.home_lead_days===''||e.home_lead_days==null)?HOME_UPCOMING_DAYS:Number(e.home_lead_days),
               pub:String(e.work_nos||'').split(',').map(x=>x.trim()).filter(x=>pub.has(x)).length}))
     .sort((a,b)=>a.start.localeCompare(b.start)).slice(0,8);
   if(!cand.length) return '';
-  const chosen=hvModeOn(today,hvExList()).ex;
+  const st=hvModeOn(today,hvExList()), chosen=st.ex;
+  const alsoIds=new Set((st.also||[]).map(x=>String(x.id)));
   const daysTo=d=>Math.round((Date.parse(d+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000);
   const body=cand.map(e=>{
     let why, bad=false;
-    if(!e.on){ why='홈 후보에서 빠짐 — 이 전시의 "홈페이지 공개"가 꺼져 있어요'; bad=true; }
-    else if(today>=e.start){
-      // 같은 날 진행 중인 전시가 둘 이상이면 하나만 뜬다 — 가려진 쪽을 분명히 알린다
-      if(chosen&&String(chosen.id)!==String(e.id)&&today>=chosen.start&&today<=chosen.end){
-        why='진행 중이지만 "'+chosen.title+'"에 가려져 홈에 안 뜹니다'; bad=true;
-      }else why='진행 중';
-    }
-    else{
-      const d=daysTo(e.start), from=hvAdd(e.start,-HOME_UPCOMING_DAYS);
-      why=d<=HOME_UPCOMING_DAYS ? '개막 '+d+'일 전 — 예고 기간 안' : '개막 '+d+'일 전 — '+hvKorDay(from)+'부터 홈에 예고';
-    }
-    if(e.on&&!e.pub){ why+=' · 공개 출품작이 0점이라 카드가 뜨지 않아요'; bad=true; }
     const mine=chosen&&String(chosen.id)===String(e.id);
-    return '<tr class="'+(mine?'pick':'')+(e.on?'':' off')+'"><td>'+(mine?'✔ ':'')+esc(e.title)+'</td>'+
+    const inWin=today>=hvAdd(e.start,-e.lead);
+    if(e.mode==='hide'){ why='\'홈에 안 내보냄\'으로 해 두셨어요 — 전시 이력·About 에는 그대로 있어요'; bad=true; }
+    else if(!e.on){ why='홈 후보에서 빠짐 — 이 전시의 "홈페이지 공개"가 꺼져 있어요'; bad=true; }
+    else if(!inWin){
+      why='개막 '+daysTo(e.start)+'일 전 — '+hvKorDay(hvAdd(e.start,-e.lead))+'부터 홈에 예고'+
+          (e.lead!==HOME_UPCOMING_DAYS?' (이 전시는 '+e.lead+'일 전부터로 정해 두셨어요)':'');
+    }
+    else if(mine){ why=(today>=e.start?'진행 중':'개막 '+daysTo(e.start)+'일 전')+' — 지금 홈 카드에 뜨는 전시예요'+(e.mode==='pin'?' (앞세움)':''); }
+    else if(alsoIds.has(String(e.id))){ why='홈에 한 줄로 함께 나옵니다'; }
+    else if(!e.pub){ why='공개 출품작이 0점이라 카드가 못 떠요 — 전시 관리에서 작품을 연결하세요'; bad=true; }
+    else { why='겹치는 전시에 밀려 홈에는 안 나옵니다 (한 번에 '+(HOME_ALSO_MAX+1)+'건까지)'; bad=true; }
+    return '<tr class="'+(mine?'pick':'')+(e.on&&e.mode!=='hide'?'':' off')+'"><td>'+(mine?'✔ ':'')+esc(e.title)+'</td>'+
       '<td>'+esc(e.type)+'</td><td>'+esc(e.start)+' ~ '+esc(e.end.slice(5))+'</td>'+
       '<td class="why'+(bad?' bad':'')+'">'+esc(why)+'</td></tr>';
   }).join('');
-  const over=cand.filter(e=>e.on&&today>=e.start&&today<=e.end).length;
-  return '<table class="hvdiag"><caption>홈 후보 전시 — 규칙: ① 오늘 진행 중인 전시(여럿이면 <b>전시 ID가 빠른 것</b>) ② 없으면 개막 '+
-    HOME_UPCOMING_DAYS+'일 전부터의 예고 중 개막이 가장 이른 것. '+
-    (chosen?'✔가 지금 홈 카드에 뜨는 전시예요.':'지금은 뜰 전시가 없어 홈 첫 화면이 Recent works 입니다.')+
-    (over>1?' <b>지금 '+over+'건이 겹칩니다</b> — 어느 전시를 앞세울지는 아직 정하지 않았고, 지금은 ID 차례로 정해집니다.':'')+
+  const over=cand.filter(e=>e.on&&e.mode!=='hide'&&today<=e.end&&today>=hvAdd(e.start,-e.lead)).length;
+  return '<table class="hvdiag"><caption>홈 후보 전시 — 규칙: 개막 '+HOME_UPCOMING_DAYS+
+    '일 전(전시별로 따로 정할 수 있어요)부터 홈에 나올 수 있고, 겹치면 <b>앞세운 전시 → 개인전 → 단체전 → 아트페어</b> 차례입니다. '+
+    '큰 카드 하나와 한 줄 '+HOME_ALSO_MAX+'건, 모두 '+(HOME_ALSO_MAX+1)+'건까지 나옵니다. '+
+    (chosen?'✔가 큰 카드로 뜨는 전시예요.':'지금은 뜰 전시가 없어 홈 첫 화면이 Recent works 입니다.')+
+    (over>1?' <b>지금 '+over+'건이 겹칩니다.</b>':'')+
     '</caption>'+
     '<colgroup><col class="c-ex"><col class="c-ty"><col class="c-dt"><col></colgroup>'+
     '<thead><tr><th>전시</th><th>유형</th><th>기간</th><th>홈에서의 상태</th></tr></thead><tbody>'+body+'</tbody></table>';
@@ -3035,7 +3080,7 @@ function renderHomeSchedule(){
   Object.keys(blocked).forEach(id=>{
     const e=blocked[id];
     html+='<div class="warn">⚠ '+esc(e.title)+' — 공개 출품작이 0점이라 전시 카드가 뜨지 않습니다. '+
-      hvKorDay(hvAdd(e.start,-HOME_UPCOMING_DAYS))+'까지 전시 관리에서 작품을 연결하세요.</div>';
+      hvKorDay(hvAdd(e.start,-(e.lead||HOME_UPCOMING_DAYS)))+'까지 전시 관리에서 작품을 연결하세요.</div>';
   });
   html+=hvDiagHtml(today);
   box.innerHTML=html;

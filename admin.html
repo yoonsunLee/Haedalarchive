@@ -344,6 +344,7 @@ td.wrap{white-space:normal; min-width:180px; max-width:340px}
 th{background:var(--accent); color:#fff; position:sticky; top:0; font-weight:600}
 tbody tr{cursor:pointer} tbody tr:hover{background:rgba(46,109,164,.07)}
 dialog{border:none; border-radius:16px; padding:0; max-width:720px; width:calc(100% - 32px); background:var(--card); color:var(--ink); box-shadow:0 10px 50px rgba(0,0,0,.3); margin:auto}
+#dlgEdit{max-width:880px}   /* 한글·영문이 나란히 들어가도록 작품 폼만 넓게 */
 dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
 .dlghead{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--line)}
 .dlghead h2{font-size:1rem; margin-right:auto}
@@ -355,6 +356,11 @@ dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
 .kv{display:grid; grid-template-columns:96px 1fr; gap:6px 12px; font-size:.9rem}
 .kv dt{color:var(--sub)} .kv dd{white-space:pre-wrap; word-break:break-word}
 form .row{display:grid; grid-template-columns:110px 1fr; gap:8px 12px; align-items:start; margin-bottom:9px}
+/* 한글·영문처럼 짝이 되는 칸은 나란히 놓는다 — 한 줄에 하나씩 쌓으면 폼이 두 배로 길어진다 */
+form .pair{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+form .pair .fld{min-width:0}
+form .pair .sub{display:block; color:var(--sub); font-size:.73rem; margin:0 0 3px 2px}
+@media (max-width:760px){ form .pair{grid-template-columns:1fr} }
 form label{color:var(--sub); font-size:.85rem; padding-top:7px}
 form input[type=checkbox],form input[type=radio]{width:auto; flex:none; padding:0; margin:0}
 form input,form textarea,form select{width:100%; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:.9rem; font-family:inherit}
@@ -1723,6 +1729,10 @@ function openEdit(r,neu){
   const F=(label,inner,hint,cls)=>`<div class="row${cls?' '+cls:''}"><label>${label}</label><div>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div></div>`;
   // 칸이 많아 네 묶음으로 나눈다. 자주 쓰는 것만 펼쳐 두고 나머지는 필요할 때 연다.
   const G=(title,note,inner,open)=>`<details class="fgroup"${open?' open':''}><summary>${title}${note?`<small>${note}</small>`:''}</summary><div class="fgroup-body">${inner}</div></details>`;
+  // 한글·영문 두 칸을 한 줄에 나란히. 라벨은 하나만 쓰고 각 칸 위에 작은 글씨로 구분한다
+  const P2=(label,a,b,hint,la,lb)=>F(label,
+    `<div class="pair"><div class="fld"><span class="sub">${la||'한글'}</span>${a}</div>`+
+    `<div class="fld"><span class="sub">${lb||'영문'}</span>${b}</div></div>`, hint);
   const curImg=imgUrl(r,true);
   const fmtComma=v=>{const n=String(v??'').replace(/,/g,'');return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v??'')};
   const fmtPct=v=>{if(v===''||v==null||v==='-')return v??'';const n=Number(v);return isNaN(n)?v:Math.round(n*100)+'%'};
@@ -1746,22 +1756,26 @@ function openEdit(r,neu){
       `<select id="loadFrom"><option value="">── 작품명으로 불러오기 ──</option>${
         loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
       '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
-    F(LABELS.no,`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
+    F('작품번호',`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
     F(LABELS.image,
       `<div class="imgupload">
         ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
         <input type="file" id="fFile" accept="image/*" style="width:auto">
       </div>
-      <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 선택하면 자동으로 드라이브에 업로드됩니다">`,
-      '사진 선택 → 구글드라이브 자동 저장. 파일명(저장소 images 폴더)이나 이미지 URL 직접 입력도 가능')+
-    F('작품명 (한글)',`<input name="title_ko" value="${esc(tko)}">`)+
-    F('작품명 (영문)',`<input name="title_en" value="${esc(ten)}">`)+
-    F(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`)+
-    F('캡션 (영문)',`<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 캡션이 대신 표시됩니다')+
-    F(LABELS.material,pickHTML('material',PICK_VALS.material)+`<textarea name="material">${esc(r.material)}</textarea>`)+
-    F('재료 (영문)',`<textarea name="material_en">${esc(r.material_en||'')}</textarea>`,'예: Traditional Korean najeonchilgi on a hemp-wrapped wood core')+
-    F(LABELS.size,pickHTML('size',PICK_VALS.size)+`<input name="size" value="${esc(r.size)}">`)+
-    F(LABELS.year,`<input name="year" id="fYearIn" type="number" value="${esc(r.year)}">`)
+      <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 고르면 자동으로 올라갑니다">`,
+      '사진을 고르면 보관함에 저장되고 홈페이지에 쓰입니다. 이미지 주소를 직접 붙여넣어도 됩니다')+
+    P2('작품명',`<input name="title_ko" value="${esc(tko)}">`,`<input name="title_en" value="${esc(ten)}">`)+
+    P2(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`,
+       `<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,
+       '영문은 홈페이지 영문 화면에서 쓰입니다. 비워두면 한글이 대신 나옵니다')+
+    F(LABELS.material,pickHTML('material',PICK_VALS.material)+
+      `<div class="pair"><div class="fld"><span class="sub">한글</span><textarea name="material">${esc(r.material)}</textarea></div>`+
+      `<div class="fld"><span class="sub">영문</span><textarea name="material_en">${esc(r.material_en||'')}</textarea></div></div>`,
+      '위에서 지난 작품의 재료를 골라 넣을 수 있어요. 영문 예: Traditional Korean najeonchilgi on a hemp-wrapped wood core')+
+    F('크기·연도',pickHTML('size',PICK_VALS.size)+
+      `<div class="pair"><div class="fld"><span class="sub">크기 (cm)</span><input name="size" value="${esc(r.size)}"></div>`+
+      `<div class="fld"><span class="sub">연도</span><input name="year" id="fYearIn" type="number" value="${esc(r.year)}"></div></div>`,
+      PICK_VALS.size.length?'위에서 지난 작품의 크기를 골라 넣을 수 있어요':'')
     , true)+
     G('판매 정보', hasSale?'':'아직 비어 있음',
     F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
@@ -1775,9 +1789,11 @@ function openEdit(r,neu){
       </select>`)+
     F(LABELS.discount,`<input name="discount" value="${esc(fmtPct(r.discount))}" placeholder="예: 20%">`,'백분율로 입력 (20% 또는 20)')+
     F(LABELS.actual_price,`<input name="actual_price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.actual_price))}">`)+
-    F(LABELS.payment,pickHTML('payment',PICK_VALS.payment)+`<input name="payment" value="${esc(r.payment)}">`)+
-    F(LABELS.sale_date,`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`)+
-    F(LABELS.delivery_date,`<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`)+
+    F(LABELS.payment,pickHTML('payment',PICK_VALS.payment)+`<input name="payment" value="${esc(r.payment)}">`,
+      PICK_VALS.payment.length?'위에서 지난 작품의 결제방식을 골라 넣을 수 있어요':'')+
+    P2('날짜',`<input name="sale_date" type="date" value="${toISO(r.sale_date)}">`,
+       `<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`,
+       '','판매일자','작품인도일')+
     F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
     F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)
     , hasSale)+

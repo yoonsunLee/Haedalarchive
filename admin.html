@@ -387,6 +387,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .hvdiag tr.off td{color:#9aa0ab}
 .hvdiag .why.bad{color:var(--sold)}
 .formfoot{display:flex; gap:8px; justify-content:flex-end; padding:12px 18px; border-top:1px solid var(--line)}
+/* 목록의 한 항목 — 어느 화면에서든 누르면 수정 화면이 열린다(기사 표의 tr 과 같은 약속) */
+.listcard{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; cursor:pointer; background:var(--card); transition:border-color .12s, background .12s}
+.listcard:hover{border-color:var(--accent2); background:rgba(46,109,164,.05)}
+.listcard:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 .imgupload{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
 .imgpreview{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line)}
 .media-manager{display:flex; flex-direction:column; gap:8px; margin-bottom:8px}
@@ -2257,7 +2261,7 @@ function exListHtml(){
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn primary" id="btnExAdd">＋ 전시 등록</button></div>
   ${rows.length?'':'<div class="hint">등록된 전시가 없습니다. 전시를 등록하면 홈페이지 Now 섹션에 자동 반영됩니다.</div>'}
   ${rows.map(r=>`
-    <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+    <div class="listcard" tabindex="0" role="button" data-exedit="${esc(r.id)}" title="누르면 수정 화면이 열립니다">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <strong>${esc(r.title)}</strong>${exBadge(r)}
         <span class="hint" style="margin-left:auto">${esc(r.id)}</span>
@@ -2265,10 +2269,6 @@ function exListHtml(){
       <div class="hint" style="margin-top:4px">${esc(r.venue)} · ${esc(r.start_date)} ~ ${esc(r.end_date)}${r.type?' · '+esc(r.type):''}</div>
       ${r.affiliation?`<div class="hint" style="margin-top:2px">소속·계약: ${esc(r.affiliation)}</div>`:''}
       ${r.work_nos?`<div class="hint" style="margin-top:2px">출품작: ${esc(r.work_nos)}</div>`:''}
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn" data-exedit="${esc(r.id)}">✏️ 수정</button>
-        <button class="btn" data-exdel="${esc(r.id)}">🗑 삭제</button>
-      </div>
     </div>`).join('')}`;
 }
 /* ---------- 전시 입력 도우미 · 영문 제안 엔진 ----------
@@ -2511,6 +2511,7 @@ function exFormHtml(r,isNew){
   ${F('About 페이지 노출',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="about_selected"${r.about_selected?' checked':''}> 이 전시를 About "Selected Exhibitions"에 직접 노출</label>`,'체크된 전시가 하나라도 있으면 그 전시들만 표시되고, 하나도 없으면 최근 전시가 자동으로 표시됩니다')}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
+    ${isNew?'':`<button type="button" class="btn" id="btnExDelete" style="color:var(--sold);margin-right:auto">🗑 삭제</button>`}
     <button type="button" class="btn" id="btnExBack">← 목록</button>
     <button type="button" class="btn primary" id="btnExSave">${isNew?'등록':'저장'}</button>
   </div>`;
@@ -2525,17 +2526,19 @@ function renderExList(){
   exFormOpen=false;
   $('#exBody').innerHTML=exListHtml();
   $('#btnExAdd').onclick=()=>renderExForm({},true);
-  document.querySelectorAll('#exBody [data-exedit]').forEach(b=>b.onclick=()=>{
-    const r=exRows.find(x=>String(x.id)===b.dataset.exedit); if(r)renderExForm(r,false);
+  document.querySelectorAll('#exBody [data-exedit]').forEach(b=>{
+    const open=()=>{ const r=exRows.find(x=>String(x.id)===b.dataset.exedit); if(r)renderExForm(r,false); };
+    b.onclick=open;
+    b.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } };
   });
-  document.querySelectorAll('#exBody [data-exdel]').forEach(b=>b.onclick=async()=>{
-    const r=exRows.find(x=>String(x.id)===b.dataset.exdel); if(!r)return;
-    if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.`))return;
-    try{
-      await softDeleteExhibition(r);
-      toast('🗑 전시가 삭제되었습니다'); exLoaded=false; await load(); renderExList();
-    }catch(e){toast('삭제 오류: '+(e.message||e))}
-  });
+}
+/* 삭제는 목록이 아니라 수정 화면 왼쪽 아래에 둔다 — 기사·홈 영상과 같은 자리 */
+async function deleteExhibition(r){
+  if(!confirm(`전시 "${r.title}"을(를) 삭제할까요?\n목록에서 숨겨지며, 필요하면 되살릴 수 있습니다.`))return;
+  try{
+    await softDeleteExhibition(r);
+    toast('🗑 전시가 삭제되었습니다'); exLoaded=false; await load(); renderExList();
+  }catch(e){toast('삭제 오류: '+(e.message||e))}
 }
 function initExPicker(){
   const hid=$('#exBody [name=work_nos]');
@@ -2629,6 +2632,7 @@ function renderExForm(r,isNew){
   initExFeaturedPicker();
   exInitAssist(r);
   $('#btnExBack').onclick=()=>renderExList();
+  const exDel=$('#btnExDelete'); if(exDel) exDel.onclick=()=>deleteExhibition(r);
   const posterVal=String(r.poster_url||'').trim();
   if(posterVal.indexOf('sb:')===0){
     sb.storage.from('artwork-masters').createSignedUrl(posterVal.slice(3), 3600).then(res=>{

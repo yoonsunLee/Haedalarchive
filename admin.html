@@ -377,6 +377,14 @@ form input,form textarea,form select{width:100%; padding:7px 10px; border:1px so
 form textarea{resize:vertical; min-height:56px}
 form select.pick{margin-bottom:4px; color:var(--sub)}
 .hint{font-size:.75rem; color:var(--sub); margin-top:2px}
+/* 늘 볼 필요는 없지만 없애면 아쉬운 단서 — 접어 두고 필요할 때 편다 */
+.more{margin-top:4px; font-size:.75rem; color:var(--sub)}
+.more>summary{cursor:pointer; color:var(--accent2); list-style:none; display:inline-flex; align-items:center; gap:4px}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::before{content:'▸'; font-size:.7em}
+.more[open]>summary::before{content:'▾'}
+.more>div{margin:5px 0 0; padding-left:11px; border-left:2px solid var(--line); line-height:1.65}
+.more>div p{margin:0 0 4px}
 /* 전시 입력 도우미(영문 제안·날짜 일수·소속 칩) */
 .exsug{margin-top:6px; font-size:.78rem; color:var(--sub); line-height:1.6}
 .exsug:empty{display:none}
@@ -478,8 +486,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </button>
   <button data-v="home" class="on">메인</button>
   <button data-v="homevideos">홈 운영</button>
-  <button data-v="works">작품 관리</button>
   <button data-v="workspage">Works 운영</button>
+  <button data-v="works">작품 관리</button>
   <button data-v="exhibitions">전시 관리</button>
   <button data-v="press">기사 등록</button>
   <button data-v="stats">방문통계</button>
@@ -590,9 +598,13 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <button class="btn" id="btnHvPreview" title="저장한 내용으로 홈 첫 화면을 PC·태블릿·모바일로 보기">👁 미리보기</button>
       <button class="btn primary" id="btnHvAdd">＋ 장 추가</button>
     </div>
-    <p class="hint" style="margin:0 0 8px">홈페이지 첫 화면에 한 장에 하나씩 — <b>작품 한 점</b>(자르지 않고 화면 가운데에 크게), <b>올린 이미지</b>, <b>영상</b>(PC에서 꽉 채움).
-      공개된 장은 들어올 때마다 순서를 섞어 검정으로 가라앉았다 떠오르며 넘어가고, 재방문 때는 지난번 첫 장과 다른 장으로 시작합니다.
-      최대 5장(기본 이미지 포함), 영상은 2개까지.</p>
+    <p class="hint" style="margin:0 0 8px">홈페이지 첫 화면에 한 장씩 번갈아 보여 줍니다. <b>작품 한 점</b>, <b>올린 이미지</b>, <b>영상</b> 중에서 고릅니다.
+      최대 5장(기본 이미지 포함), 그중 영상은 2개까지입니다.
+      <details class="more"><summary>어떻게 넘어가나요</summary><div>
+        <p>들어올 때마다 순서를 섞습니다. 검정으로 가라앉았다 떠오르며 넘어갑니다.</p>
+        <p>다시 찾아오면 지난번 첫 장과 다른 장으로 시작합니다.</p>
+        <p>작품은 자르지 않고 화면 가운데에 크게, 영상은 PC에서 화면을 꽉 채웁니다.</p>
+      </div></details></p>
     <p id="hvSummary" class="hint"></p>
     <div class="tablewrap"><table>
       <thead><tr><th>종류</th><th>미리보기</th><th>이름(관리용)</th><th>크레딧 작품</th><th>공개</th></tr></thead>
@@ -1331,6 +1343,11 @@ function toast(m){
   t._h=setTimeout(()=>t.classList.remove('show'),2600);
   t._hp=setTimeout(()=>{ if(t.hidePopover){ try{ t.hidePopover(); }catch(e){} } },2860);
 }
+/* 안내 문구를 접어 두는 상자. 늘 볼 필요는 없지만 없애면 아쉬운 단서를 여기에 담는다.
+   문구 원칙: 한 문장에 한 가지만, 할 일을 앞에 까닭을 뒤에. */
+function MORE(label, html){
+  return '<details class="more"><summary>'+esc(label)+'</summary><div><p>'+html+'</p></div></details>';
+}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fmtWon(v){if(v===''||v==null||isNaN(Number(v)))return v||'';return Number(v).toLocaleString('ko-KR')+'원'}
 function soldState(r){
@@ -1768,14 +1785,14 @@ function openEdit(r,neu){
       `<select id="loadFrom"><option value="">── 작품명으로 불러오기 ──</option>${
         loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
       '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
-    F('작품번호',`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 자동으로 다시 채번됩니다. 등록 예정 작품은 번호가 부여되지 않습니다':'직접 수정할 수 있습니다. 다른 작품과 번호가 겹치면 저장 시 거부됩니다')+
+    F('작품번호',`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 번호가 다시 매겨집니다. 등록 예정 작품에는 번호를 붙이지 않습니다.':'직접 고칠 수 있습니다. 다른 작품과 겹치면 저장되지 않습니다.')+
     F(LABELS.image,
       `<div class="imgupload">
         ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
         <input type="file" id="fFile" accept="image/*" style="width:auto">
       </div>
       <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 고르면 자동으로 올라갑니다">`,
-      '사진을 고르면 보관함에 저장되고 홈페이지에 쓰입니다. 이미지 주소를 직접 붙여넣어도 됩니다')+
+      '사진을 고르면 보관함에 저장됩니다. 이미지 주소를 직접 붙여넣어도 됩니다.')+
     P2('작품명',`<input name="title_ko" value="${esc(tko)}">`,`<input name="title_en" value="${esc(ten)}">`)+
     P2(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`,
        `<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,
@@ -1813,9 +1830,12 @@ function openEdit(r,neu){
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
-    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 입력한 작품끼리 묶여 작품 상세에서 "시리즈 작품"으로 표시됩니다. 두 폭 연작이면 <b>Works 구성</b> 화면에서 \'두 폭 붙이기\'를 켜면 Selected works에 넣었을 때 두 칸으로 붙어 나옵니다. 비워두면 묶이지 않습니다')+
+    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 적은 작품끼리 한 묶음이 됩니다. 비워 두면 묶이지 않습니다.'+
+      MORE('묶이면 어떻게 보이나요', '작품 상세 아래에 <b>시리즈 작품</b>으로 함께 나옵니다.'+
+        '<p>두 폭 연작이라면 <b>Works 운영</b> 화면에서 \'두 폭 붙이기\'를 켜세요. Selected works에서 두 칸으로 붙어 나옵니다.</p>'))+
     (WORKS_HAS_ORDER
-      ? F('목록 순서',`<input name="display_order" inputmode="numeric" value="${esc(r.display_order||'')}" placeholder="비우면 최신순">`,'홈페이지 작품 목록에서 작은 수부터 앞에 나옵니다. 비워 둔 작품은 순서를 정한 작품 뒤에 최신순으로 이어집니다. <b>Works 구성</b> 화면에서 한꺼번에 정할 수도 있습니다')+
+      ? F('목록 순서',`<input name="display_order" inputmode="numeric" value="${esc(r.display_order||'')}" placeholder="비우면 최신순">`,'작은 수부터 앞에 나옵니다. 비워 두면 순서를 정한 작품 뒤에 최신순으로 붙습니다.'+
+        MORE('한꺼번에 정하기', '<b>Works 운영</b> 화면에서 줄을 끌어 옮기면 한 번에 정할 수 있습니다.'))+
         F('연작 안 순서',`<input name="series_order" inputmode="numeric" value="${esc(r.series_order||'')}" placeholder="비우면 작품번호 순">`,'Selected works에 두 폭으로 붙어 나올 때 1이 왼쪽, 2가 오른쪽. 작품 상세의 시리즈 작품 순서에도 쓰입니다')
       : '')+
     F('도슨트',
@@ -1829,15 +1849,21 @@ function openEdit(r,neu){
        <input name="audio_master" id="fDocentAudio" value="${esc(r.audio_master||'')}" placeholder="오디오 파일을 선택하면 자동으로 업로드됩니다">
        <textarea name="transcript_ko" placeholder="대본 (한글)" style="margin-top:8px">${esc(r.transcript_ko||'')}</textarea>
        <textarea name="transcript_en" placeholder="대본 (영문, 비우면 한글만 표시)" style="margin-top:8px">${esc(r.transcript_en||'')}</textarea>`,
-      '오디오가 없어도 대본만 저장할 수 있지만, 홈페이지 도슨트 재생 버튼은 오디오가 있어야 나타납니다. 노출 체크가 꺼져 있으면 발행 시 홈페이지에 전혀 반영되지 않습니다')+
+      '홈페이지의 도슨트 재생 단추는 오디오가 있어야 나타납니다.'+
+       MORE('대본만 저장해도 되나요', '됩니다. 다만 오디오를 올리기 전까지는 홈페이지에 재생 단추가 안 보입니다.'+
+         '<p>위 <b>노출</b> 체크가 꺼져 있으면 오디오·대본이 있어도 홈페이지에 나가지 않습니다.</p>'))+
     F('상세 사진',
       `<div id="photoManager" class="media-manager"></div>
        <input type="file" id="fPhotoFiles" accept="image/*" multiple style="width:auto;margin-top:8px">`,
-      '대표 이미지와 별개로, 작품 상세 화면 썸네일 줄에 노출되는 추가 사진들입니다. 드래그로 순서를 바꿀 수 있고, 개별로 노출을 끌 수 있습니다. 상세사진을 추가해도 목록의 대표 이미지는 바뀌지 않습니다')+
+      '작품 상세 화면의 작은 사진 줄에 나옵니다. 끌어서 순서를 바꾸고, 하나씩 노출을 끌 수 있습니다.'+
+       MORE('대표 이미지는요', '여기에 사진을 더해도 목록에 보이는 대표 이미지는 그대로입니다. 대표 이미지는 위 <b>이미지</b> 칸에서 바꿉니다.'))+
     F('영상 · 인스타그램 링크',
       `<div id="mediaLinkManager" class="media-manager"></div>
        <button type="button" id="addMediaLink" class="btn-add-row">+ 영상/링크 추가</button>`,
-      '유튜브는 "공개" 또는 "일부 공개(Unlisted)"만 사용하세요 — "비공개"는 방문자가 볼 수 없습니다. 일부 공개 영상도 링크를 알면 누구나 볼 수 있어 홈페이지에 노출하면 사실상 공개와 같습니다. 인스타그램은 새 탭 링크로만 연결되고 사이트 안에서 재생되지 않습니다. 제목을 비우면 "영상으로 보기"로 표시됩니다')
+      '유튜브는 <b>공개</b>나 <b>일부 공개</b>로 올리세요. <b>비공개</b> 영상은 방문자가 볼 수 없습니다.'+
+       MORE('알아 둘 것', '<p><b>일부 공개</b>도 링크를 알면 누구나 봅니다. 홈페이지에 걸면 사실상 공개와 같습니다.</p>'+
+         '<p>인스타그램은 새 탭으로 열리고 홈페이지 안에서는 재생되지 않습니다.</p>'+
+         '<p>제목을 비우면 \'영상으로 보기\'로 나옵니다.</p>'))
     , hasShow)+
     G('비고','나만 보는 메모',
     F(LABELS.note,`<textarea name="note">${esc(r.note)}</textarea>`)
@@ -2491,8 +2517,8 @@ function exFormHtml(r,isNew){
   return `
   ${F('전시 ID',`<input name="id" value="${esc(r.id||'')}" ${isNew?'placeholder="비우면 자동 생성"':'readonly'}>`)}
   ${F('전시명 *',`<input name="title" value="${esc(r.title||'')}">`)}
-  ${F('전시명 (영문)',`<input name="title_en" value="${esc(r.title_en||'')}"><div class="exsug" id="exSugTitle"></div>`,'홈페이지 영문 모드에서 쓰입니다. 비워두면 한글 제목이 대신 표시됩니다. 국문 전시명을 적으면 영문이 제안돼요')}
-  ${F('장소',`<select id="exVenuePick" style="width:100%;margin-bottom:6px"></select><input name="venue" list="exVenueDL" autocomplete="off" value="${esc(r.venue||'')}"><datalist id="exVenueDL"></datalist>`,'지난 전시 장소에서 고르거나 직접 적으세요. 국문으로 적으면 영문이 함께 채워져요')}
+  ${F('전시명 (영문)',`<input name="title_en" value="${esc(r.title_en||'')}"><div class="exsug" id="exSugTitle"></div>`,'국문 전시명을 적으면 영문을 제안합니다. 비워 두면 영문 화면에도 한글 제목이 나옵니다.')}
+  ${F('장소',`<select id="exVenuePick" style="width:100%;margin-bottom:6px"></select><input name="venue" list="exVenueDL" autocomplete="off" value="${esc(r.venue||'')}"><datalist id="exVenueDL"></datalist>`,'지난 전시 장소에서 고르거나 직접 적으세요. 국문을 적으면 영문도 함께 채워집니다.')}
   ${F('장소 (영문)',`<input name="venue_en" value="${esc(r.venue_en||'')}"><div class="exsug" id="exSugVenue"></div>`,'비워두면 한글 장소가 대신 표시됩니다')}
   ${F('시작일',`<input type="date" name="start_date" value="${esc(r.start_date||'')}">`)}
   ${F('종료일',`<input type="date" name="end_date" value="${esc(r.end_date||'')}"${r.start_date?` min="${esc(r.start_date)}"`:''}><div class="exsug" id="exSugDur"></div>`,'시작일 이전 날짜는 고를 수 없어요')}
@@ -2525,13 +2551,18 @@ function exFormHtml(r,isNew){
                value="${esc(r.home_lead_days||'')}"${EX_HAS_HOME?'':' disabled'}></div>
     </div>`,
     EX_HAS_HOME
-      ? '개막 <b>며칠 전</b>부터 홈 첫 화면에 예고할지 정합니다(비우면 30일). 전시가 겹치면 <b>개인전 → 단체전 → 아트페어</b> 차례로 앞세우고, 큰 카드 하나와 함께 최대 3건까지 보여 줍니다. 「홈에 안 내보냄」으로 두어도 전시 이력과 About에는 그대로 남습니다'
+      ? '개막 <b>며칠 전</b>부터 홈 첫 화면에 예고할지 정합니다. 비우면 30일입니다.'+
+        MORE('전시가 겹치면', '<p><b>개인전 → 단체전 → 아트페어</b> 차례로 앞세웁니다. 큰 카드 하나와 한 줄 2건, 모두 3건까지 나옵니다.</p>'+
+          '<p>「겹치면 이 전시를 앞세움」으로 두면 유형과 상관없이 먼저 나옵니다.</p>'+
+          '<p>「홈에 안 내보냄」은 첫 화면에서만 빼는 것입니다. 전시 이력과 About에는 그대로 남습니다.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_home_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
   ${F('소속 · 계약',`<input name="affiliation" list="exAffilDL" autocomplete="off" value="${esc(r.affiliation||'')}"${EX_HAS_AFFIL?'':' disabled'} placeholder="예: 갤러리 비브 소속 참가 · 부스비 분담"><datalist id="exAffilDL"></datalist><div class="exchips" id="exAffilChips"></div>`,
     EX_HAS_AFFIL
-      ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 어느 갤러리 소속으로 참가하는지, 개인 참가인지 적어 두세요. 계약서 파일은 여기에 올리지 않는 걸 권합니다 — 원본은 따로 보관하고, 참가 형태와 핵심 조건만 한 줄로 적으세요'
+      ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 어느 갤러리 소속인지, 개인 참가인지 적어 두세요.'+
+        MORE('계약서는요', '파일은 올리지 않는 편이 낫습니다. 상대방 이름·연락처·계좌가 든 개인정보이고, 이 보관함이 국내에 있다고 확인된 적이 없습니다.'+
+          '<p>원본은 따로 두고 참가 형태와 핵심 조건만 한 줄로 적으세요.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_affiliation_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
-  ${F('About 페이지 노출',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="about_selected"${r.about_selected?' checked':''}> 이 전시를 About "Selected Exhibitions"에 직접 노출</label>`,'체크된 전시가 하나라도 있으면 그 전시들만 표시되고, 하나도 없으면 최근 전시가 자동으로 표시됩니다')}
+  ${F('About 페이지 노출',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="about_selected"${r.about_selected?' checked':''}> 이 전시를 About "Selected Exhibitions"에 직접 노출</label>`,'체크한 전시만 About에 나옵니다. 하나도 체크하지 않으면 최근 전시가 자동으로 나옵니다.')}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
     ${isNew?'':`<button type="button" class="btn" id="btnExDelete" style="color:var(--sold);margin-right:auto">🗑 삭제</button>`}
@@ -2840,7 +2871,7 @@ function openPressEdit(r,neu){
     F(PRESS_LABELS.image,`<input name="image" value="${esc(r.image)}" placeholder="https://… (기사 대표 이미지 링크)">`,'기사 원문의 이미지 주소를 그대로 붙여넣으면 됩니다')+
     F('대표 기사',`<label style="display:flex;align-items:center;gap:8px;font-weight:400">
         <input type="checkbox" name="featured"${r.featured?' checked':''}> Press 화면 맨 위 대표 자리에 표시
-      </label>`,'여러 기사를 체크해도 그중 하나만 쓰입니다. 아무것도 체크하지 않으면 최신 기사가 자동으로 대표 자리에 표시됩니다')+
+      </label>`,'여럿을 체크해도 그중 하나만 쓰입니다. 아무것도 체크하지 않으면 최신 기사가 대표 자리에 나옵니다.')+
     F('연결 대상',`<select name="link_type">
         <option value=""${!r.link_type?' selected':''}>없음</option>
         <option value="exhibition"${r.link_type==='exhibition'?' selected':''}>전시 연결</option>
@@ -3059,11 +3090,14 @@ function hvDiagHtml(today){
       '<td class="why'+(bad?' bad':'')+'">'+esc(why)+'</td></tr>';
   }).join('');
   const over=cand.filter(e=>e.on&&e.mode!=='hide'&&today<=e.end&&today>=hvAdd(e.start,-e.lead)).length;
-  return '<table class="hvdiag"><caption>홈 후보 전시 — 규칙: 개막 '+HOME_UPCOMING_DAYS+
-    '일 전(전시별로 따로 정할 수 있어요)부터 홈에 나올 수 있고, 겹치면 <b>앞세운 전시 → 개인전 → 단체전 → 아트페어</b> 차례입니다. '+
-    '큰 카드 하나와 한 줄 '+HOME_ALSO_MAX+'건, 모두 '+(HOME_ALSO_MAX+1)+'건까지 나옵니다. '+
-    (chosen?'✔가 큰 카드로 뜨는 전시예요.':'지금은 뜰 전시가 없어 홈 첫 화면이 Recent works 입니다.')+
-    (over>1?' <b>지금 '+over+'건이 겹칩니다.</b>':'')+
+  return '<table class="hvdiag"><caption>'+
+    (chosen?'<b>✔</b>가 지금 홈 첫 화면에 큰 카드로 뜨는 전시입니다.'
+           :'지금은 뜰 전시가 없어 홈 첫 화면이 <b>Recent works</b> 입니다.')+
+    (over>1?' 지금 <b>'+over+'건</b>이 겹칩니다.':'')+
+    MORE('어떻게 고르나요',
+      '<p>개막 '+HOME_UPCOMING_DAYS+'일 전부터 홈에 나올 수 있습니다. 전시마다 따로 정할 수도 있습니다.</p>'+
+      '<p>겹치면 <b>앞세운 전시 → 개인전 → 단체전 → 아트페어</b> 차례입니다.</p>'+
+      '<p>큰 카드 하나와 한 줄 '+HOME_ALSO_MAX+'건, 모두 '+(HOME_ALSO_MAX+1)+'건까지 나옵니다.</p>')+
     '</caption>'+
     '<colgroup><col class="c-ex"><col class="c-up"><col class="c-dt"><col></colgroup>'+
     '<thead><tr><th>전시</th><th>홈 예고 (Upcoming)<small class="hvsub">날짜를 눌러 바꿀 수 있어요</small></th>'+
@@ -3286,7 +3320,8 @@ function openHvEdit(r,neu){
       '<input type="hidden" name="video_master" value="'+esc(r.video_master||'')+'">'+
       '<div id="hvVideoName" class="hint">'+(r.video_master?'✅ 기존 영상 있음 (다시 선택하면 교체됩니다)':'')+'</div>',
       '16:9 원본 그대로(8~15초 권장, 최대 '+HV_MAX_MB+'MB). 반영할 때 웹용으로 다시 인코딩하고 모바일용·포스터도 자동으로 만듭니다. '+
-      '폰 설정에서 HDR 영상은 끄고, 배경은 검정으로, 영상 안에 작품명·자막은 넣지 마세요(화면 크레딧과 겹칩니다)')+'</div>'+
+      '폰 설정에서 HDR은 끄고 배경은 검정으로 찍으세요. 영상 안에 작품명·자막은 넣지 마세요.'+
+      MORE('자막을 왜 빼나요', '홈페이지가 화면 아래에 작품명을 얹기 때문에 겹쳐 보입니다.'))+'</div>'+
     '<div data-for="image video">'+F('크레딧 작품', '<select name="work_id"><option value="">연결 안 함(크레딧 없음)</option>'+opts(pubWorks, kind!=='work'?r.work_id:'')+'</select>',
       '고르면 화면에 작품명, 연도와 "작품 보기"가 나옵니다. 공개된 작품만 고를 수 있습니다')+'</div>'+
     F('이름 (관리용)', '<input name="name" value="'+esc(r.name||'')+'" placeholder="비우면 작품명으로 표시">', '홈페이지에는 나오지 않고 이 목록에서만 보여요')+
@@ -4582,11 +4617,14 @@ function renderWorksPage(){
 function drawWorksPage(){
   const box=$('#wpBody'); if(!box) return;
   const intro=`<p class="hint wp-intro">홈페이지 <b>Works</b> 페이지는 위에서부터 <b>Selected works → All works</b> 순서로 보입니다.
-    여기서 저장한 내용은 위의 <b>🚀 홈페이지에 반영</b>을 눌러야 나갑니다(안 누르면 자정에 자동 반영).</p>`;
+    여기서 저장한 내용은 위의 <b>🚀 홈페이지에 반영</b>을 눌러야 나갑니다. 안 누르면 자정에 저절로 나갑니다.</p>`;
   if(WP_READY===false||!WORKS_HAS_ORDER){
     box.innerHTML=`<div class="wp">${intro}<div class="wp-need"><b>먼저 한 번만 준비가 필요합니다.</b><br>
-      Supabase 콘솔 → SQL Editor에 <b>supabase/schema/works_page_2026-09.sql</b> 내용을 통째로 붙여넣고 Run 한 뒤,
-      아래 버튼을 누르세요. 실행 전에는 홈페이지 Works가 지금처럼 최신순으로 보이고 Selected works는 나오지 않습니다.
+      Supabase 콘솔 → SQL Editor에 <b>supabase/schema/works_page_2026-09.sql</b>을 통째로 붙여넣고 Run 하세요.
+      그다음 아래 단추를 누르면 됩니다.
+      <details class="more"><summary>실행 전에는 어떻게 되나요</summary><div>
+        <p>홈페이지 Works가 지금처럼 최신순으로 보이고, Selected works 구역은 나오지 않습니다.</p>
+      </div></details>
       <div style="margin-top:8px"><button class="wp-mini" id="wpRetry">실행했으면 다시 확인</button></div></div></div>`;
     $('#wpRetry').onclick=async()=>{ await load(); renderWorksPage(); };
     return;
@@ -4655,8 +4693,13 @@ function drawWorksPage(){
   const serDirty=Object.keys(WP_SERIES_DRAFT).length>0;
   const serHtml=`<div class="wp-box">
     <div class="wp-head"><h3>시리즈 · 두 폭 연작</h3><span class="hint">작품 수정 화면의 '시리즈 키'가 같은 작품끼리 한 묶음입니다</span></div>
-    <p class="hint">작품 목록(All works)에서는 시리즈·연작도 다른 작품과 똑같이 한 점씩 나오고, 작품 상세의 '시리즈 작품'으로만 묶입니다.
-      두 폭 연작이면 <b>두 폭 붙이기</b>를 켜세요 — <b>Selected works</b>에 넣었을 때만 ㅁㅁ처럼 두 칸짜리 한 단위로 붙어 나옵니다(사이를 살짝 띄움, 한쪽만 골라도 짝이 함께, 공개 작품이 딱 2점일 때만).</p>
+    <p class="hint">All works 목록에서는 시리즈도 한 점씩 따로 나옵니다. 묶인 모습은 작품 상세의 '시리즈 작품'에서만 보입니다.
+      두 폭 연작이면 아래 <b>두 폭 붙이기</b>를 켜세요. <b>Selected works</b>에서 두 칸짜리 한 단위로 붙어 나옵니다.
+      <details class="more"><summary>두 폭으로 붙는 조건</summary><div>
+        <p>그 시리즈의 공개 작품이 <b>딱 2점</b>일 때만 붙습니다.</p>
+        <p>한쪽만 골라도 짝이 함께 나옵니다.</p>
+        <p>두 폭 사이는 살짝 띄웁니다. 왼쪽·오른쪽은 작품 수정 화면의 '연작 안 순서'로 정합니다.</p>
+      </div></details></p>
     ${keys.length?`<div class="tablewrap"><table><thead><tr><th>시리즈 키</th><th>작품</th><th>두 폭 붙이기</th></tr></thead>
       <tbody>${serRows}</tbody></table></div>`:'<p class="hint">아직 시리즈 키를 입력한 작품이 없습니다.</p>'}
     <div class="wp-actions"><button class="btn primary" id="wpSerSave" ${serDirty?'':'disabled'}>저장</button>
@@ -4698,11 +4741,17 @@ function drawWorksPage(){
     <div class="sec">ALL WORKS</div>${wpGridHtml(al,cols)}</div>`;
   const ordHtml=`<div class="wp-box">
     <div class="wp-head"><h3>All works 순서</h3><span class="hint">공개 작품 ${pub.length}점 · 지금 홈페이지에 보일 순서대로</span></div>
-    <p class="hint"><b>줄을 끌어서</b> 순서를 바꿀 수 있습니다(▲▼ 단추도 같은 일을 합니다). 옮기면 목록 순서가 10, 20, 30…으로 다시 매겨집니다.
-      맨 위 ${HOME_RECENT_COUNT}점은 <b>홈 첫 화면의 Recent works</b>로도 나갑니다 — 다만 전시 예고·전시 중일 때는 그 자리를 전시 카드가 대신합니다(홈 운영 화면의 일정 달력 참고).</p>
-    <p class="hint"><b>목록 순서</b>는 작은 수부터 앞에 나오고, 비워 둔 작품은 그 뒤에 최신순으로 이어집니다(새로 올린 작품도 비워 두면 최신순 자리).
-      10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다. All works에서는 연작도 한 점씩 따로 나옵니다. <b>연작 안 순서</b>는 Selected에 두 폭으로 붙어 나올 때 왼쪽·오른쪽을 정합니다(1이 왼쪽).
-      숫자를 바꾸면 아래 미리보기가 바로 바뀝니다.</p>
+    <p class="hint"><b>줄을 끌어</b> 순서를 바꾸세요. ▲▼ 단추도 같은 일을 합니다. 옮기면 번호가 10, 20, 30…으로 다시 매겨집니다.
+      맨 위 ${HOME_RECENT_COUNT}점은 홈 첫 화면의 <b>Recent works</b>로도 나갑니다.
+      <details class="more"><summary>번호를 직접 적을 때</summary><div>
+        <p>작은 수부터 앞에 나옵니다. 비워 둔 작품은 그 뒤에 최신순으로 이어집니다. 새로 올린 작품도 비워 두면 최신순 자리입니다.</p>
+        <p>10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다.</p>
+        <p><b>연작 안 순서</b>는 Selected works에 두 폭으로 붙어 나올 때 왼쪽·오른쪽을 정합니다. 1이 왼쪽입니다.</p>
+        <p>숫자를 바꾸면 아래 미리보기가 바로 바뀝니다.</p>
+      </div></details>
+      <details class="more"><summary>홈 첫 화면에 안 보일 때</summary><div>
+        <p>전시를 예고하거나 전시 중일 때는 그 자리를 전시 카드가 대신합니다. <b>홈 운영</b> 화면의 일정 표에서 언제 바뀌는지 볼 수 있습니다.</p>
+      </div></details></p>
     <div class="tablewrap"><table class="wp-ord"><thead><tr><th></th><th>목록 순서</th><th></th><th>No.</th><th>작품명</th><th>연작</th><th>연작 안 순서</th></tr></thead>
       <tbody>${ordRows||'<tr><td colspan="7" class="hint">공개 작품이 없습니다</td></tr>'}</tbody></table></div>
     <div class="wp-actions"><button class="btn primary" id="wpOrdSave" ${ordDirty?'':'disabled'}>순서 저장</button>

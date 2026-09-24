@@ -389,7 +389,13 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 /* 홈 일정 진단 표 — 어떤 전시가 후보이고 왜 뽑히거나 빠지는지 */
 .hvdiag{width:100%; table-layout:fixed; border-collapse:collapse; margin-top:10px; font-size:.78rem}
 .hvdiag th, .hvdiag td{white-space:normal; overflow-wrap:anywhere}   /* 342행 th,td{white-space:nowrap} 풀기 */
-.hvdiag col.c-ex{width:30%} .hvdiag col.c-ty{width:11%} .hvdiag col.c-dt{width:21%}
+.hvdiag col.c-ex{width:26%} .hvdiag col.c-up{width:27%} .hvdiag col.c-dt{width:21%}
+.hvdiag .hvsub{display:block; color:var(--sub); font-weight:400; font-size:.7rem; margin-top:1px}
+.hvdiag .hvup input{width:auto; max-width:100%; padding:2px 6px; border:1px solid var(--line); border-radius:6px;
+  font:inherit; font-size:.76rem; background:var(--card); color:var(--ink)}
+.hvdiag .hvup input:not([disabled]){cursor:pointer}
+.hvdiag .hvup input:hover:not([disabled]){border-color:var(--accent2)}
+.hvdiag .hvlead-to{display:block; color:var(--sub); font-size:.7rem; margin-top:2px}
 .hvdiag caption{text-align:left; color:var(--sub); font-size:.74rem; line-height:1.55; padding:0 0 6px}
 .hvdiag th, .hvdiag td{padding:5px 8px; border-top:1px solid var(--line); text-align:left; vertical-align:top}
 .hvdiag th{color:var(--sub); font-weight:600; font-size:.72rem}
@@ -2297,7 +2303,7 @@ const EX_GLOSS = {
   '서울':'Seoul','부산':'Busan','대구':'Daegu','인천':'Incheon','광주':'Gwangju','대전':'Daejeon','수원':'Suwon','성남':'Seongnam',
   '분당':'Bundang','제주':'Jeju','파리':'Paris','도쿄':'Tokyo','요코하마':'Yokohama','오사카':'Osaka','뉴욕':'New York',
   '런던':'London','홍콩':'Hong Kong','싱가포르':'Singapore','상하이':'Shanghai','베이징':'Beijing','타이베이':'Taipei',
-  '대한민국':'KR','한국':'Korea','일본':'JPN','프랑스':'France','미국':'USA','영국':'UK','중국':'China','독일':'Germany',
+  '대한민국':'Korea','한국':'Korea','일본':'JPN','프랑스':'France','미국':'USA','영국':'UK','중국':'China','독일':'Germany',
   '이탈리아':'Italy','스페인':'Spain','대만':'Taiwan','태국':'Thailand'
 };
 const EX_GLOSS_KEYS = Object.keys(EX_GLOSS).sort((a,b)=>b.length-a.length);   // 긴 낱말부터 맞춘다
@@ -3033,16 +3039,23 @@ function hvDiagHtml(today){
     const inWin=today>=hvAdd(e.start,-e.lead);
     if(e.mode==='hide'){ why='\'홈에 안 내보냄\'으로 해 두셨어요 — 전시 이력·About 에는 그대로 있어요'; bad=true; }
     else if(!e.on){ why='홈 후보에서 빠짐 — 이 전시의 "홈페이지 공개"가 꺼져 있어요'; bad=true; }
-    else if(!inWin){
-      why='개막 '+daysTo(e.start)+'일 전 — '+hvKorDay(hvAdd(e.start,-e.lead))+'부터 홈에 예고'+
-          (e.lead!==HOME_UPCOMING_DAYS?' (이 전시는 '+e.lead+'일 전부터로 정해 두셨어요)':'');
-    }
+    else if(e.lead===0 && today<e.start){ why='예고 없이 '+hvKorDay(e.start)+'(개막일)부터 바로 뜹니다'; }
+    else if(!inWin){ why='아직 예고 전 — 개막 '+daysTo(e.start)+'일 전'; }
     else if(mine){ why=(today>=e.start?'진행 중':'개막 '+daysTo(e.start)+'일 전')+' — 지금 홈 카드에 뜨는 전시예요'+(e.mode==='pin'?' (앞세움)':''); }
     else if(alsoIds.has(String(e.id))){ why='홈에 한 줄로 함께 나옵니다'; }
     else if(!e.pub){ why='공개 출품작이 0점이라 카드가 못 떠요 — 전시 관리에서 작품을 연결하세요'; bad=true; }
     else { why='겹치는 전시에 밀려 홈에는 안 나옵니다 (한 번에 '+(HOME_ALSO_MAX+1)+'건까지)'; bad=true; }
-    return '<tr class="'+(mine?'pick':'')+(e.on&&e.mode!=='hide'?'':' off')+'"><td>'+(mine?'✔ ':'')+esc(e.title)+'</td>'+
-      '<td>'+esc(e.type)+'</td><td>'+esc(e.start)+' ~ '+esc(e.end.slice(5))+'</td>'+
+    // 예고 기간은 '며칠 전'이 아니라 날짜로 고르게 한다 — 달력을 보며 정하는 편이 쉽다
+    const upFrom=hvAdd(e.start,-e.lead), upTo=hvAdd(e.start,-1);
+    const upCell = e.lead>0
+      ? '<input type="date" class="hvlead" data-ex="'+esc(e.id)+'" value="'+esc(upFrom)+'" max="'+esc(e.start)+'"'+
+        (EX_HAS_HOME?'':' disabled')+'><span class="hvlead-to">~ '+esc(hvKorDay(upTo))+' · '+e.lead+'일간</span>'
+      : '<input type="date" class="hvlead" data-ex="'+esc(e.id)+'" value="'+esc(e.start)+'" max="'+esc(e.start)+'"'+
+        (EX_HAS_HOME?'':' disabled')+'><span class="hvlead-to">예고 안 함</span>';
+    return '<tr class="'+(mine?'pick':'')+(e.on&&e.mode!=='hide'?'':' off')+'">'+
+      '<td>'+(mine?'✔ ':'')+esc(e.title)+'<small class="hvsub">'+esc(e.type)+'</small></td>'+
+      '<td class="hvup">'+upCell+'</td>'+
+      '<td>'+esc(e.start)+' ~ '+esc(e.end.slice(5))+'</td>'+
       '<td class="why'+(bad?' bad':'')+'">'+esc(why)+'</td></tr>';
   }).join('');
   const over=cand.filter(e=>e.on&&e.mode!=='hide'&&today<=e.end&&today>=hvAdd(e.start,-e.lead)).length;
@@ -3052,8 +3065,27 @@ function hvDiagHtml(today){
     (chosen?'✔가 큰 카드로 뜨는 전시예요.':'지금은 뜰 전시가 없어 홈 첫 화면이 Recent works 입니다.')+
     (over>1?' <b>지금 '+over+'건이 겹칩니다.</b>':'')+
     '</caption>'+
-    '<colgroup><col class="c-ex"><col class="c-ty"><col class="c-dt"><col></colgroup>'+
-    '<thead><tr><th>전시</th><th>유형</th><th>기간</th><th>홈에서의 상태</th></tr></thead><tbody>'+body+'</tbody></table>';
+    '<colgroup><col class="c-ex"><col class="c-up"><col class="c-dt"><col></colgroup>'+
+    '<thead><tr><th>전시</th><th>홈 예고 (Upcoming)<small class="hvsub">날짜를 눌러 바꿀 수 있어요</small></th>'+
+    '<th>전시 중 (Now on view)</th><th>홈에서의 상태</th></tr></thead><tbody>'+body+'</tbody></table>';
+}
+/* 예고 시작일을 바꾼다. DB 에는 '개막 며칠 전'으로 담기므로 날짜를 날수로 바꿔 넣는다.
+   version 은 트리거가 올리므로 여기서는 손대지 않고, 그 사이 다른 곳에서 바뀌었으면 0행이 돌아온다. */
+async function hvSaveLead(exId, startDate){
+  const r=exRows.find(x=>String(x.id)===String(exId));
+  if(!r) return;
+  if(!EX_HAS_HOME){ toast('먼저 Supabase 에서 exhibitions_home_2026-09.sql 을 실행하세요'); return; }
+  let days=Math.round((Date.parse(r.start_date+'T00:00:00Z')-Date.parse(startDate+'T00:00:00Z'))/86400000);
+  if(!isFinite(days)) return;
+  days=Math.max(0, Math.min(365, days));
+  const q=await sb.from('exhibitions').update({home_lead_days:days})
+    .eq('id', r._id).eq('version', r._version).select('id, version');
+  if(q.error){ toast('저장 실패: '+(q.error.message||q.error)); return; }
+  if(!q.data || !q.data.length){ toast('이 전시가 다른 곳에서 수정됐습니다 — ↻ 새로고침 후 다시 해 주세요'); return; }
+  r.home_lead_days=String(days); r._version=q.data[0].version;
+  toast(days? `✅ ${hvKorDay(startDate)}부터 홈에 예고합니다 — 🚀 반영을 눌러야 홈페이지에 나갑니다`
+            : '✅ 이 전시는 홈에 예고하지 않습니다 — 🚀 반영을 눌러야 홈페이지에 나갑니다');
+  renderHomeSchedule();
 }
 function renderHomeSchedule(){
   const box=$('#hvSchedNow'); if(!box) return;
@@ -3077,6 +3109,9 @@ function renderHomeSchedule(){
   });
   html+=hvDiagHtml(today);
   box.innerHTML=html;
+  box.querySelectorAll('input.hvlead').forEach(el=>{
+    el.onchange=()=>{ if(el.value) hvSaveLead(el.dataset.ex, el.value); };
+  });
   renderHomeCal(list, today);
 }
 function renderHomeCal(list, today){

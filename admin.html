@@ -2552,7 +2552,7 @@ function exFormHtml(r,isNew){
     </div>`,
     EX_HAS_HOME
       ? '개막 <b>며칠 전</b>부터 홈 첫 화면에 예고할지 정합니다. 비우면 30일입니다.'+
-        MORE('전시가 겹치면', '<p><b>개인전 → 단체전 → 아트페어</b> 차례로 앞세웁니다. 큰 카드 하나와 한 줄 2건, 모두 3건까지 나옵니다.</p>'+
+        MORE('전시가 겹치면', '<p>홈에 카드가 개막 이른 차례로 나란히 놓입니다. 한 번에 3건까지이고, 넘치면 <b>개인전 → 단체전 → 아트페어</b> 차례로 자리를 얻습니다.</p>'+
           '<p>「겹치면 이 전시를 앞세움」으로 두면 유형과 상관없이 먼저 나옵니다.</p>'+
           '<p>「홈에 안 내보냄」은 첫 화면에서만 빼는 것입니다. 전시 이력과 About에는 그대로 남습니다.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_home_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
@@ -2993,7 +2993,7 @@ function hvPublicCount(excludeId){
      · 고른 전시에 공개 출품작이 없으면 카드가 안 뜨고 Recent works
    규칙이 바뀌면 index.html의 UPCOMING_WINDOW_DAYS와 여기를 같이 고쳐야 한다. */
 const HOME_UPCOMING_DAYS = 30;   // 전시별로 따로 정하지 않았을 때의 예고 기간
-const HOME_ALSO_MAX = 2;         // 겹칠 때 큰 카드 하나 + 한 줄로 몇 건 더 보일지(합쳐 3건)
+const HOME_CARDS_MAX = 3;        // 겹칠 때 홈에 함께 보일 전시 수(홈페이지 index.html 의 HOME_CARDS_MAX 와 같아야 한다)
 var HV_CAL_M = 0;   // 이번 달에서 몇 달 옮겨 보는 중인지
 function hvYmd(d){ return d.toISOString().slice(0,10); }
 function hvAdd(day, n){ const d=new Date(day+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return hvYmd(d); }
@@ -3034,7 +3034,7 @@ function hvModeOn(day, list){
   const ex=cand.find(e=>e.pub);            // 공개 출품작이 없으면 카드를 못 그리니 다음 후보로 넘어간다
   if(!ex) return {mode:'recent', ex:null, blocked:cand[0]||null, also:[]};
   return {mode: day>=ex.start?'now':'upcoming', ex:ex,
-          also: cand.filter(e=>e.id!==ex.id).slice(0, HOME_ALSO_MAX)};
+          also: cand.filter(e=>e.id!==ex.id).slice(0, HOME_CARDS_MAX-1)};
 }
 function hvModeName(m){ return {now:'Now on view', upcoming:'Upcoming exhibition', recent:'Recent works'}[m]; }
 function hvModeClass(m){ return {now:'m-now', upcoming:'m-up', recent:'m-recent'}[m]; }
@@ -3072,10 +3072,10 @@ function hvDiagHtml(today){
     else if(!e.on){ why='홈 후보에서 빠짐 — 이 전시의 "홈페이지 공개"가 꺼져 있어요'; bad=true; }
     else if(e.lead===0 && today<e.start){ why='예고 없이 '+hvKorDay(e.start)+'(개막일)부터 바로 뜹니다'; }
     else if(!inWin){ why='아직 예고 전 — 개막 '+daysTo(e.start)+'일 전'; }
-    else if(mine){ why=(today>=e.start?'진행 중':'개막 '+daysTo(e.start)+'일 전')+' — 지금 홈 카드에 뜨는 전시예요'+(e.mode==='pin'?' (앞세움)':''); }
-    else if(alsoIds.has(String(e.id))){ why='홈에 한 줄로 함께 나옵니다'; }
+    else if(mine){ why=(today>=e.start?'진행 중':'개막 '+daysTo(e.start)+'일 전')+' — 홈에 카드로 뜹니다'+(e.mode==='pin'?' (앞세움)':''); }
+    else if(alsoIds.has(String(e.id))){ why='홈에 카드로 함께 나옵니다'; }
     else if(!e.pub){ why='공개 출품작이 0점이라 카드가 못 떠요 — 전시 관리에서 작품을 연결하세요'; bad=true; }
-    else { why='겹치는 전시에 밀려 홈에는 안 나옵니다 (한 번에 '+(HOME_ALSO_MAX+1)+'건까지)'; bad=true; }
+    else { why='겹치는 전시에 밀려 홈에는 안 나옵니다 (한 번에 '+HOME_CARDS_MAX+'건까지)'; bad=true; }
     // 예고 기간은 '며칠 전'이 아니라 날짜로 고르게 한다 — 달력을 보며 정하는 편이 쉽다
     const upFrom=hvAdd(e.start,-e.lead), upTo=hvAdd(e.start,-1);
     const upCell = e.lead>0
@@ -3091,13 +3091,13 @@ function hvDiagHtml(today){
   }).join('');
   const over=cand.filter(e=>e.on&&e.mode!=='hide'&&today<=e.end&&today>=hvAdd(e.start,-e.lead)).length;
   return '<table class="hvdiag"><caption>'+
-    (chosen?'<b>✔</b>가 지금 홈 첫 화면에 큰 카드로 뜨는 전시입니다.'
+    (chosen?'<b>✔</b>가 지금 홈 첫 화면 맨 앞에 오는 전시입니다.'
            :'지금은 뜰 전시가 없어 홈 첫 화면이 <b>Recent works</b> 입니다.')+
     (over>1?' 지금 <b>'+over+'건</b>이 겹칩니다.':'')+
     MORE('어떻게 고르나요',
       '<p>개막 '+HOME_UPCOMING_DAYS+'일 전부터 홈에 나올 수 있습니다. 전시마다 따로 정할 수도 있습니다.</p>'+
       '<p>겹치면 <b>앞세운 전시 → 개인전 → 단체전 → 아트페어</b> 차례입니다.</p>'+
-      '<p>큰 카드 하나와 한 줄 '+HOME_ALSO_MAX+'건, 모두 '+(HOME_ALSO_MAX+1)+'건까지 나옵니다.</p>')+
+      '<p>겹치면 카드가 개막 이른 차례로 나란히 놓입니다. 한 번에 '+HOME_CARDS_MAX+'건까지입니다.</p>')+
     '</caption>'+
     '<colgroup><col class="c-ex"><col class="c-up"><col class="c-dt"><col></colgroup>'+
     '<thead><tr><th>전시</th><th>홈 예고 (Upcoming)<small class="hvsub">날짜를 눌러 바꿀 수 있어요</small></th>'+

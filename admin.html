@@ -277,7 +277,7 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .cal-d{display:grid; grid-template-columns:repeat(7,1fr); font-size:.72rem; text-align:center; color:var(--sub)}
 .cal-d span{padding:1px 0}
 .cal-d .is-today{font-weight:700; color:var(--ink); background:#fff3c4; border-radius:5px}
-.cal-bars{position:relative; height:15px; margin:1px 0 2px}
+.cal-bars{position:relative; height:15px; margin:1px 0 2px}   /* 높이는 그 주의 전시 수만큼 늘어난다 */
 .cal-bar{position:absolute; top:0; height:14px; border-radius:3px; font-size:.64rem; line-height:14px; padding:0 5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
 .m-now{background:#2f7a52; color:#fff}
 .m-up{background:#2e6da4; color:#fff}
@@ -3030,13 +3030,19 @@ function hvCandidates(day, list){
       String(a.id).localeCompare(String(b.id)));
 }
 function hvModeOn(day, list){
-  const cand=hvCandidates(day, list);
-  const ex=cand.find(e=>e.pub);            // 공개 출품작이 없으면 카드를 못 그리니 다음 후보로 넘어간다
-  if(!ex) return {mode:'recent', ex:null, blocked:cand[0]||null, also:[]};
+  // 홈페이지는 후보를 개막 이른 차례로 카드를 만든다. 출품작이 없어도 카드는 뜨고,
+  // 아래 작품만 최근 작품으로 채운다 — 그래서 여기서도 출품작을 따지지 않는다.
+  const cand=hvCandidates(day, list).slice(0, HOME_CARDS_MAX)
+    .sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+  if(!cand.length) return {mode:'recent', ex:null, also:[], cards:[]};
+  const ex=cand[0];
   return {mode: day>=ex.start?'now':'upcoming', ex:ex,
-          also: cand.filter(e=>e.id!==ex.id).slice(0, HOME_CARDS_MAX-1)};
+          also: cand.slice(1), cards: cand};
 }
 function hvModeName(m){ return {now:'Now on view', upcoming:'Upcoming exhibition', recent:'Recent works'}[m]; }
+/* 홈 첫 화면에 실제로 적히는 제목 — 전시가 둘 이상이면 서로 상태가 달라 Exhibitions 로 나온다
+   (홈페이지 index.html 의 renderHomeGrid 와 같은 규칙) */
+function hvHomeTitle(st){ return (st.cards && st.cards.length > 1) ? 'Exhibitions' : hvModeName(st.mode); }
 function hvModeClass(m){ return {now:'m-now', upcoming:'m-up', recent:'m-recent'}[m]; }
 function hvBarText(s){ return s.mode==='recent'?'Recent works':(hvModeName(s.mode)+' · '+s.ex.title); }
 /* 오늘부터 앞으로 어떻게 바뀌는지 — 바뀌는 날만 추려서 */
@@ -3044,7 +3050,8 @@ function hvChanges(list, today, days){
   const out=[]; let prev=hvModeOn(today,list), start=today;
   for(let i=1;i<=days;i++){
     const day=hvAdd(today,i), cur=hvModeOn(day,list);
-    const same=cur.mode===prev.mode&&String(cur.ex&&cur.ex.id)===String(prev.ex&&prev.ex.id);
+    const key=st=>st.mode+'|'+((st.cards||[]).map(e=>e.id).join(','));
+    const same=key(cur)===key(prev);
     if(!same){ out.push({from:start, to:hvAdd(day,-1), st:prev}); prev=cur; start=day; }
   }
   out.push({from:start, to:hvAdd(today,days), st:prev});
@@ -3074,8 +3081,8 @@ function hvDiagHtml(today){
     else if(!inWin){ why='아직 예고 전 — 개막 '+daysTo(e.start)+'일 전'; }
     else if(mine){ why=(today>=e.start?'진행 중':'개막 '+daysTo(e.start)+'일 전')+' — 홈에 카드로 뜹니다'+(e.mode==='pin'?' (앞세움)':''); }
     else if(alsoIds.has(String(e.id))){ why='홈에 카드로 함께 나옵니다'; }
-    else if(!e.pub){ why='공개 출품작이 0점이라 카드가 못 떠요 — 전시 관리에서 작품을 연결하세요'; bad=true; }
     else { why='겹치는 전시에 밀려 홈에는 안 나옵니다 (한 번에 '+HOME_CARDS_MAX+'건까지)'; bad=true; }
+    if(e.pub===0 && e.mode!=='hide' && e.on) why+=' · 연결된 공개 작품이 없어 아래는 최근 작품으로 채워집니다';
     // 예고 기간은 '며칠 전'이 아니라 날짜로 고르게 한다 — 달력을 보며 정하는 편이 쉽다
     const upFrom=hvAdd(e.start,-e.lead), upTo=hvAdd(e.start,-1);
     const upCell = e.lead>0
@@ -3126,19 +3133,20 @@ function renderHomeSchedule(){
   const list=hvExList(), today=kstDay(0);
   const segs=hvChanges(list, today, 180);
   const now=segs[0];
-  let html='<div>지금 <b>'+hvKorDay(today)+'</b> — 홈 첫 화면은 <b>'+hvModeName(now.st.mode)+'</b>'+
-    (now.st.ex?' · '+esc(now.st.ex.title):'')+'입니다.</div>';
+  let html='<div>지금 <b>'+hvKorDay(today)+'</b> — 홈 첫 화면은 <b>'+hvHomeTitle(now.st)+'</b>'+
+    ((now.st.cards&&now.st.cards.length)?' · '+now.st.cards.map(e=>esc(e.title)).join(', '):'')+'입니다.</div>';
   const next=segs.slice(1,4).map(s=>{
     const end=s.st.mode==='now'&&s.st.ex?s.st.ex.end:null;
-    return '<div>'+hvKorDay(s.from)+(end?' ~ '+hvKorDay(end):'부터')+' — <b>'+hvModeName(s.st.mode)+'</b>'+(s.st.ex?' · '+esc(s.st.ex.title):'')+'</div>';
+    return '<div>'+hvKorDay(s.from)+(end?' ~ '+hvKorDay(end):'부터')+' — <b>'+hvHomeTitle(s.st)+'</b>'+
+      ((s.st.cards&&s.st.cards.length)?' · '+s.st.cards.map(e=>esc(e.title)).join(', '):'')+'</div>';
   }).join('');
   html+=next||'<div class="hint">앞으로 6개월 동안은 바뀌지 않습니다.</div>';
-  /* 출품작이 없어 예고가 막힌 전시 알리기 */
-  const blocked={};
-  segs.forEach(s=>{ if(s.st.blocked) blocked[s.st.blocked.id]=s.st.blocked; });
-  Object.keys(blocked).forEach(id=>{
-    const e=blocked[id];
-    html+='<div class="warn">⚠ '+esc(e.title)+' — 공개 출품작이 0점이라 전시 카드가 뜨지 않습니다. '+
+  /* 연결된 작품이 없는 전시 알리기 — 카드는 뜨지만 아래가 최근 작품으로 채워진다 */
+  const noWork={};
+  segs.forEach(s=>{ (s.st.cards||[]).forEach(e=>{ if(!e.pub) noWork[e.id]=e; }); });
+  Object.keys(noWork).forEach(id=>{
+    const e=noWork[id];
+    html+='<div class="warn">⚠ '+esc(e.title)+' — 연결된 공개 작품이 없습니다. 카드는 뜨지만 아래는 최근 작품으로 채워집니다. '+
       hvKorDay(hvAdd(e.start,-(e.lead||HOME_UPCOMING_DAYS)))+'까지 전시 관리에서 작품을 연결하세요.</div>';
   });
   html+=hvDiagHtml(today);
@@ -3166,17 +3174,43 @@ function hvCalMonth(y, m, list, today){
   let weeks='';
   for(let w=0;w<cells.length/7;w++){
     const row=cells.slice(w*7,w*7+7);
-    let nums='', bars='', i=0;
+    let nums='';
     row.forEach(day=>{ nums+='<span'+(day===today?' class="is-today"':'')+'>'+(day?Number(day.slice(8,10)):'')+'</span>'; });
+    // 그 주에 홈에 나올 전시를 모두 모아 한 줄씩 준다(겹쳐도 가리지 않게).
+    // 줄 차례는 홈 카드와 같게 개막 이른 순이다.
+    const perDay=row.map(d=>d?hvModeOn(d,list):null);
+    const lanes=[];
+    perDay.forEach(st=>{ if(st) (st.cards||[]).forEach(e=>{ if(!lanes.some(x=>x.id===e.id)) lanes.push(e); }); });
+    lanes.sort((a,b)=>String(a.start).localeCompare(String(b.start))||String(a.id).localeCompare(String(b.id)));
+    let bars='';
+    // 전시 줄
+    lanes.forEach((ex,lane)=>{
+      let i=0;
+      while(i<7){
+        const on=d=>{ const st=perDay[d]; return st&&(st.cards||[]).some(x=>x.id===ex.id); };
+        if(!row[i]||!on(i)){ i++; continue; }
+        const mode=row[i]>=ex.start?'now':'upcoming';
+        let j=i+1;
+        while(j<7&&row[j]&&on(j)&&(row[j]>=ex.start?'now':'upcoming')===mode) j++;
+        const label=hvModeName(mode)+' · '+ex.title;
+        bars+='<span class="cal-bar '+hvModeClass(mode)+'" style="top:'+(lane*16)+'px;left:'+(i/7*100).toFixed(2)+
+          '%;width:'+((j-i)/7*100).toFixed(2)+'%" title="'+esc(label)+'">'+esc(label)+'</span>';
+        i=j;
+      }
+    });
+    // 전시가 하나도 없는 날은 Recent works 줄을 맨 아래에 둔다
+    let i=0;
     while(i<7){
-      if(!row[i]){ i++; continue; }
-      const st=hvModeOn(row[i],list), key=st.mode+'|'+(st.ex?st.ex.id:'');
+      if(!row[i]||(perDay[i]&&perDay[i].mode!=='recent')){ i++; continue; }
       let j=i+1;
-      while(j<7&&row[j]){ const s2=hvModeOn(row[j],list); if(s2.mode+'|'+(s2.ex?s2.ex.id:'')!==key) break; j++; }
-      bars+='<span class="cal-bar '+hvModeClass(st.mode)+'" style="left:'+(i/7*100).toFixed(2)+'%;width:'+((j-i)/7*100).toFixed(2)+'%" title="'+esc(hvBarText(st))+'">'+esc(hvBarText(st))+'</span>';
+      while(j<7&&row[j]&&perDay[j]&&perDay[j].mode==='recent') j++;
+      bars+='<span class="cal-bar m-recent" style="top:'+(lanes.length*16)+'px;left:'+(i/7*100).toFixed(2)+
+        '%;width:'+((j-i)/7*100).toFixed(2)+'%" title="Recent works">Recent works</span>';
       i=j;
     }
-    weeks+='<div class="cal-wk"><div class="cal-d">'+nums+'</div><div class="cal-bars">'+bars+'</div></div>';
+    const rows=lanes.length+(bars.indexOf('m-recent')>=0?1:0);
+    weeks+='<div class="cal-wk"><div class="cal-d">'+nums+'</div>'+
+      '<div class="cal-bars" style="height:'+Math.max(15,rows*16)+'px">'+bars+'</div></div>';
   }
   return '<div class="cal-m"><h4>'+y+'년 '+(m+1)+'월</h4><div class="cal-dow">'+
     ['일','월','화','수','목','금','토'].map(s=>'<span>'+s+'</span>').join('')+'</div>'+weeks+'</div>';

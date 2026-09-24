@@ -371,7 +371,9 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .exchips{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
 .exchips button{margin-left:0}
 /* 홈 일정 진단 표 — 어떤 전시가 후보이고 왜 뽑히거나 빠지는지 */
-.hvdiag{width:100%; border-collapse:collapse; margin-top:10px; font-size:.78rem}
+.hvdiag{width:100%; table-layout:fixed; border-collapse:collapse; margin-top:10px; font-size:.78rem}
+.hvdiag th, .hvdiag td{white-space:normal; overflow-wrap:anywhere}   /* 342행 th,td{white-space:nowrap} 풀기 */
+.hvdiag col.c-ex{width:30%} .hvdiag col.c-ty{width:11%} .hvdiag col.c-dt{width:21%}
 .hvdiag caption{text-align:left; color:var(--sub); font-size:.74rem; line-height:1.55; padding:0 0 6px}
 .hvdiag th, .hvdiag td{padding:5px 8px; border-top:1px solid var(--line); text-align:left; vertical-align:top}
 .hvdiag th{color:var(--sub); font-weight:600; font-size:.72rem}
@@ -2919,13 +2921,17 @@ var HV_CAL_M = 0;   // 이번 달에서 몇 달 옮겨 보는 중인지
 function hvYmd(d){ return d.toISOString().slice(0,10); }
 function hvAdd(day, n){ const d=new Date(day+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return hvYmd(d); }
 function hvKorDay(day){ return Number(day.slice(5,7))+'월 '+Number(day.slice(8,10))+'일'; }
-/* 홈에 나갈 수 있는 전시 — 공개 출품작 수까지 세어 둔다(exhibitions.json과 같은 차례: 개막 늦은 것부터) */
+/* 홈에 나갈 수 있는 전시 — 공개 출품작 수까지 세어 둔다.
+   차례는 exhibitions.json 과 같아야 한다: publish_sb.py 가 전시 ID 오름차순으로 내보내고
+   홈페이지 pickActiveExhibition 이 그 차례대로 처음 걸리는 전시를 고르기 때문이다.
+   개막일로 정렬하면 안 된다 — 지금 ID가 공교롭게 개막 역순이라 같아 보일 뿐이고,
+   새 전시는 EX-2026-15처럼 뒤 번호를 받아 맨 끝에 붙는다. */
 function hvExList(){
   const pub=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'')));
   return exRows.filter(e=>e.publish_web!==false&&e.start_date&&e.end_date)
     .map(e=>({id:e.id, title:e.title||e.id, start:e.start_date, end:e.end_date,
               pub:String(e.work_nos||'').split(',').map(s=>s.trim()).filter(s=>pub.has(s)).length}))
-    .sort((a,b)=>String(b.start).localeCompare(String(a.start)));
+    .sort((a,b)=>String(a.id).localeCompare(String(b.id)));
 }
 function hvModeOn(day, list){
   let ex=list.find(e=>day>=e.start&&day<=e.end), mode='now';
@@ -2966,7 +2972,12 @@ function hvDiagHtml(today){
   const body=cand.map(e=>{
     let why, bad=false;
     if(!e.on){ why='홈 후보에서 빠짐 — 이 전시의 "홈페이지 공개"가 꺼져 있어요'; bad=true; }
-    else if(today>=e.start){ why='진행 중'; }
+    else if(today>=e.start){
+      // 같은 날 진행 중인 전시가 둘 이상이면 하나만 뜬다 — 가려진 쪽을 분명히 알린다
+      if(chosen&&String(chosen.id)!==String(e.id)&&today>=chosen.start&&today<=chosen.end){
+        why='진행 중이지만 "'+chosen.title+'"에 가려져 홈에 안 뜹니다'; bad=true;
+      }else why='진행 중';
+    }
     else{
       const d=daysTo(e.start), from=hvAdd(e.start,-HOME_UPCOMING_DAYS);
       why=d<=HOME_UPCOMING_DAYS ? '개막 '+d+'일 전 — 예고 기간 안' : '개막 '+d+'일 전 — '+hvKorDay(from)+'부터 홈에 예고';
@@ -2977,8 +2988,13 @@ function hvDiagHtml(today){
       '<td>'+esc(e.type)+'</td><td>'+esc(e.start)+' ~ '+esc(e.end.slice(5))+'</td>'+
       '<td class="why'+(bad?' bad':'')+'">'+esc(why)+'</td></tr>';
   }).join('');
-  return '<table class="hvdiag"><caption>홈 후보 전시 — 규칙: ① 오늘 진행 중인 전시(여럿이면 개막이 가장 늦은 것) ② 없으면 개막 '+
-    HOME_UPCOMING_DAYS+'일 전부터의 예고 중 개막이 가장 이른 것. ✔가 지금 홈 카드에 뜨는 전시예요</caption>'+
+  const over=cand.filter(e=>e.on&&today>=e.start&&today<=e.end).length;
+  return '<table class="hvdiag"><caption>홈 후보 전시 — 규칙: ① 오늘 진행 중인 전시(여럿이면 <b>전시 ID가 빠른 것</b>) ② 없으면 개막 '+
+    HOME_UPCOMING_DAYS+'일 전부터의 예고 중 개막이 가장 이른 것. '+
+    (chosen?'✔가 지금 홈 카드에 뜨는 전시예요.':'지금은 뜰 전시가 없어 홈 첫 화면이 Recent works 입니다.')+
+    (over>1?' <b>지금 '+over+'건이 겹칩니다</b> — 어느 전시를 앞세울지는 아직 정하지 않았고, 지금은 ID 차례로 정해집니다.':'')+
+    '</caption>'+
+    '<colgroup><col class="c-ex"><col class="c-ty"><col class="c-dt"><col></colgroup>'+
     '<thead><tr><th>전시</th><th>유형</th><th>기간</th><th>홈에서의 상태</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 function renderHomeSchedule(){

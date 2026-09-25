@@ -4430,6 +4430,22 @@ function drawStats(){
   const srcV=stSum(agg,'visit',r=>r[4]), srcVis=stSum(agg,'visitor',r=>r[4]);
   html+=stTable('sources','들어온 곳·캠페인','사이트 종류만 셉니다(전체 주소·검색어는 저장하지 않음). 캠페인은 주소 끝 ?src= 표시(예: ?src=ig_bio)',
     ['들어온 곳','방문','방문자'], stTop(srcV,100).map(([k,o])=>[stSrc(k), o.n, (srcVis.get(k)||{n:0}).n]));
+  // '직접·앱'이 무엇인지는 늘 보일 필요는 없지만 한 번은 궁금해지는 것이라 접어 둔다
+  html+='<div class="st-sec" style="padding-top:0;margin-top:-10px">'+
+    MORE('「직접·앱」은 무슨 뜻인가요',
+      '<b>어디서 눌렀는지 알 수 없는 방문</b>입니다. 주소를 직접 치거나 즐겨찾기·QR로 들어온 경우, '+
+      '그리고 어디서 왔는지 알려 주지 않는 앱·메신저·메일에서 열린 경우입니다.'+
+      '<p><b>인스타그램은 여기 안 섞입니다.</b> 인스타 앱 안 브라우저로 열리면 앱을 알아보고 '+
+      '인스타그램으로 셉니다. 스레드·카카오톡·페이스북·네이버 앱도 같습니다.</p>'+
+      '<p>어느 게시물에서 왔는지까지 알고 싶으면 링크 끝에 <code>?src=ig_bio</code> 처럼 붙이세요. '+
+      '캠페인으로 따로 셉니다.</p>')+'</div>';
+
+  /* 나라 × 들어온 곳 — 해외에서 온 사람이 어디를 거쳐 왔는지 */
+  const ccSrcV=stSum(agg,'visit',r=>r[3]+'|'+r[4]), ccSrcVis=stSum(agg,'visitor',r=>r[3]+'|'+r[4]);
+  html+=stTable('cc_src','나라별 들어온 곳','같은 나라에서도 어디를 거쳐 왔는지 나눠 봅니다. 방문이 많은 차례입니다',
+    ['나라','들어온 곳','방문','방문자'],
+    stTop(ccSrcV,200).map(([k,o])=>{ const i=k.indexOf('|');
+      return [stCountry(k.slice(0,i)), stSrc(k.slice(i+1)), o.n, (ccSrcVis.get(k)||{n:0}).n]; }));
   const devV=stSum(agg,'visit',r=>r[5]), devP=stSum(agg,'pv',r=>r[5]), lg=stSum(agg,'visit',r=>r[6]);
   html+=stTable('devices','기기','',['기기','방문','페이지뷰'], stTop(devV,10).map(([k,o])=>[ST_DEV[k]||k||'—', o.n, (devP.get(k)||{n:0}).n]));
   html+=stTable('langs','언어','',['언어','방문'], stTop(lg,10).map(([k,o])=>[k==='en'?'영문':(k==='ko'?'국문':'—'), o.n]));

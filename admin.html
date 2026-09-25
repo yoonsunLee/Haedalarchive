@@ -285,6 +285,8 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
 .st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+.st-ccsrc{display:grid; grid-template-columns:auto auto; justify-content:start; gap:1px 14px; margin-top:2px}
+.st-ccsrc b{text-align:right; font-variant-numeric:tabular-nums; font-weight:600}
 .st-tbl img{width:36px; height:36px; object-fit:cover; border-radius:5px; background:#eee; display:block}
 .st-chart{width:100%; height:auto; display:block}
 .st-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.8rem; color:var(--sub); margin:0 0 6px}
@@ -4425,8 +4427,24 @@ function drawStats(){
 
   // 나라·들어온 곳·기기·언어
   const vis=stSum(agg,'visitor',r=>r[3]), pvc=stSum(agg,'pv',r=>r[3]), langV=stSum(agg,'visit',r=>r[3]+'|'+r[6]);
-  html+=stTable('countries','나라','언어: 그 나라 방문 중 영문으로 본 비율',['나라','방문','방문자','페이지뷰','영문으로 봄'],
-    stTop(ccV,300).map(([cc,o])=>[stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, (pvc.get(cc)||{n:0}).n, stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]));
+  /* 나라마다 어디를 거쳐 왔는지 — 줄을 펴면 보인다(따로 표를 만들면 같은 걸 두 번 읽게 된다) */
+  const ccSrcMap=new Map();
+  stSum(agg,'visit',r=>r[3]+'|'+r[4]).forEach((o,k)=>{
+    const i=k.indexOf('|'), cc=k.slice(0,i);
+    if(!ccSrcMap.has(cc)) ccSrcMap.set(cc, []);
+    ccSrcMap.get(cc).push([k.slice(i+1), o.n]);
+  });
+  const ccSrcFmt=(name, cc)=>{
+    const list=(ccSrcMap.get(cc)||[]).slice().sort((a,b)=>b[1]-a[1]);
+    if(!list.length) return esc(name);
+    return esc(name)+MORE('들어온 곳 '+list.length+'가지',
+      '<div class="st-ccsrc">'+list.map(x=>'<span>'+esc(stSrc(x[0]))+'</span><b>'+stN(x[1])+'</b>').join('')+'</div>');
+  };
+  const ccTop=stTop(ccV,300), ccOf=new Map(ccTop.map(([cc])=>[stCountry(cc), cc]));
+  html+=stTable('countries','나라','나라 이름 아래 「들어온 곳」을 누르면 어디를 거쳐 왔는지 보입니다. 언어는 그 나라 방문 중 영문으로 본 비율입니다',
+    ['나라','방문','방문자','페이지뷰','영문으로 봄'],
+    ccTop.map(([cc,o])=>[stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, (pvc.get(cc)||{n:0}).n, stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]),
+    [c=>ccSrcFmt(c, ccOf.get(c))]);
   const srcV=stSum(agg,'visit',r=>r[4]), srcVis=stSum(agg,'visitor',r=>r[4]);
   html+=stTable('sources','들어온 곳·캠페인','사이트 종류만 셉니다(전체 주소·검색어는 저장하지 않음). 캠페인은 주소 끝 ?src= 표시(예: ?src=ig_bio)',
     ['들어온 곳','방문','방문자'], stTop(srcV,100).map(([k,o])=>[stSrc(k), o.n, (srcVis.get(k)||{n:0}).n]));
@@ -4440,12 +4458,6 @@ function drawStats(){
       '<p>어느 게시물에서 왔는지까지 알고 싶으면 링크 끝에 <code>?src=ig_bio</code> 처럼 붙이세요. '+
       '캠페인으로 따로 셉니다.</p>')+'</div>';
 
-  /* 나라 × 들어온 곳 — 해외에서 온 사람이 어디를 거쳐 왔는지 */
-  const ccSrcV=stSum(agg,'visit',r=>r[3]+'|'+r[4]), ccSrcVis=stSum(agg,'visitor',r=>r[3]+'|'+r[4]);
-  html+=stTable('cc_src','나라별 들어온 곳','같은 나라에서도 어디를 거쳐 왔는지 나눠 봅니다. 방문이 많은 차례입니다',
-    ['나라','들어온 곳','방문','방문자'],
-    stTop(ccSrcV,200).map(([k,o])=>{ const i=k.indexOf('|');
-      return [stCountry(k.slice(0,i)), stSrc(k.slice(i+1)), o.n, (ccSrcVis.get(k)||{n:0}).n]; }));
   const devV=stSum(agg,'visit',r=>r[5]), devP=stSum(agg,'pv',r=>r[5]), lg=stSum(agg,'visit',r=>r[6]);
   html+=stTable('devices','기기','',['기기','방문','페이지뷰'], stTop(devV,10).map(([k,o])=>[ST_DEV[k]||k||'—', o.n, (devP.get(k)||{n:0}).n]));
   html+=stTable('langs','언어','',['언어','방문'], stTop(lg,10).map(([k,o])=>[k==='en'?'영문':(k==='ko'?'국문':'—'), o.n]));

@@ -285,7 +285,19 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
 .st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
-.st-ccsrc{display:grid; grid-template-columns:auto auto; justify-content:start; gap:1px 14px; margin-top:2px}
+/* 나라 줄 아코디언 — 이름이 곧 여는 자리, 오른쪽 꺾쇠가 상태를 알린다 */
+.st-tbl details.st-acc{margin:0}
+.st-tbl details.st-acc>summary{cursor:pointer; list-style:none; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; padding:1px 0}
+.st-tbl details.st-acc>summary::-webkit-details-marker{display:none}
+.st-tbl details.st-acc>summary::after{content:''; flex:none; width:8px; height:8px; margin-right:4px;
+  border-right:1.5px solid var(--sub); border-bottom:1.5px solid var(--sub);
+  transform:translateY(-2px) rotate(45deg); transition:transform .18s ease, border-color .12s ease}
+.st-tbl details.st-acc[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+.st-tbl details.st-acc>summary:hover::after{border-color:var(--accent2)}
+.st-tbl details.st-acc>summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+.st-ccsrc{display:grid; grid-template-columns:auto auto; justify-content:start; gap:1px 14px; margin:7px 0 3px}
+.st-ccsrc span{color:var(--sub)}
 .st-ccsrc b{text-align:right; font-variant-numeric:tabular-nums; font-weight:600}
 .st-tbl img{width:36px; height:36px; object-fit:cover; border-radius:5px; background:#eee; display:block}
 .st-chart{width:100%; height:auto; display:block}
@@ -4437,11 +4449,13 @@ function drawStats(){
   const ccSrcFmt=(name, cc)=>{
     const list=(ccSrcMap.get(cc)||[]).slice().sort((a,b)=>b[1]-a[1]);
     if(!list.length) return esc(name);
-    return esc(name)+MORE('들어온 곳 '+list.length+'가지',
-      '<div class="st-ccsrc">'+list.map(x=>'<span>'+esc(stSrc(x[0]))+'</span><b>'+stN(x[1])+'</b>').join('')+'</div>');
+    // 나라 이름 자체가 펴는 자리다. 오른쪽 꺾쇠가 펴고 접는 것을 알리므로 따로 적지 않는다.
+    return '<details class="st-acc"><summary>'+esc(name)+'</summary>'+
+      '<div class="st-ccsrc">'+list.map(x=>'<span>'+esc(stSrc(x[0]))+'</span><b>'+stN(x[1])+'</b>').join('')+
+      '</div></details>';
   };
   const ccTop=stTop(ccV,300), ccOf=new Map(ccTop.map(([cc])=>[stCountry(cc), cc]));
-  html+=stTable('countries','나라','나라 이름 아래 「들어온 곳」을 누르면 어디를 거쳐 왔는지 보입니다. 언어는 그 나라 방문 중 영문으로 본 비율입니다',
+  html+=stTable('countries','나라','나라 이름을 누르면 어디를 거쳐 왔는지 보입니다. 언어는 그 나라 방문 중 영문으로 본 비율입니다',
     ['나라','방문','방문자','페이지뷰','영문으로 봄'],
     ccTop.map(([cc,o])=>[stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, (pvc.get(cc)||{n:0}).n, stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]),
     [c=>ccSrcFmt(c, ccOf.get(c))]);

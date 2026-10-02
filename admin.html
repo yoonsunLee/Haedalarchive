@@ -4454,10 +4454,17 @@ function drawStats(){
       '<div class="st-ccsrc">'+list.map(x=>'<span>'+esc(stSrc(x[0]))+'</span><b>'+stN(x[1])+'</b>').join('')+
       '</div></details>';
   };
+  /* 나라별 참여도 — 머문 시간과 스크롤은 사람인지 자동 접속인지 가리는 가장 싼 단서다.
+     자동 접속은 열자마자 떠나니 머문 시간이 몇 초, 스크롤 도달이 0%에 가깝게 나온다.
+     스크롤·머문 시간 기록에도 나라가 함께 들어 있어(collect.php) 따로 모으지 않고 여기서 센다. */
+  const dwCc=stSum(agg,'dwell',r=>r[3]), scCc=stSum(agg,'scroll',r=>r[2]==='25'?r[3]:'\u0000');
   const ccTop=stTop(ccV,300), ccOf=new Map(ccTop.map(([cc])=>[stCountry(cc), cc]));
-  html+=stTable('countries','나라','나라 이름을 누르면 어디를 거쳐 왔는지 보입니다. 언어는 그 나라 방문 중 영문으로 본 비율입니다',
-    ['나라','방문','방문자','페이지뷰','영문으로 봄'],
-    ccTop.map(([cc,o])=>[stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, (pvc.get(cc)||{n:0}).n, stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]),
+  html+=stTable('countries','나라','나라 이름을 누르면 어디를 거쳐 왔는지 보입니다. 언어는 그 나라 방문 중 영문으로 본 비율입니다. '+
+    '<b>머문 시간이 10초 미만이고 스크롤 25%가 0%에 가까운 나라</b>는 사람이 아닌 자동 접속(크롤러·수집기)일 수 있습니다',
+    ['나라','방문','방문자','페이지뷰','평균 머문 시간','스크롤 25%','영문으로 봄'],
+    ccTop.map(([cc,o])=>{ const w=dwCc.get(cc)||{n:0,t:0}, p=(pvc.get(cc)||{n:0}).n;
+      return [stCountry(cc), o.n, (vis.get(cc)||{n:0}).n, p, stSec(w.t,w.n),
+        stPct((scCc.get(cc)||{n:0}).n, p), stPct((langV.get(cc+'|en')||{n:0}).n, o.n)]; }),
     [c=>ccSrcFmt(c, ccOf.get(c))]);
   const srcV=stSum(agg,'visit',r=>r[4]), srcVis=stSum(agg,'visitor',r=>r[4]);
   html+=stTable('sources','들어온 곳·캠페인','사이트 종류만 셉니다(전체 주소·검색어는 저장하지 않음). 캠페인은 주소 끝 ?src= 표시(예: ?src=ig_bio)',

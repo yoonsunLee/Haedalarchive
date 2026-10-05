@@ -4,13 +4,20 @@
  * config.php 는 저장소에 올리지 않는다(비밀값 포함).
  */
 return [
-    // 네이버 클라우드 인증키 (마이페이지 → 계정관리 → 인증키 관리)
+    // 메일 보내는 방식 — 'php'는 호스팅 서버가 직접 보낸다(기본값), 'ncp'는 네이버 클라우드 메일 API
+    'MAIL_MODE' => 'php',
+
+    // 네이버 클라우드 인증키 (마이페이지 → 계정관리 → 인증키 관리) — MAIL_MODE가 'ncp'일 때만 쓴다
     'NCP_ACCESS_KEY' => '',
     'NCP_SECRET_KEY' => '',
 
-    // 발신 주소 — SENS Mail에서 도메인 인증을 마친 도메인이어야 한다
+    // 발신 주소 — SENS Mail에서 도메인 인증을 마친 도메인이어야 한다('ncp' 방식)
     'MAIL_FROM' => 'noreply@shinhaedal.com',
     'MAIL_FROM_NAME' => 'SHIN HAEDAL',
+
+    // 'php' 방식으로 보낼 때의 발신 주소. 비우면 위 MAIL_FROM을 쓴다.
+    // 호스팅이 보내는 메일이 스팸으로 안 빠지려면 이 도메인의 SPF에 카페24 발송 서버가 들어 있어야 한다.
+    'MAIL_FROM_HOST' => 'noreply@shinhaedal.com',
 
     // 작가가 문의 알림을 받을 주소
     'MAIL_TO' => '',

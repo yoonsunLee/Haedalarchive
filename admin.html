@@ -3537,7 +3537,7 @@ $('#btnXlsx').onclick=()=>{
   ws['!cols']=KEYS.map(k=>({wch:['caption','exhibitions','note','title'].includes(k)?46:k==='no'?13:12}));
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'작품 아카이브');
-  XLSX.writeFile(wb,`신해달_작품아카이브_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb,`신해달_작품아카이브_${kstDay(0)}.xlsx`);   // 파일 이름 날짜도 한국 시간으로(자정~오전 9시에 전날로 찍히던 것)
   toast('엑셀 파일이 다운로드되었습니다');
 };
 

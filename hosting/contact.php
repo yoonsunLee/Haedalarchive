@@ -63,7 +63,12 @@ function client_ip(): string
     );
     if (!$isPublic) {
         $fwd = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-        if ($fwd !== '') return trim(explode(',', $fwd)[0]);
+        if ($fwd !== '') {
+            // 머리값은 요청자가 아무 글자나 넣을 수 있다. IP 형식일 때만 받는다 —
+            // 거르지 않으면 값을 바꿔 가며 아래 '10분에 3건'과 토큰의 IP 묶기를 비켜 갈 수 있다.
+            $first = trim(explode(',', $fwd)[0]);
+            if (filter_var($first, FILTER_VALIDATE_IP)) return $first;
+        }
     }
     return $remote;
 }
@@ -117,7 +122,7 @@ $invalid =
     $f['email'] === '' || mb_strlen($f['email']) > LIMITS['email'] || !filter_var($f['email'], FILTER_VALIDATE_EMAIL) ||
     $f['subject'] === '' || mb_strlen($f['subject']) > LIMITS['subject'] ||
     $f['message'] === '' || mb_strlen($f['message']) > LIMITS['message'] ||
-    ($f['work_no'] !== '' && !preg_match('/^[A-Z]{2}-\d{4}-\d{3}$/', $f['work_no'])) ||
+    ($f['work_no'] !== '' && !preg_match('/^[A-Za-z]{1,4}-\d{4}-\d{1,4}$/', $f['work_no'])) ||
     ($body['consent_collect'] ?? null) !== true ||
     !preg_match('/^[\w.-]{1,40}$/', $noticeVersion);
 if ($invalid) respond(400, ['ok' => false, 'code' => 'invalid']);
@@ -197,14 +202,22 @@ $html = '<div style="font-family:system-ui,\'Apple SD Gothic Neo\',sans-serif;fo
 $mode = isset($CFG['MAIL_MODE']) && $CFG['MAIL_MODE'] !== '' ? $CFG['MAIL_MODE'] : 'php';
 
 if ($mode === 'php') {
-    $fromAddr = isset($CFG['MAIL_FROM_HOST']) && $CFG['MAIL_FROM_HOST'] !== ''
-        ? $CFG['MAIL_FROM_HOST']
-        : 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    // 보낸 주소는 설정에서만 가져온다. 요청의 Host 머리를 쓰면 보내는 쪽이 주소를 바꿀 수 있고,
+    // 도메인 인증(SPF)과 어긋나 작가에게 가는 알림 메일이 스팸함으로 빠진다.
+    $fromAddr = '';
+    foreach ([$CFG['MAIL_FROM_HOST'] ?? '', $CFG['MAIL_FROM'] ?? ''] as $cand) {
+        $cand = trim((string) $cand);
+        if ($cand !== '' && filter_var($cand, FILTER_VALIDATE_EMAIL)) { $fromAddr = $cand; break; }
+    }
+    if ($fromAddr === '') {
+        error_log('contact: 보낸 주소가 없습니다 — config.php 의 MAIL_FROM_HOST(또는 MAIL_FROM)를 채우세요');
+        respond(500, ['ok' => false, 'code' => 'config']);
+    }
     $headers = [
         'MIME-Version: 1.0',
         'Content-Type: text/html; charset=UTF-8',
         'Content-Transfer-Encoding: base64',
-        'From: =?UTF-8?B?' . base64_encode($CFG['MAIL_FROM_NAME']) . '?= <' . $fromAddr . '>',
+        'From: =?UTF-8?B?' . base64_encode((string) ($CFG['MAIL_FROM_NAME'] ?? 'SHIN HAEDAL')) . '?= <' . $fromAddr . '>',
         // 작가가 알림 메일에서 바로 답장하면 문의하신 분께 간다
         'Reply-To: ' . $f['email'],
         'X-Mailer: shinhaedal-contact',

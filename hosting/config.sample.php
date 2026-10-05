@@ -16,8 +16,12 @@ return [
     'MAIL_FROM_NAME' => 'SHIN HAEDAL',
 
     // 'php' 방식으로 보낼 때의 발신 주소. 비우면 위 MAIL_FROM을 쓴다.
-    // 호스팅이 보내는 메일이 스팸으로 안 빠지려면 이 도메인의 SPF에 카페24 발송 서버가 들어 있어야 한다.
-    'MAIL_FROM_HOST' => 'noreply@shinhaedal.com',
+    //
+    // 호스팅 도메인(…mycafe24.com)을 그대로 쓰는 것이 안전하다 — 카페24가 보내는 메일이므로
+    // 그 도메인의 SPF가 이미 맞다. shinhaedal.com 주소로 바꾸려면 먼저 그 도메인의 SPF에
+    // 카페24 발송 서버를 넣어야 한다. 안 넣고 바꾸면 잘 가던 알림 메일이 스팸함으로 빠진다.
+    // 지금 오고 있는 알림 메일의 '보낸 사람'에 적힌 주소를 그대로 넣으면 동작이 달라지지 않는다.
+    'MAIL_FROM_HOST' => 'noreply@shinhaedalapi.mycafe24.com',
 
     // 작가가 문의 알림을 받을 주소
     'MAIL_TO' => '',

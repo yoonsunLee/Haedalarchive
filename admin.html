@@ -4166,7 +4166,10 @@ function stEngage(agg, i){
   return k=>{ const w=dw.get(k)||{n:0,t:0}, p=(pv.get(k)||{n:0}).n;
     return [p, stSec(w.t,w.n), stPct((sc.get(k)||{n:0}).n, p)]; };
 }
-const ST_ENGHINT='머문 시간이 10초 미만이고 스크롤 25%가 0%에 가까운 줄은 사람이 아닌 자동 접속(크롤러·수집기)일 수 있습니다';
+/* 방문·방문자를 '봤다는 신호' 뒤에만 세기 시작한 날(홈페이지 assets/stats.js). 이 날 앞뒤 숫자는 바로 못 견준다 */
+const ST_GATE_FROM='2026-10-06';
+const ST_ENGHINT='머문 시간·스크롤은 페이지뷰 기준이라 자동 접속도 그대로 들어옵니다 — '+
+  '머문 시간이 10초 미만이고 스크롤 25%가 0%에 가까운 줄이 그것입니다';
 function stTotal(agg, metric, pred){ let n=0,t=0; agg.forEach(r=>{ if(r[0]===metric&&stMatch(r,3,4,5)&&(!pred||pred(r))){ n+=r[7]; t+=r[8]; } }); return {n,t}; }
 function stTop(map, k){ return [...map.entries()].sort((a,b)=>b[1].n-a[1].n).slice(0,k); }
 function stSpark(vals){
@@ -4415,7 +4418,10 @@ function drawStats(){
     '<div class="st-ins" id="stIns"><p class="hint">흐름 읽는 중…</p></div>'+
     '<p class="hint" style="margin:10px 0 0">방문자는 하루 기준 브라우저 수라 같은 사람이 폰·PC로 보면 둘로 잡힙니다(추세를 보는 숫자). 개인은 알 수 없습니다. '+
     '「10초 이상 머문 페이지」는 열자마자 떠난 접속을 뺀 수입니다 — 크롤러·수집기가 섞여 들어도 사람 쪽 추세는 이 숫자로 봅니다(페이지 단위라 방문 수와 단위가 다릅니다). '+
-    '해외 비중은 나라를 알아낸 방문만으로 셉니다. 「나라 알 수 없음」이 크면 아래에서 나라 판별 데이터를 갱신하세요.</p></div>';
+    '해외 비중은 나라를 알아낸 방문만으로 셉니다. 「나라 알 수 없음」이 크면 아래에서 나라 판별 데이터를 갱신하세요.</p>'+
+    '<p class="hint" style="margin:6px 0 0"><b>'+ST_GATE_FROM+'부터</b> 방문·방문자는 사람이 봤다는 신호'+
+    '(스크롤·누름·10초 머무름)가 있을 때만 셉니다 — 열자마자 떠나는 자동 접속이 빠지므로 그 전 숫자보다 낮게 나오고, '+
+    '그날 앞뒤를 바로 견주면 안 됩니다. 페이지뷰는 예전처럼 다 세므로 머문 시간·스크롤 칸으로 자동 접속이 얼마나 오는지 계속 볼 수 있습니다.</p></div>';
   if(dl.days.length>1) html+='<div class="st-sec"><h3>추이</h3>'+stChart(dl.days,[{name:'방문자',c:'#2e6da4',v:dl.v.visitor},{name:'방문',c:'#2f7a52',v:dl.v.visit},{name:'페이지뷰',c:'#b07a2a',v:dl.v.pv}])+'</div>';
 
   // 페이지별

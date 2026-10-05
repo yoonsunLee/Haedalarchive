@@ -468,7 +468,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
 <div id="loginGate" style="position:fixed;inset:0;z-index:9999;background:#f7f5f1;display:flex;align-items:center;justify-content:center">
   <form id="loginForm" style="background:#fff;border:1px solid #e5e1d8;border-radius:14px;padding:28px 26px;width:min(360px,92vw);box-shadow:0 1px 3px rgba(30,36,48,.08),0 4px 16px rgba(30,36,48,.06)">
-    <div style="font-size:1.05rem;font-weight:600;margin-bottom:4px">신해달 작품 아카이브</div>
+    <div style="font-size:1.05rem;font-weight:600;margin-bottom:4px">신해달 어드민</div>
     <div style="font-size:.82rem;color:#6b7280;margin-bottom:18px">관리자 로그인</div>
     <label style="display:block;font-size:.8rem;color:#6b7280;margin-bottom:4px">이메일</label>
     <input id="loginEmail" type="email" autocomplete="username" required style="width:100%;padding:9px 11px;border:1px solid #e5e1d8;border-radius:8px;margin-bottom:12px;font-size:.9rem">
@@ -497,7 +497,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <div class="app">
 <nav class="sidebar">
   <button class="sidebar-brand" id="brandHome" title="메인으로">
-    <img src="assets/haedal-icon.png" alt=""><span>신해달 아카이브</span>
+    <img src="assets/haedal-icon.png" alt=""><span>신해달 어드민</span>
   </button>
   <button data-v="home" class="on">메인</button>
   <button data-v="homevideos">홈 운영</button>
@@ -512,7 +512,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 </nav>
 <div class="content">
 <header>
-  <h1 id="pageTitle">신해달 작품 아카이브<small id="cnt"></small></h1>
+  <h1 id="pageTitle">신해달 어드민<small id="cnt"></small></h1>
   <div style="margin-left:auto; display:flex; align-items:center; gap:10px">
     <button type="button" id="connWarn" hidden>⚠ 연결 실패 · 다시 시도</button>
     <span id="publishStatus" class="hint"></span>
@@ -552,7 +552,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="home-hello">
       <img src="assets/haedal-icon.png" alt="">
       <div>
-        <h2>신해달 작품 아카이브</h2>
+        <h2>신해달 어드민</h2>
         <p class="hint">여기서 작품·전시·보도자료를 관리하고, 다 되면 위의 <b>🚀 홈페이지에 반영</b>을 누르면 됩니다.</p>
       </div>
     </div>
@@ -4590,9 +4590,9 @@ function goSection(v){
   $('#vSettings').hidden=section!=='settings';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={stats:'방문통계', home:'신해달 작품 아카이브', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
+  const TITLES={stats:'방문통계', home:'신해달 어드민', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
                 press:'기사 등록', feecalc:'수수료계산', activity:'작업기록', settings:'운영메모'};
-  $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 작품 아카이브';
+  $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 어드민';
   $('#cnt').hidden=section!=='works';
   if(section==='works')render();
   if(section==='exhibitions')openEx();
@@ -4735,7 +4735,8 @@ function wpGridHtml(layout, cols){
 
 var WP_SEL=[], WP_SEL_DIRTY=false, WP_SERIES_DRAFT={}, WP_ORDER_DRAFT={};
 function renderWorksPage(){
-  WP_SEL=WORKS_SELECTED.map(String);   // 화면에서 오는 값은 늘 문자열이라 여기서 맞춰 둔다 WP_SEL_DIRTY=false; WP_SERIES_DRAFT={}; WP_ORDER_DRAFT={};
+  WP_SEL=WORKS_SELECTED.map(String);   // 화면에서 오는 값은 늘 문자열이라 여기서 맞춰 둔다
+  WP_SEL_DIRTY=false; WP_SERIES_DRAFT={}; WP_ORDER_DRAFT={};   // 저장 안 하고 나갔다 오면 고치던 값은 버린다
   drawWorksPage();
 }
 function drawWorksPage(){

@@ -371,6 +371,15 @@ tbody tr{cursor:pointer} tbody tr:hover{background:rgba(46,109,164,.07)}
 dialog{border:none; border-radius:16px; padding:0; max-width:720px; width:calc(100% - 32px); background:var(--card); color:var(--ink); box-shadow:0 10px 50px rgba(0,0,0,.3); margin:auto}
 #dlgEdit{max-width:880px}   /* 한글·영문이 나란히 들어가도록 작품 폼만 넓게 */
 dialog::backdrop{background:rgba(10,14,20,.55); backdrop-filter:blur(2px)}
+/* 창이 96%에서 제 크기로 커지며 0.25초에 열리고, 닫을 땐 0.15초로 더 빨리(2026-10-12, transitions.dev 'modal' 값).
+   @starting-style·allow-discrete 를 모르는 브라우저는 지금처럼 바로 열리고 닫힌다 */
+dialog{opacity:0; transform:scale(.96);
+  transition:opacity .15s cubic-bezier(.22,1,.36,1), transform .15s cubic-bezier(.22,1,.36,1), overlay .15s allow-discrete, display .15s allow-discrete}
+dialog[open]{opacity:1; transform:none; transition-duration:.25s}
+@starting-style{dialog[open]{opacity:0; transform:scale(.96)}}
+dialog::backdrop{opacity:0; transition:opacity .15s cubic-bezier(.22,1,.36,1), overlay .15s allow-discrete, display .15s allow-discrete}
+dialog[open]::backdrop{opacity:1; transition-duration:.25s}
+@starting-style{dialog[open]::backdrop{opacity:0}}
 .dlghead{display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--line)}
 .dlghead h2{font-size:1rem; margin-right:auto}
 .dlgbody{padding:18px; max-height:72vh; overflow-y:auto}
@@ -396,6 +405,16 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .more{margin-top:4px; font-size:.75rem; color:var(--sub)}
 .more>summary{cursor:pointer; color:var(--accent2); list-style:none; display:inline-flex; align-items:center; gap:4px}
 .more>summary::-webkit-details-marker{display:none}
+/* 펼치기·접기가 0.25초에 걸쳐 부드럽게(2026-10-12, transitions.dev 'accordion' 값). 높이를 부드럽게 바꿀 줄 아는
+     브라우저(크롬·엣지 최신)에서만 켜지고, 나머지는 지금처럼 바로 열리고 닫힌다 */
+  @supports (interpolate-size: allow-keywords) and selector(::details-content){
+    @media (prefers-reduced-motion: no-preference){
+      .more{interpolate-size:allow-keywords;}
+      .more::details-content{block-size:0; overflow:clip; opacity:0;
+        transition:block-size .25s cubic-bezier(.22,1,.36,1), opacity .25s cubic-bezier(.22,1,.36,1), content-visibility .25s allow-discrete;}
+      .more[open]::details-content{block-size:auto; opacity:1;}
+    }
+  }
 .more>summary::before{content:'▸'; font-size:.7em}
 .more[open]>summary::before{content:'▾'}
 .more>div{margin:5px 0 0; padding-left:11px; border-left:2px solid var(--line); line-height:1.65}
@@ -453,14 +472,22 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .settings-box .row{display:flex; flex-direction:column; gap:4px; margin-bottom:14px}
 .settings-box label{font-size:.83rem; color:var(--sub)}
 .settings-box input{padding:9px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink)}
-#toast{position:fixed; inset:auto; margin:0; border:none; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99}
-#toast.show{opacity:.95}
+#toast{position:fixed; inset:auto; margin:0; border:none; bottom:24px; left:50%; transform:translate(-50%, 16px) scale(.97); background:var(--ink); color:#fff; padding:10px 20px; border-radius:24px; font-size:.88rem; opacity:0; pointer-events:none; transition:opacity .25s cubic-bezier(.22,1,.36,1), transform .25s cubic-bezier(.22,1,.36,1); z-index:99}
+/* 저장 알림이 아래에서 0.35초에 떠오르고 0.25초에 가라앉는다(2026-10-12, transitions.dev 'toast' 값) */
+#toast.show{opacity:.95; transform:translate(-50%, 0); transition:opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1)}
 .empty{text-align:center; color:var(--sub); padding:60px 0}
 @media (max-width:600px){ .kv{grid-template-columns:84px 1fr} form .row{grid-template-columns:1fr} form label{padding-top:0} }
 @media (max-width:760px){
   .app{flex-direction:column}
   .sidebar{width:100%; flex:0 0 auto; height:auto; position:sticky; top:0; z-index:60; flex-direction:row; overflow-x:auto; padding:8px 10px; gap:6px; border-right:none; border-bottom:1px solid var(--line)}
   .sidebar-brand{display:none}
+}
+/* 기기에서 '움직임 줄이기'를 켠 사람에게는 깜빡임·커지기·떠오르기를 끈다(2026-10-12 — 어드민에 이 확인이 하나도 없었다) */
+@media (prefers-reduced-motion: reduce){
+  .badge.new{animation:none}
+  dialog, dialog::backdrop, #toast{transition:none}
+  dialog{transform:none}
+  #toast, #toast.show{transform:translateX(-50%)}
 }
 </style>
 </head>

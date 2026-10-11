@@ -639,7 +639,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     <div class="hv-sched">
       <h3>🗓 홈 첫 화면 일정</h3>
       <p class="hint" style="margin:0 0 10px">첫 화면 아래 작품 구역이 날짜에 따라 <b>Recent works → Upcoming exhibition → Now on view</b>로 바뀝니다.
-        전시 카드는 <b>개막 30일 전부터</b>, 그리고 그 전시에 <b>공개 출품작이 1점 이상</b> 연결돼 있을 때만 뜹니다.</p>
+        전시 카드는 <b>예고 시작일</b>부터 뜹니다(기본 개막 30일 전 · 아래 표에서 전시마다 바꿀 수 있어요). 출품작이 없어도 카드는 뜹니다.</p>
       <div class="sched-now" id="hvSchedNow"></div>
       <div class="sched-legend">
         <span><i class="m-recent"></i>Recent works — 최근 작품 <b id="hvRecentLegendN">6</b>점</span>
@@ -1592,11 +1592,15 @@ function computeIssues(){
     }
     const toStart=dayDiff(ex.start_date,todayStr), toEnd=dayDiff(ex.end_date,todayStr);
     const pubCount=String(ex.work_nos||'').split(',').map(x=>x.trim()).filter(x=>pubNos.has(x)).length;
-    // 홈 전시 카드는 개막 30일 전부터, 공개 출품작이 1점 이상일 때만 뜬다(index.html UPCOMING_WINDOW_DAYS)
-    if(toEnd>=0&&toStart<=30&&!pubCount)
-      add('전시','impact',`${name} · 공개 출품작 0점이라 홈에 전시 예고가 안 뜸`,{ex});
-    else if(toStart>30&&toStart<=60&&!pubCount)
-      add('전시','rec',`${name} · 개막 D-${toStart} — 30일 전부터 홈에 뜨려면 출품작 연결 필요`,{ex});
+    // 홈 전시 카드는 예고 기간(기본 30일, 전시마다 홈 운영에서 바꿈)부터 출품작과 상관없이 뜬다(index.html homeCandidates).
+    // 다만 출품작이 0점이면 카드의 '출품작 보기'(PC)·카드 누르기(폰)가 빈 목록으로 간다.
+    // 예전엔 '출품작 0점이면 카드가 안 뜬다·30일 고정'이라는 옛 규칙으로 경고했다(2026-10-11 정정)
+    const lead=(ex.home_lead_days===''||ex.home_lead_days==null)?HOME_UPCOMING_DAYS:Number(ex.home_lead_days);
+    const homeOk=ex.home_mode!=='hide';
+    if(homeOk&&toEnd>=0&&toStart<=lead&&!pubCount)
+      add('전시','impact',`${name} · 홈에 카드가 떠 있는데 공개 출품작 0점 — 출품작 보기가 빈 목록`,{ex});
+    else if(homeOk&&toStart>lead&&toStart<=lead+30&&!pubCount)
+      add('전시','rec',`${name} · ${hvKorDay(hvAdd(ex.start_date,-lead))}부터 홈에 예고 — 그 전에 출품작을 연결해 두세요`,{ex});
     if(toEnd>=0&&toEnd<=7)
       add('전시','rec',`${name} · 종료까지 D-${toEnd}`,{ex});
     if(!String(ex.title_en||'').trim()) add('전시','rec',`${name} · 영문 전시명 없음`,{ex});
@@ -3004,9 +3008,10 @@ function hvPublicCount(excludeId){
 /* ---------- 홈 첫 화면 일정(달력) ----------
    홈페이지 index.html이 쓰는 규칙을 그대로 따라 그린다:
      · 오늘이 전시 기간 안이면 Now on view(전시 목록에서 먼저 만나는 것)
-     · 아니면 개막 30일 전부터 Upcoming(개막이 가장 이른 것)
-     · 고른 전시에 공개 출품작이 없으면 카드가 안 뜨고 Recent works
-   규칙이 바뀌면 index.html의 UPCOMING_WINDOW_DAYS와 여기를 같이 고쳐야 한다. */
+     · 아니면 예고 기간(기본 30일, 전시별 home_lead_days) 안이면 Upcoming
+     · 겹치면 고정(pin) > 개인전 > 단체전 > 아트페어 > 진행 중 > 개막 이른 순으로 최대 3건, 카드는 개막 이른 차례
+     · 출품작이 없어도 카드는 뜬다(아래 작품 칸만 최근 작품으로 채운다)
+   규칙이 바뀌면 index.html 의 homeCandidates 와 여기(hvCandidates)를 같이 고쳐야 한다. */
 const HOME_UPCOMING_DAYS = 30;   // 전시별로 따로 정하지 않았을 때의 예고 기간
 const HOME_CARDS_MAX = 3;        // 겹칠 때 홈에 함께 보일 전시 수(홈페이지 index.html 의 HOME_CARDS_MAX 와 같아야 한다)
 var HV_CAL_M = 0;   // 이번 달에서 몇 달 옮겨 보는 중인지
@@ -3803,7 +3808,9 @@ async function pvBuildFiles(){
     type:PV_EX_KO[pvS(e.type)]||pvS(e.type), type_en:PV_EX_EN[pvS(e.type)]||pvS(e.type),
     note_public:pvS(e.note_public_ko), title_en:pvS(e.title_en), venue_en:pvS(e.venue_en),
     poster_url:pvS(e.poster_url)?(same?'assets/exhibitions/'+id+'/poster.webp':pvOrig(e.poster_url,signed,true)):'',
-    map_url:pvS(e.map_url), featured_work_nos:pvS(e.featured_work_nos), about_selected:!!e.about_selected
+    map_url:pvS(e.map_url), featured_work_nos:pvS(e.featured_work_nos), about_selected:!!e.about_selected,
+    // 홈 첫 화면 노출(발행 scripts/publish_sb.py 와 같게). 빠져 있으면 미리보기 홈이 예고 기간을 전부 30일로 계산했다(2026-10-11)
+    home_mode:pvS(e.home_mode)||'auto', home_lead_days:(e.home_lead_days==null||e.home_lead_days==='')?null:Number(e.home_lead_days)
   }));
 
   files['press.json']=press.slice().sort((a,b)=>cmpStr(pvS(a.press_no),pvS(b.press_no))).map(p=>{
@@ -3903,7 +3910,8 @@ async function pvDiff(built){
   if(serKey(f['series.json'])!==serKey(lSeries)) out.wp.push({k:'mod', text:'연작 이름·두 폭 붙이기 설정'});
 
   const EF={title:'전시명', venue:'장소', start_date:'시작일', end_date:'종료일', work_nos:'출품작', type:'구분', note_public:'공개 메모',
-    title_en:'영문 전시명', venue_en:'영문 장소', map_url:'찾아오는 길', featured_work_nos:'대표 작품', about_selected:'About 고정'};
+    title_en:'영문 전시명', venue_en:'영문 장소', map_url:'찾아오는 길', featured_work_nos:'대표 작품', about_selected:'About 고정',
+    home_mode:'홈 노출', home_lead_days:'홈 예고 기간'};
   const lExById={}; (lEx||[]).forEach(e=>{ lExById[e.id]=e; });
   f['exhibitions.json'].forEach(e=>{
     const l=lExById[e.id];

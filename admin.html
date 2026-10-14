@@ -282,6 +282,53 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .m-now{background:#2f7a52; color:#fff}
 .m-up{background:#2e6da4; color:#fff}
 .m-recent{background:#eceadf; color:#7b8190}
+/* 홈 Upcoming·Now on view 작품 순서 — 전시 카드가 하나일 때의 홈 격자(3열 × 2줄: 카드 + 5점)를 줄여 놓고 그 안에서 끌어 옮긴다 */
+.ho-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:12px}
+.ho-ex{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--card); min-width:0}
+.ho-top{display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 10px; margin:0 0 10px}
+.ho-top b{font-size:.9rem}
+.ho-top small{display:block; color:var(--sub); font-size:.74rem; margin-top:1px}
+.ho-when{font-size:.74rem; color:var(--sub); white-space:nowrap}
+.ho-when.now{color:#2f7a52; font-weight:700}
+.ho-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; max-width:372px; position:relative}
+.ho-cell{min-width:0; position:relative}
+.ho-sq{position:relative; aspect-ratio:1; border-radius:6px; overflow:hidden; background:#ece8e0}
+.ho-sq img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none}
+.ho-cap{display:block; font-size:.68rem; line-height:1.3; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ho-card .ho-sq{background:#22293a; color:#fff; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 8px}
+.ho-card.solo .ho-sq{box-shadow:inset 0 0 0 2px #6d9bd1}
+.ho-card .ho-ct{font-size:.7rem; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+.ho-card .ho-bd{position:absolute; top:5px; right:5px; font-size:.58rem; padding:1px 6px; border-radius:999px; background:rgba(255,255,255,.18); font-variant-numeric:tabular-nums}
+.ho-card .ho-cap, .ho-fill .ho-cap{color:var(--sub)}
+.ho-it{cursor:grab}
+.ho-it .ho-n{position:absolute; top:5px; left:5px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--accent); color:#fff;
+  font-size:.66rem; font-weight:700; line-height:18px; text-align:center; font-variant-numeric:tabular-nums}
+.ho-it .ho-grip{position:absolute; top:3px; right:3px; width:26px; height:26px; border-radius:6px; background:rgba(255,255,255,.9); color:var(--ink);
+  font-size:.95rem; line-height:26px; text-align:center; touch-action:none; cursor:grab}
+.ho-it .ho-mv{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:center; gap:3px; padding:14px 4px 4px;
+  background:linear-gradient(to top, rgba(20,24,32,.5), rgba(20,24,32,0))}
+.ho-mv button{border:0; border-radius:5px; background:rgba(255,255,255,.94); color:var(--ink); font:inherit; font-size:.66rem; line-height:1; padding:4px 6px; cursor:pointer}
+.ho-mv button:disabled{opacity:.35; cursor:default}
+.ho-mv button:focus-visible{outline:2px solid var(--accent2); outline-offset:1px}
+/* 마우스로는 올렸을 때만 손잡이·버튼이 보인다. 터치 기기는 늘 보인다 */
+@media (hover:hover){
+  .ho-it .ho-grip, .ho-it .ho-mv{opacity:0; transition:opacity .15s ease}
+  .ho-it:hover .ho-grip, .ho-it:hover .ho-mv, .ho-it:focus-within .ho-grip, .ho-it:focus-within .ho-mv{opacity:1}
+}
+.ho-it.off .ho-sq img{opacity:.45; filter:grayscale(.35)}
+.ho-it.off .ho-cap{color:var(--sub)}
+.ho-it.drag{z-index:5; cursor:grabbing}
+.ho-it.drag .ho-sq{box-shadow:0 10px 26px rgba(30,36,48,.28), 0 0 0 2px var(--accent2)}
+.ho-it.drag .ho-grip, .ho-it.drag .ho-mv{opacity:0}
+.ho-fill .ho-sq{background:transparent; border:1.5px dashed var(--line); display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:.68rem}
+.ho-cut{grid-column:1/-1; border-top:1px dashed var(--line); padding-top:6px; margin-top:2px; font-size:.72rem; color:var(--sub)}
+.ho-foot{display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:12px; min-height:34px}
+.ho-mode{font-size:.76rem; color:var(--sub)}
+.ho-reset{border:0; background:none; padding:0; font:inherit; font-size:.76rem; color:var(--accent2); text-decoration:underline; text-underline-offset:3px; cursor:pointer}
+.ho-foot .ho-msg{margin:0}
+.ho-foot .btn{margin-left:auto; padding:6px 14px}
+.ho-foot .btn:disabled{opacity:.4; cursor:default}
+.ho-empty{font-size:.85rem; color:var(--sub); border:1px dashed var(--line); border-radius:10px; padding:12px 14px}
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
 .st-tbl td.num, .st-tbl th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
@@ -488,6 +535,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   dialog, dialog::backdrop, #toast{transition:none}
   dialog{transform:none}
   #toast, #toast.show{transform:translateX(-50%)}
+  .ho-it .ho-grip, .ho-it .ho-mv{transition:none}
 }
 </style>
 </head>
@@ -661,6 +709,12 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
         <button class="btn primary" id="hvRecentCountSave">저장</button>
         <span class="hint" id="hvRecentCountMsg"></span>
       </div>
+    </div>
+
+    <div class="hv-sched" id="hvOrdSec">
+      <h3>Upcoming · Now on view 작품 순서</h3>
+      <p class="hint" style="margin:0 0 10px">전시 카드 옆에 나오는 작품입니다. 그림을 끌거나 ◀ ▶ 로 순서를 바꾼 뒤 저장하세요.</p>
+      <div id="hvOrd"></div>
     </div>
 
     <div class="hv-sched">
@@ -1515,6 +1569,7 @@ async function load(){
   }
   render();
   if(typeof renderHome === 'function') renderHome();
+  if(section === 'homevideos') renderHomeOrder();   // 홈 운영을 먼저 열어 둔 채 불러오기가 끝난 경우
 }
 
 /* ---------- 필터·정렬·렌더 ---------- */
@@ -2575,7 +2630,7 @@ function exFormHtml(r,isNew){
   ${F('홈페이지 추천 작품 (최대 5)',`<input type="hidden" name="featured_work_nos" value="${esc(r.featured_work_nos||'')}">
     <div id="exFeatSel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <div id="exFeatGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px"></div>`,
-    '위 출품작 중 홈 화면 "Now on View" 카드에 보여줄 작품을 최대 5개까지 고르세요. 비워두면 출품작 선택 순서대로 앞의 5개가 자동 노출됩니다')}
+    '위 출품작 중 홈 Upcoming·Now on view 카드 옆에 보여줄 작품을 최대 5개까지 고르세요. 비워 두면 작품 번호순으로 앞의 5개가 나옵니다. 순서는 홈 운영에서 끌어서 바꿀 수 있어요')}
   ${F('포스터 이미지',
     `<div class="imgupload">
       <img class="imgpreview" id="exPosterPrev" style="display:none">
@@ -2682,9 +2737,9 @@ function initExFeaturedPicker(){
   const workNosHid=$('#exBody [name=work_nos]');
   let sel=String(hid.value||'').split(',').map(s=>s.trim()).filter(Boolean);
   const syncHid=()=>{hid.value=sel.join(',');};
-  const chip=no=>{
+  const chip=(no,i)=>{
     const w=rows.find(x=>String(x.no).trim()===no);
-    return`<span data-featunpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${esc(w?w.title:no)} ✕</span>`;
+    return`<span data-featunpick="${esc(no)}" title="클릭하면 선택 해제" style="cursor:pointer;font-size:.78rem;padding:4px 10px;border-radius:20px;background:var(--accent);color:#fff">${i+1}. ${esc(w?w.title:no)} ✕</span>`;
   };
   const card=w=>{
     const no=String(w.no).trim(), on=sel.includes(no), u=imgUrl(w,true);
@@ -2701,7 +2756,7 @@ function initExFeaturedPicker(){
     sel=sel.filter(no=>candidateIds.includes(no));
     syncHid();
     const list=candidateIds.map(no=>rows.find(x=>String(x.no).trim()===no)).filter(Boolean);
-    $('#exFeatSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 추천 작품을 고르지 않았습니다 (비우면 출품작 앞의 5개가 자동 노출)</span>';
+    $('#exFeatSel').innerHTML=sel.length?sel.map(chip).join(''):'<span class="hint">아직 추천 작품을 고르지 않았습니다 (비우면 작품 번호순으로 앞의 5개)</span>';
     $('#exFeatGrid').innerHTML=list.length?list.map(card).join(''):'<div class="hint" style="grid-column:1/-1">먼저 위에서 출품작을 선택하세요</div>';
     document.querySelectorAll('#exFeatGrid [data-featpick]').forEach(el=>el.onclick=()=>{
       const no=el.dataset.featpick;
@@ -3173,7 +3228,7 @@ async function hvSaveLead(exId, startDate){
   r.home_lead_days=String(days); r._version=q.data[0].version;
   toast(days? `✅ ${hvKorDay(startDate)}부터 홈에 예고합니다 — 🚀 반영을 눌러야 홈페이지에 나갑니다`
             : '✅ 이 전시는 홈에 예고하지 않습니다 — 🚀 반영을 눌러야 홈페이지에 나갑니다');
-  renderHomeSchedule();
+  renderHomeSchedule(); renderHomeOrder();
 }
 function renderHomeSchedule(){
   const box=$('#hvSchedNow'); if(!box) return;
@@ -3261,6 +3316,231 @@ function hvCalMonth(y, m, list, today){
   }
   return '<div class="cal-m"><h4>'+y+'년 '+(m+1)+'월</h4><div class="cal-dow">'+
     ['일','월','화','수','목','금','토'].map(s=>'<span>'+s+'</span>').join('')+'</div>'+weeks+'</div>';
+}
+/* ---------- 홈 Upcoming·Now on view 작품 순서(작가 2026-10-14) ----------
+   홈페이지는 전시 카드 옆 칸을 그 전시의 '홈페이지 추천 작품'(featured_work_nos) 차례로 채우고, 비어 있으면
+   공개 출품작을 작품 번호순으로 앞에서부터 채운다. 남는 칸은 최근 작품으로 채운다(index.html loadExhibitionAndRender).
+   여기서는 그 규칙 그대로 지금 모습을 그려 두고, 끌어 옮기거나 ◀ ▶ ✕ ＋ 로 바꾼 차례를 추천 작품으로 저장한다.
+   격자는 전시 카드가 하나일 때의 홈(3열 × 2줄 = 카드 + 5점)을 줄인 것이다. */
+const HO_ROOM = 5;      // 카드 하나일 때 작품 칸(홈페이지 HOME_TILES 6 − 카드 1) — 추천 작품 최대 5개와 같다
+let HO_DRAFT = {};      // 저장 전에 바꾼 차례 {전시 ID: {shown, hidden, auto}}
+const hoSplit=v=>String(v||'').split(',').map(x=>x.trim()).filter(Boolean);
+const hoSame=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+const hoEx=b=>exRows.find(x=>String(x.id)===b.dataset.ex);
+function hoWork(no){ return rows.find(w=>String(w.no||'').trim()===no); }
+/* 저장된 모습 — 홈페이지와 같은 규칙. mine = 공개 출품작(작품 번호순) */
+function hoSaved(e){
+  const pub=new Set(rows.filter(r=>r.publish_web&&!r.deleted_at).map(r=>String(r.no||'').trim()));
+  const mine=[...new Set(hoSplit(e.work_nos))].filter(no=>pub.has(no)).sort((a,b)=>a<b?-1:a>b?1:0);
+  const feat=[...new Set(hoSplit(e.featured_work_nos))].filter(no=>mine.includes(no)).slice(0,HO_ROOM);
+  if(feat.length) return {mine, auto:false, shown:feat, hidden:mine.filter(no=>!feat.includes(no))};
+  return {mine, auto:true, shown:mine.slice(0,HO_ROOM), hidden:mine.slice(HO_ROOM)};
+}
+/* 지금 화면의 모습 — 저장 전에 바꾼 게 있으면 그것. 그 사이 출품작이 바뀌었으면 맞춘다 */
+function hoState(e){
+  const base=hoSaved(e), d=HO_DRAFT[e.id];
+  if(!d) return base;
+  const shown=d.shown.filter(no=>base.mine.includes(no)).slice(0,HO_ROOM);
+  const hidden=d.hidden.filter(no=>base.mine.includes(no)&&!shown.includes(no));
+  base.mine.forEach(no=>{ if(!shown.includes(no)&&!hidden.includes(no)) hidden.push(no); });
+  return {mine:base.mine, auto:!!d.auto, shown, hidden};
+}
+function hoDirty(e, st){ const b=hoSaved(e); return st.auto!==b.auto||!hoSame(st.shown, b.shown); }
+/* 앞으로 1년 안에 홈에 카드로 나오는 전시와, 처음 나오는 날 */
+function hoList(){
+  const today=kstDay(0), first={};
+  hvChanges(hvExList(), today, 365).forEach(sg=>{ (sg.st.cards||[]).forEach(c=>{ if(!first[c.id]) first[c.id]=sg.from; }); });
+  return exRows.filter(e=>first[e.id]).map(e=>({e, day:first[e.id]}))
+    .sort((a,b)=>a.day.localeCompare(b.day)||String(a.e.start_date).localeCompare(String(b.e.start_date)));
+}
+function hoCellHtml(no, i, on, n){
+  const w=hoWork(no), u=w?imgUrl(w,true):'';
+  const name=esc(w?(String(w.title||'').split('\n')[0]||'(제목 없음)'):no);
+  const btns=on
+    ? '<button type="button" data-mv="-1" aria-label="'+name+' 앞으로" title="앞으로"'+(i===0?' disabled':'')+'>◀</button>'+
+      '<button type="button" data-mv="1" aria-label="'+name+' 뒤로" title="뒤로"'+(i===n-1?' disabled':'')+'>▶</button>'+
+      '<button type="button" data-mv="out" aria-label="'+name+' 홈에서 빼기" title="홈에서 빼기">✕</button>'
+    : '<button type="button" data-mv="in" aria-label="'+name+' 홈에 넣기"'+(n>=HO_ROOM?' disabled title="칸이 다 찼어요 — 먼저 하나를 빼세요"':' title="홈에 넣기"')+'>＋ 넣기</button>';
+  return '<div class="ho-cell ho-it'+(on?'':' off')+'" data-no="'+esc(no)+'"><div class="ho-sq">'+
+    (u?'<img src="'+esc(u)+'" alt="" draggable="false" loading="lazy">':'')+
+    (on?'<span class="ho-n">'+(i+1)+'</span>':'')+
+    '<span class="ho-grip" title="끌어서 순서 바꾸기" aria-hidden="true">⠿</span><span class="ho-mv">'+btns+'</span></div>'+
+    '<span class="ho-cap">'+name+'</span></div>';
+}
+function hoGridHtml(e, st, day){
+  const dd=Math.round((Date.parse(e.start_date+'T00:00:00Z')-Date.parse(day+'T00:00:00Z'))/86400000);
+  let h='<div class="ho-cell ho-card'+(e.type==='개인전'?' solo':'')+'" aria-hidden="true"><div class="ho-sq">'+
+    '<span class="ho-bd">'+(day>=e.start_date?'진행 중':'D-'+dd)+'</span><span class="ho-ct">'+esc(e.title||e.id)+'</span></div>'+
+    '<span class="ho-cap">전시 카드</span></div>';
+  st.shown.forEach((no,i)=>{ h+=hoCellHtml(no,i,true,st.shown.length); });
+  for(let k=st.shown.length;k<HO_ROOM;k++) h+='<div class="ho-cell ho-fill" aria-hidden="true"><div class="ho-sq">최근 작품</div><span class="ho-cap">&nbsp;</span></div>';
+  if(st.hidden.length){
+    h+='<div class="ho-cut">홈에 안 나오는 출품작</div>';
+    st.hidden.forEach(no=>{ h+=hoCellHtml(no,-1,false,st.shown.length); });
+  }
+  return h;
+}
+function renderHomeOrder(){
+  const box=$('#hvOrd'); if(!box) return;
+  if(!exLoaded){ box.innerHTML='<div class="hint">불러오는 중…</div>'; return; }
+  const list=hoList(), today=kstDay(0);
+  if(!list.length){ box.innerHTML='<div class="ho-empty">앞으로 1년 동안 홈에 나올 전시가 없습니다. 그동안 홈에는 Recent works가 나옵니다.</div>'; return; }
+  box.innerHTML='<div class="ho-list">'+list.map(({e,day})=>{
+    const st=hoState(e);
+    return '<div class="ho-ex" data-ex="'+esc(e.id)+'">'+
+      '<div class="ho-top"><div><b>'+esc(e.title||e.id)+'</b><small>'+esc([e.type, hvKorDay(e.start_date)+' ~ '+hvKorDay(e.end_date)].filter(Boolean).join(' · '))+'</small></div>'+
+      (day===today?'<span class="ho-when now">지금 홈에 나와요</span>':'<span class="ho-when">'+hvKorDay(day)+'부터 홈에 나와요</span>')+'</div>'+
+      (st.mine.length?'':'<p class="hint" style="margin:0 0 8px">연결된 공개 작품이 없어 카드 옆이 모두 최근 작품으로 채워집니다. 전시 관리에서 출품작을 고르세요.</p>')+
+      '<div class="ho-grid" data-day="'+esc(day)+'">'+hoGridHtml(e, st, day)+'</div><div class="ho-foot"></div></div>';
+  }).join('')+'</div>';
+  box.querySelectorAll('.ho-ex').forEach(hoBind);
+}
+function hoFoot(b){
+  const e=hoEx(b); if(!e) return;
+  const st=hoState(e), dirty=hoDirty(e, st), foot=b.querySelector('.ho-foot');
+  foot.innerHTML='<span class="ho-mode">'+(st.auto?'작품 번호순 (자동)':'직접 정한 순서')+'</span>'+
+    (!st.auto?'<button type="button" class="ho-reset">작품 번호순으로 되돌리기</button>':'')+
+    (dirty?'<span class="hint ho-msg">저장하지 않은 변경이 있어요</span>':'')+
+    '<button type="button" class="btn primary ho-save"'+(dirty?'':' disabled')+'>저장</button>';
+  const rs=foot.querySelector('.ho-reset');
+  if(rs) rs.onclick=()=>{ const m=hoSaved(e).mine; hoCommit(b, e, {mine:m, auto:true, shown:m.slice(0,HO_ROOM), hidden:m.slice(HO_ROOM)}); };
+  foot.querySelector('.ho-save').onclick=()=>hoSave(b);
+}
+/* 작품 칸은 다시 만들지 않고 옮긴다 — 그림이 깜빡이지 않고, 끌고 있는 칸도 그대로 이어진다. 카드·빈칸·구분선은 새로 만든다 */
+function hoRender(grid, e, st){
+  const old={}; grid.querySelectorAll('.ho-it').forEach(n=>{ old[n.dataset.no]=n; });
+  const tmp=document.createElement('div'); tmp.innerHTML=hoGridHtml(e, st, grid.dataset.day);
+  const frag=document.createDocumentFragment();
+  Array.from(tmp.children).forEach(c=>{
+    const n=c.classList.contains('ho-it')?old[c.dataset.no]:null;
+    if(!n){ frag.appendChild(c); return; }
+    n.className=c.className;
+    const sq=n.querySelector('.ho-sq');
+    sq.querySelectorAll('.ho-n,.ho-mv').forEach(x=>x.remove());
+    c.querySelectorAll('.ho-sq .ho-n, .ho-sq .ho-mv').forEach(x=>sq.appendChild(x));
+    frag.appendChild(n);
+  });
+  grid.textContent=''; grid.appendChild(frag);
+}
+const hoReduce=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hoRects(grid){ const m={}; grid.querySelectorAll('.ho-it').forEach(n=>{ m[n.dataset.no]=n.getBoundingClientRect(); }); return m; }
+function hoFlip(grid, before, skip){   // 자리를 옮긴 칸이 옛 자리에서 새 자리로 미끄러지게
+  if(hoReduce()) return;
+  grid.querySelectorAll('.ho-it').forEach(n=>{
+    const a=before[n.dataset.no]; if(n===skip||!a) return;
+    const r=n.getBoundingClientRect(), dx=a.left-r.left, dy=a.top-r.top;
+    if(Math.abs(dx)<1&&Math.abs(dy)<1) return;
+    n.animate([{transform:'translate('+dx+'px,'+dy+'px)'},{transform:'none'}], {duration:220, easing:'cubic-bezier(.22,1,.36,1)'});
+  });
+}
+function hoCommit(b, e, st, focus, drag, before){
+  const base=hoSaved(e);
+  // 처음 차례(작품 번호순)로 되돌아오면 다시 자동으로 둔다 — 고정해 두지 않아야 나중에 더한 출품작도 자동으로 들어간다
+  const auto=st.auto||(base.auto&&hoSame(st.shown, base.shown));
+  HO_DRAFT[e.id]={shown:st.shown.slice(), hidden:st.hidden.slice(), auto};
+  if(!hoDirty(e, hoState(e))) delete HO_DRAFT[e.id];
+  const grid=b.querySelector('.ho-grid'), was=before||hoRects(grid);
+  hoRender(grid, e, hoState(e));
+  hoFlip(grid, was, drag);
+  hoFoot(b);
+  if(focus){
+    const f=grid.querySelector(focus);
+    const g=f&&!f.disabled?f:(f&&f.parentNode.querySelector('button:not([disabled])'));
+    if(g) g.focus();
+  }
+}
+/* 놓을 자리: 손끝에 가장 가까운 칸(끌고 있는 칸·전시 카드 빼고) — 자리는 transform 을 뺀 원래 자리로 잰다(옮겨 가는 중인 칸 때문에 흔들리지 않게) */
+function hoTarget(grid, it, x, y){
+  const g=grid.getBoundingClientRect(); let best=null, bd=1e9;
+  Array.from(grid.children).forEach(c=>{
+    if(c===it||c.classList.contains('ho-card')) return;
+    const L=g.left+c.offsetLeft, T=g.top+c.offsetTop, R=L+c.offsetWidth, B=T+c.offsetHeight;
+    const dx=x<L?L-x:x>R?x-R:0, dy=y<T?T-y:y>B?y-B:0, d=Math.hypot(dx,dy);
+    if(d<bd){ bd=d; best={c, L, T, R, B}; }
+  });
+  if(!best||bd>16) return null;
+  return {el:best.c, after:best.c.classList.contains('ho-cut')?y>(best.T+best.B)/2:x>(best.L+best.R)/2};
+}
+/* 그 자리에 놓았을 때의 차례 — 구분선 위는 홈에 나오는 것, 아래는 안 나오는 것. 넘치면 맨 끝 하나가 아래로 내려간다 */
+function hoMoveTo(st, no, to){
+  const shown=st.shown.filter(n=>n!==no), hidden=st.hidden.filter(n=>n!==no), c=to.el;
+  if(c.classList.contains('ho-it')){
+    let k=shown.indexOf(c.dataset.no);
+    if(k>=0) shown.splice(k+(to.after?1:0),0,no);
+    else { k=hidden.indexOf(c.dataset.no); if(k<0) return null; hidden.splice(k+(to.after?1:0),0,no); }
+  }else if(c.classList.contains('ho-cut')&&to.after) hidden.unshift(no);
+  else shown.push(no);                       // 빈칸·구분선 위 = 홈에 나오는 것의 맨 끝
+  if(shown.length>HO_ROOM) hidden.unshift(shown.splice(shown[shown.length-1]===no?shown.length-2:shown.length-1,1)[0]);
+  if(hoSame(shown, st.shown)&&hoSame(hidden, st.hidden)) return null;
+  return {mine:st.mine, auto:false, shown, hidden};
+}
+function hoDragStart(b, grid, ev){
+  const it=ev.target.closest('.ho-it');
+  if(!it||ev.button!==0||ev.target.closest('button')) return;
+  if(ev.pointerType!=='mouse'&&!ev.target.closest('.ho-grip')) return;   // 손가락은 손잡이(⠿)로만 — 그림을 짚으면 화면이 스크롤된다
+  const e=hoEx(b); if(!e) return;
+  ev.preventDefault();
+  const id=ev.pointerId, sx=ev.clientX, sy=ev.clientY;
+  let on=false, ox=0, oy=0;
+  const place=(x,y)=>{   // 손끝을 따라오게 — 자리가 바뀌면 원래 자리도 바뀌므로 매번 다시 잰다
+    it.style.transform=''; const r=it.getBoundingClientRect();
+    it.style.transform='translate('+(x-ox-r.left)+'px,'+(y-oy-r.top)+'px)';
+  };
+  const move=m=>{
+    if(m.pointerId!==id) return;
+    if(!on){
+      if(Math.hypot(m.clientX-sx, m.clientY-sy)<4) return;
+      on=true; const r=it.getBoundingClientRect(); ox=sx-r.left; oy=sy-r.top;
+      it.classList.add('drag'); document.body.style.userSelect='none';
+    }
+    m.preventDefault();
+    place(m.clientX, m.clientY);
+    const to=hoTarget(grid, it, m.clientX, m.clientY); if(!to) return;
+    const next=hoMoveTo(hoState(e), it.dataset.no, to); if(!next) return;
+    const before=hoRects(grid);
+    hoCommit(b, e, next, null, it, before);
+    place(m.clientX, m.clientY);
+  };
+  const up=u=>{
+    if(u.pointerId!==id) return;
+    removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+    if(!on) return;
+    document.body.style.userSelect='';
+    const t=it.style.transform; it.style.transform=''; it.classList.remove('drag');
+    if(t&&!hoReduce()) it.animate([{transform:t},{transform:'none'}], {duration:200, easing:'cubic-bezier(.22,1,.36,1)'});
+  };
+  addEventListener('pointermove', move, {passive:false}); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+}
+function hoBind(b){
+  const grid=b.querySelector('.ho-grid');
+  hoFoot(b);
+  grid.addEventListener('pointerdown', ev=>hoDragStart(b, grid, ev));
+  grid.addEventListener('click', ev=>{
+    const btn=ev.target.closest('button[data-mv]'), it=btn&&btn.closest('.ho-it'), e=hoEx(b);
+    if(!btn||!it||!e) return;
+    const st=hoState(e), no=it.dataset.no, mv=btn.dataset.mv, i=st.shown.indexOf(no), sel='[data-no="'+CSS.escape(no)+'"] ';
+    let focus=sel+'button[data-mv="'+mv+'"]';
+    if(mv==='-1'||mv==='1'){
+      const j=i+Number(mv); if(i<0||j<0||j>=st.shown.length) return;
+      st.shown.splice(i,1); st.shown.splice(j,0,no);
+    }else if(mv==='out'){ st.shown.splice(i,1); st.hidden.unshift(no); focus=sel+'button[data-mv="in"]'; }
+    else if(mv==='in'){ if(st.shown.length>=HO_ROOM) return; st.hidden=st.hidden.filter(x=>x!==no); st.shown.push(no); focus=sel+'button[data-mv="out"]'; }
+    st.auto=false;
+    hoCommit(b, e, st, focus);
+  });
+}
+async function hoSave(b){
+  const e=hoEx(b); if(!e) return;
+  const st=hoState(e); if(!hoDirty(e, st)) return;
+  const btn=b.querySelector('.ho-save'); if(btn) btn.disabled=true;
+  const val=st.auto?null:st.shown.join(',');
+  const q=await sb.from('exhibitions').update({featured_work_nos:val})
+    .eq('id', e._id).eq('version', e._version).select('id, version');
+  if(q.error){ toast('저장 실패: '+(q.error.message||q.error)); hoFoot(b); return; }
+  if(!q.data||!q.data.length){ toast('이 전시가 다른 곳에서 수정됐습니다 — ↻ 새로고침 후 다시 해 주세요'); hoFoot(b); return; }
+  e.featured_work_nos=val||''; e._version=q.data[0].version; delete HO_DRAFT[e.id];
+  toast('✅ 작품 순서를 저장했습니다 — 🚀 반영을 눌러야 홈페이지에 나갑니다');
+  hoFoot(b);
 }
 function renderHomeVideosList(){
   var list=hvRows.slice().sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)});
@@ -4638,7 +4918,7 @@ function goSection(v){
   if(section==='works')render();
   if(section==='exhibitions')openEx();
   if(section==='press')renderPressList();
-  if(section==='homevideos'){ renderHomeVideosList(); renderHomeSchedule(); }
+  if(section==='homevideos'){ renderHomeVideosList(); renderHomeSchedule(); renderHomeOrder(); }
   if(section==='feecalc')renderFeeCalc();
   if(section==='workspage')renderWorksPage();
   if(section==='home')renderHome();

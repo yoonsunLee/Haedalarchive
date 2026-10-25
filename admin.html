@@ -1079,6 +1079,7 @@ function recToWork(rec){
     out.display_order = numOrNull(rec.display_order);
     out.series_order = numOrNull(rec.series_order);
   }
+  if(typeof rec.publish_web === 'boolean') out.publish_web = rec.publish_web;
   return out;
 }
 /* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
@@ -1922,7 +1923,11 @@ function openEdit(r,neu){
     F('크기·연도',pickHTML('size',PICK_VALS.size)+
       `<div class="pair"><div class="fld"><span class="sub">크기 (cm)</span><input name="size" value="${esc(r.size)}"></div>`+
       `<div class="fld"><span class="sub">연도</span><input name="year" id="fYearIn" type="number" value="${esc(r.year)}"></div></div>`,
-      PICK_VALS.size.length?'위에서 지난 작품의 크기를 골라 넣을 수 있어요':'')
+      PICK_VALS.size.length?'위에서 지난 작품의 크기를 골라 넣을 수 있어요':'')+
+    // 홈페이지 공개(works.publish_web). 예전엔 이 칸이 없어 새로 등록한 작품이 DB 기본값(비공개)으로 저장되고
+    // Works 운영·홈페이지에 안 나왔다(2026-10-25). 새 작품은 켠 채로 시작한다
+    F('홈페이지 공개',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="publish_web"${(neu||r.publish_web)?' checked':''}> 홈페이지 Works 에 이 작품을 보여 줍니다</label>`,
+      '끄면 어드민에만 남고 홈페이지·Works 운영에는 나오지 않습니다. 바꾼 내용은 <b>🚀 홈페이지에 반영</b>을 눌러야 나갑니다.')
     , true)+
     G('판매 정보', hasSale?'':'아직 비어 있음',
     F(LABELS.price,`<input name="price" class="comma" inputmode="numeric" value="${esc(fmtComma(r.price))}">`)+
@@ -2312,6 +2317,7 @@ $('#editForm').onsubmit=async e=>{
   rec.transcript_ko=g('transcript_ko');
   rec.transcript_en=g('transcript_en');
   rec.docent_enabled=!!(($('#eBody [name=docent_enabled]')||{}).checked);
+  { const pw=$('#eBody [name=publish_web]'); if(pw) rec.publish_web=pw.checked; }
   rec.exhibitions='';            // 전시 이력은 전시 화면에서 관리한다(자동 생성)
   ['price','actual_price'].forEach(k=>{const raw=String(rec[k]).replace(/,/g,'');if(/^\d+$/.test(raw))rec[k]=raw});
   delete rec.notype;

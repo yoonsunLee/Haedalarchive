@@ -1249,8 +1249,8 @@ async function saveExhibitionToDb(row, neu, cur){
     venue_en: textOrNull(row.venue_en),
     poster_url: textOrNull(row.poster_url),
     map_url: textOrNull(row.map_url),
-    featured_work_nos: textOrNull(row.featured_work_nos),
-    about_selected: !!row.about_selected
+    featured_work_nos: textOrNull(row.featured_work_nos)
+    // about_selected(About 'Selected Exhibitions' 고정)는 더 쓰지 않는다 — 전시 이력이 CV 로 옮겨 갔다(2026-10). 기존 값은 건드리지 않는다
   };
   if(EX_HAS_HOME){
     payload.home_mode = ['auto','pin','hide'].indexOf(row.home_mode) >= 0 ? row.home_mode : 'auto';
@@ -2665,7 +2665,6 @@ function exFormHtml(r,isNew){
         MORE('계약서는요', '파일은 올리지 않는 편이 낫습니다. 상대방 이름·연락처·계좌가 든 개인정보이고, 이 보관함이 국내에 있다고 확인된 적이 없습니다.'+
           '<p>원본은 따로 두고 참가 형태와 핵심 조건만 한 줄로 적으세요.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_affiliation_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
-  ${F('About 페이지 노출',`<label style="display:flex;align-items:center;gap:8px;font-weight:400"><input type="checkbox" name="about_selected"${r.about_selected?' checked':''}> 이 전시를 About "Selected Exhibitions"에 직접 노출</label>`,'체크한 전시만 About에 나옵니다. 하나도 체크하지 않으면 최근 전시가 자동으로 나옵니다.')}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
     ${isNew?'':`<button type="button" class="btn" id="btnExDelete" style="color:var(--sold);margin-right:auto">🗑 삭제</button>`}
@@ -2781,10 +2780,6 @@ function renderExForm(r,isNew){
   exFormOpen=true;
   pushDialogHistory();
   $('#exBody').innerHTML=exFormHtml(r,isNew);
-  $('#exBody').insertAdjacentHTML('afterbegin','<div id="exPreview"></div>');
-  renderExPreview();
-  $('#exBody').addEventListener('input', renderExPreview);
-  $('#exBody').addEventListener('change', renderExPreview);
   initExPicker();
   initExFeaturedPicker();
   exInitAssist(r);
@@ -2806,7 +2801,6 @@ function renderExForm(r,isNew){
     if(row.start_date&&row.end_date&&row.end_date<row.start_date)return toast('종료일이 시작일보다 빠릅니다');
     row.title_en = (($('#exBody [name=title_en]')||{}).value||'').trim();
     row.venue_en = (($('#exBody [name=venue_en]')||{}).value||'').trim();
-    row.about_selected = !!(($('#exBody [name=about_selected]')||{}).checked);
     row.affiliation = (($('#exBody [name=affiliation]')||{}).value||'').trim();
     row.home_mode = (($('#exBody [name=home_mode]')||{}).value||'auto');
     row.home_lead_days = (($('#exBody [name=home_lead_days]')||{}).value||'').trim();
@@ -2876,39 +2870,9 @@ function renderPressPreview(){
   pvBindLang(box, renderPressPreview);
 }
 
-/* 전시 — About 화면의 전시 이력 모습 */
-function renderExPreview(){
-  const box=$('#exPreview'); if(!box)return;
-  const v=n=>{const el=$('#exBody [name='+n+']'); return el?String(el.value||'').trim():'';};
-  const selected=!!($('#exBody [name=about_selected]')||{}).checked;
-  const en=pvLang==='en';
-  const title=en?(v('title_en')||v('title')):v('title');
-  const venue=en?(v('venue_en')||v('venue')):v('venue');
-  const sd=v('start_date'), ed=v('end_date'), type=v('type');
-  const today=kstDay(0);
-  const upcoming=sd&&sd>today;
-  const year=(sd||'').slice(0,4)||'—';
-  const range=sd?(sd.replace(/-/g,'.')+(ed?' – '+ed.slice(5).replace('-','.'):'')):'';
-
-  const body=!title
-    ? '<p class="pv-empty">'+(en?'Enter the exhibition title to see the preview':'전시명을 입력하면 여기에 보여요')+'</p>'
-    : (upcoming
-        ? '<p class="pv-ex-label">'+esc(en?(type==='개인전'?'UPCOMING SOLO EXHIBITION':'UPCOMING EXHIBITION'):(type==='개인전'?'예정된 개인전':'예정된 전시'))+'</p>'+
-          '<div class="pv-ex-item"><span class="pv-ex-title">'+esc(title)+'<span class="pv-ex-date">'+esc(range)+'</span></span>'+
-          '<span class="pv-ex-venue">'+esc(venue||'장소')+'</span></div>'
-        : '<p class="pv-ex-year">'+esc(year)+'</p>'+
-          '<div class="pv-ex-item"><span class="pv-ex-title">'+esc(title)+'</span>'+
-          '<span class="pv-ex-venue">'+esc(venue||'장소')+'</span></div>');
-
-  const note=upcoming
-    ? 'About 화면 맨 위 <b>예정 전시</b>로 먼저 표시됩니다.'
-    : (selected
-        ? 'About 화면의 전시 이력에 <b>항상</b> 표시됩니다(대표 전시로 지정됨).'
-        : '대표 전시로 지정하지 않으면 <b>최근 전시 2~3개</b>에 들 때만 About에 나옵니다.');
-  box.innerHTML=pvShell('홈페이지 About 화면에서 이렇게 보여요', body,
-    note+' 포스터와 연결한 작품은 작품 화면의 전시 정보에서 쓰입니다.');
-  pvBindLang(box, renderExPreview);
-}
+/* 전시 미리보기 — 예전엔 About 화면의 전시 이력 모습을 보여 줬다. About 에서 전시 이력이 빠지고(CV 로 옮김, 2026-10)
+   안내가 틀리게 돼 뺐다. 부르는 곳이 여럿이라 이름만 남긴다 */
+function renderExPreview(){}
 
 /* ---------- Press ---------- */
 const PRESS_KEYS=['no','outlet','outlet_en','date','title','title_en','url','quote','quote_en','image','note','link_type','linked_exhibition_id'];

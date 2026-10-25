@@ -1117,6 +1117,17 @@ async function saveWorkToDb(rec, neu, cur){
 
   if(neu){
     var ins = await sb.from('works').insert(w).select('id').single();
+    if(ins.error && String(ins.error.message||'').indexOf('duplicate') >= 0 && w.work_no){
+      // 지운 작품은 행이 남아(되살리기용) 번호를 계속 쥐고 있다. 그 번호를 다시 쓰려 하면
+      // 지운 쪽 번호 뒤에 '-지움-날짜'를 붙여 비워 주고 다시 넣는다(2026-10-25). 되살릴 때 번호를 되돌린다.
+      var del = await sb.from('works').select('id').eq('work_no', w.work_no).not('deleted_at', 'is', null);
+      if(!del.error && del.data && del.data.length){
+        var stamp = new Date(Date.now() + 9*3600*1000).toISOString().replace(/\D/g,'').slice(0,12);
+        var mv = await sb.from('works').update({ work_no: w.work_no + '-지움-' + stamp }).eq('id', del.data[0].id).select('id');
+        if(mv.error) throw mv.error;
+        ins = await sb.from('works').insert(w).select('id').single();
+      }
+    }
     if(ins.error){
       if(String(ins.error.message||'').indexOf('duplicate') >= 0)
         throw new Error('이미 존재하는 작품번호입니다: ' + w.work_no);
@@ -5606,12 +5617,22 @@ async function restoreTrash(i){
   const name=String(x.row[x.kind.title]||'(이름 없음)').split('\n')[0];
   if(!confirm(x.kind.ko+' "'+name+'"을(를) 되살릴까요?')) return;
   try{
-    const u=await sb.from(x.kind.t).update({deleted_at:null}).eq('id',x.row.id).select('id');
+    const patch={deleted_at:null};
+    // 지운 뒤 같은 번호로 새 작품을 등록했으면 지운 쪽 번호에 '-지움-날짜'가 붙어 있다. 원래 번호가 비어 있으면 되돌린다
+    let renumberNote='';
+    if(x.kind.t==='works'){
+      const m=/^(.+)-지움-\d{12}$/.exec(String(x.row.work_no||''));
+      if(m){
+        if(rows.some(r=>String(r.no||'').trim()===m[1])) renumberNote=' — 같은 번호('+m[1]+') 작품이 있어 번호를 '+x.row.work_no+'로 둡니다. 작품을 열어 번호를 고쳐 주세요';
+        else patch.work_no=m[1];
+      }
+    }
+    const u=await sb.from(x.kind.t).update(patch).eq('id',x.row.id).select('id');
     if(u.error) throw u.error;
     if(!u.data || !u.data.length) throw new Error('대상을 찾지 못했습니다. 새로고침 후 다시 시도해 주세요.');
     let extra='';
     if(x.kind.t==='exhibitions') extra=await restoreExhibitionWorks(x.row.id);
-    toast('↩ 되살렸습니다'+extra);
+    toast('↩ 되살렸습니다'+extra+renumberNote);
     exLoaded=false;
     await load();
     if(x.kind.t==='press') await loadPress();

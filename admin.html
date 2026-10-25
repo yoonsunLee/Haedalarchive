@@ -1631,6 +1631,13 @@ function renderStats(){
 /* 빠진 정보 점검. sev: 'impact'(홈페이지에 바로 영향) / 'rec'(보완 권장). area로 메뉴를 묶는다.
    알려 주기만 하고 내용을 자동으로 채우지 않는다. */
 const ISSUE_AREAS=['작품','Works 구성','전시','기사','홈 히어로'];
+// 홈에 안 띄우는 전시의 '한 번만 알림' 기록(이 브라우저에 남김). 어드민을 연 순간의 목록으로 걸러서,
+// 이번에 처음 보인 알림은 화면을 다시 그려도 그대로 두고 다음에 열 때부터 숨긴다.
+const EX_ONCE_KEY='sh-admin-ex-once-v1';
+const EX_ONCE_SEEN=(()=>{ try{ return new Set(JSON.parse(localStorage.getItem(EX_ONCE_KEY)||'[]')); }catch(e){ return new Set(); } })();
+function exOnceMark(k){
+  try{ const a=new Set(JSON.parse(localStorage.getItem(EX_ONCE_KEY)||'[]')); a.add(k); localStorage.setItem(EX_ONCE_KEY, JSON.stringify([...a])); }catch(e){}
+}
 function computeIssues(){
   const issues=[];
   const add=(area,sev,text,extra)=>issues.push(Object.assign({area,sev,text},extra||{}));
@@ -1690,8 +1697,16 @@ function computeIssues(){
     if(!String(ex.title_en||'').trim()) add('전시','rec',`${name} · 영문 전시명 없음`,{ex});
     if(!String(ex.venue_en||'').trim()) add('전시','rec',`${name} · 영문 장소 없음`,{ex});
     if(toEnd>=0){
-      if(!String(ex.poster_url||'').trim()) add('전시','rec',`${name} · 포스터 없음`,{ex});
-      if(!String(ex.map_url||'').trim()) add('전시','rec',`${name} · 찾아오는 길 링크 없음`,{ex});
+      // 포스터·찾아오는 길은 홈 전시 카드에서 쓴다. 홈에 안 띄우는 전시(홈 운영 '숨김')는 한 번만 알리고
+      // 다음에 어드민을 열 때부터는 알리지 않는다(작가 2026-10-25). 다시 홈에 띄우면 늘 알린다.
+      const once=(kind,text)=>{
+        if(ex.home_mode!=='hide'){ add('전시','rec',text,{ex}); return; }
+        const k=ex.id+':'+kind;
+        if(EX_ONCE_SEEN.has(k)) return;
+        exOnceMark(k); add('전시','rec',text+' (홈 비노출 · 이번만 알림)',{ex});
+      };
+      if(!String(ex.poster_url||'').trim()) once('poster',`${name} · 포스터 없음`);
+      if(!String(ex.map_url||'').trim()) once('map',`${name} · 찾아오는 길 링크 없음`);
     }
   });
 

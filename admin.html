@@ -412,6 +412,8 @@ main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
 .badge{display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:10px; color:#fff}
 .badge.sold{background:var(--sold)} .badge.avail{background:var(--avail)} .badge.nfs{background:var(--nfs)} .badge.planned{background:var(--planned)}
 .badge.new{background:#d94f70; margin-left:4px; animation:newpulse 1.6s ease-in-out infinite}
+/* 홈페이지 미노출(홈페이지 공개가 꺼진 작품) — 판매 상태와 헷갈리지 않게 회색 테두리로 */
+.badge.off{background:#fff; color:#6b6b6b; border:1px solid #b9b9b9; margin-left:4px; padding:1px 7px}
 @keyframes newpulse{50%{opacity:.55}}
 .card .price{font-size:.85rem; margin-top:4px; color:var(--sub)}
 table{width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); font-size:.85rem}
@@ -1787,7 +1789,7 @@ function renderGrid(list){
       <div class="meta">
         <div class="no">${esc(r.no||'번호 미부여')}</div>
         <div class="title">${esc(String(r.title).split('\n')[0])}</div>
-        <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}
+        <span class="badge ${st}">${soldLabel(st)}</span>${isNewRow(r)?'<span class="badge new">NEW</span>':''}${r.publish_web?'':'<span class="badge off" title="홈페이지 공개가 꺼져 있어 홈페이지·Works 운영에 나오지 않습니다">미노출</span>'}
         <div class="price">${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)} · ${esc(r.year||'')} · ${esc(r.size||'')}${r.qty!==''&&r.qty!=null?` · 판매 ${esc(r.sold_qty||0)}/${esc(r.qty)}`:''}</div>
       </div></div>`;
   }).join(''):'<div class="empty">조건에 맞는 작품이 없습니다</div>';
@@ -1799,7 +1801,7 @@ function renderTable(list){
     return`<tr data-idx="${i}">
       <td>${esc(r.no||'—')}${isNewRow(r)?' <span class="badge new">NEW</span>':''}</td><td class="wrap">${esc(String(r.title).split('\n')[0])}</td><td>${esc(r.year||'')}</td>
       <td>${esc(r.size||'')}</td><td>${r.price==='Artist Archive'?'작가 소장':fmtWon(r.price)}</td>
-      <td><span class="badge ${st}">${soldLabel(st)}</span></td>
+      <td><span class="badge ${st}">${soldLabel(st)}</span>${r.publish_web?'':'<span class="badge off" title="홈페이지 공개가 꺼져 있어 홈페이지·Works 운영에 나오지 않습니다">미노출</span>'}</td>
       <td>${fmtWon(r.actual_price)}</td><td>${esc(r.sale_date||'')}</td><td>${esc(r.owner||'')}</td><td>${esc(r.channel||'')}</td><td class="wrap">${esc(r.note||'')}</td></tr>`;
   }).join('');
 }

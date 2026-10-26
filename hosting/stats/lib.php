@@ -116,7 +116,7 @@ function require_admin(array $origins): string
     $res = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $cerr = curl_errno($ch);
-    curl_close($ch);
+    if (PHP_VERSION_ID < 80000) curl_close($ch);   // 8.0부터 하는 일이 없고 8.5에서 경고가 난다
     // 설치 중 원인이 보이게: Supabase 확인 자체가 안 된 것(verify)과 이메일이 목록에 없는 것(forbidden)을 나눈다
     if ($code !== 200) {
         respond_json(403, ['ok' => false, 'code' => 'verify',

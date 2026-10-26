@@ -1,11 +1,22 @@
-# 설정 파일과 반복 접수 기록은 웹으로 열람할 수 없게 막는다
-<FilesMatch "^(config\.php|config\.sample\.php)$">
+# 설정 파일(과 그 사본 config.php.bak·config(1).php·config.php~ 등)과 반복 접수 기록은 웹으로 열람할 수 없게 막는다
+# 사본은 PHP 로 실행되지 않고 비밀값이 글자 그대로 보이므로 이름이 config 로 시작하면 모두 막는다
+<FilesMatch "^config.*$|\.(bak|old|orig|save|swp|tmp)$|~$">
   Require all denied
 </FilesMatch>
 <IfModule !mod_authz_core.c>
-  <FilesMatch "^(config\.php|config\.sample\.php)$">
+  <FilesMatch "^config.*$|\.(bak|old|orig|save|swp|tmp)$|~$">
     Order allow,deny
     Deny from all
   </FilesMatch>
 </IfModule>
 RedirectMatch 404 /_rate(/.*)?$
+
+# ── PHP2Shell(CVE-2026-109618·109619·115560, 2026-10) 대비 ──
+# 알려진 공격은 모두 '파일 올리기' 형식(multipart/form-data) 요청으로 PHP 내부를 건드린다. 우리 PHP 는
+# 이 형식을 받을 일이 없다(문의 = JSON, 방문 통계 = 글자, 국가 DB 갱신 = 보통 폼) — 웹 서버 앞단에서 아예 돌려보낸다.
+# 근본 해결은 카페24 PHP 를 패치된 버전(8.2.35·8.3.36·8.4.27·8.5.12 이상)으로 쓰는 것이다.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Content-Type} multipart/ [NC]
+  RewriteRule ^ - [F]
+</IfModule>

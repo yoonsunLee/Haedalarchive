@@ -264,7 +264,7 @@ curl_setopt_array($ch, [
 ]);
 curl_exec($ch);
 $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-curl_close($ch);
+if (PHP_VERSION_ID < 80000) curl_close($ch);   // 8.0부터 하는 일이 없고 8.5에서 경고가 난다
 
 if ($status < 200 || $status >= 300) {
     // 오류 기록에 문의 내용·연락처를 남기지 않는다

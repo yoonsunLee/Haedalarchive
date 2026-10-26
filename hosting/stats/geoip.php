@@ -62,7 +62,7 @@ try {
                                     CURLOPT_USERAGENT => 'shinhaedal-stats/1']);
             curl_exec($ch);
             $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            if (PHP_VERSION_ID < 80000) curl_close($ch);   // 8.0부터 하는 일이 없고 8.5에서 경고가 난다
             fclose($fh);
             if ($code === 200 && filesize($GZ) > 100000) { $got = $ym; break; }
         }
@@ -96,7 +96,7 @@ try {
             $batch = [];
         };
         while (($line = fgets($fh)) !== false) {
-            $f = str_getcsv(trim($line));
+            $f = str_getcsv(trim($line), ',', '"', '\\');   // 8.4부터 마지막 인자를 직접 적어야 경고가 안 난다
             if (count($f) >= 3) {
                 $a = ip16($f[0]); $b = ip16($f[1]); $c = strtoupper(trim($f[2]));
                 if ($a !== null && $b !== null && preg_match('/^[A-Z]{2}$/', $c)) {

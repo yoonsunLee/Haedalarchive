@@ -1,0 +1,375 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>얼빵해달 아침 수영반</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* 레이아웃: 화면 전체가 밝은 실내수영장, 글자는 가장자리에 작게만 얹는다. 한 가지 밝은 화면으로 고정. */
+:root {
+  --sky: #e6f1f3;
+  --navy: #1b3a9c;
+  --ink: #16264f;
+  --yolk: #f6d20f;
+  --glass: rgba(255, 255, 255, .78);
+  --hair: rgba(22, 38, 79, .14);
+  --f-title: "Black Han Sans", "Noto Sans KR", sans-serif;
+  --f-body: "Noto Sans KR", system-ui, sans-serif;
+  --f-mono: "Space Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--sky); color: var(--ink); font-family: var(--f-body); overflow: hidden; }
+canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.plate { position: fixed; z-index: 2; top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  max-width: min(360px, calc(100% - 32px)); padding: 12px 14px; background: var(--glass); border: 1px solid var(--hair); border-radius: 10px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: grid; gap: 4px; }
+.plate .eye { font: 700 10px/1.3 var(--f-mono); letter-spacing: .08em; color: var(--navy); }
+.plate h1 { margin: 0; font: 400 22px/1.15 var(--f-title); color: var(--ink); text-wrap: balance; }
+.plate p { margin: 0; font-size: 12px; line-height: 1.5; color: #3b4a6e; }
+.bar { position: fixed; z-index: 2; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; pointer-events: none; }
+.hint { pointer-events: auto; min-width: 0; padding: 8px 14px; border-radius: 999px; background: rgba(22, 38, 79, .62); color: #fff; font-size: 12px; line-height: 1.4; }
+.snd { pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 0;
+  background: var(--navy); color: #fff; font: 700 12px/1 var(--f-mono); letter-spacing: .04em; cursor: pointer; }
+.snd i { width: 10px; height: 10px; border-radius: 50%; background: var(--yolk); opacity: .35; }
+.snd[aria-pressed="true"] i { opacity: 1; }
+.snd:focus-visible { outline: 3px solid var(--yolk); outline-offset: 2px; }
+</style>
+
+<canvas id="c" aria-label="위에서 내려다본 25미터 5레인 실내수영장. 노랑과 남색 부표 줄 사이로 사람들이 헤엄치고, 가운데 레인에 수영복 입은 얼빵해달이 떠 있다."></canvas>
+<div class="plate">
+  <div class="eye">현대사회스포츠센터 · 아침 수영반</div>
+  <h1>해달도 배워야 수영을 한다.</h1>
+  <p>IP 체험관 수영장 3D 시안이에요. 25m, 다섯 레인, 수심 1.2m를 실제 크기로 지었어요.</p>
+</div>
+<div class="bar">
+  <div class="hint">끌어서 둘러보기 · 두 손가락이나 휠로 확대 · 해달을 눌러 보세요</div>
+  <button class="snd" id="snd" type="button" aria-pressed="false"><i></i><span>소리 켜기</span></button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, PACE = RM ? .35 : 1;
+// 실제 치수(m): 25m 단수로 풀, 레인 폭 2.5m, 수심 1.2m
+const L = 25, W = 12.5, DEPTH = 1.2, DECK = .12, ROOM = { x: 10.5, z: 17, h: 8 };
+const LANES = [-5, -2.5, 0, 2.5, 5], ROPES = [-3.75, -1.25, 1.25, 3.75];
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe6f1f3);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .55;
+
+const camera = new THREE.PerspectiveCamera(40, 1, .1, 200);
+camera.position.set(0, 13.5, 21);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, -.6, 1.5); controls.enableDamping = true; controls.dampingFactor = .08;
+controls.minDistance = 5; controls.maxDistance = 40; controls.minPolarAngle = .12; controls.maxPolarAngle = 1.28;
+controls.addEventListener('change', () => { const t = controls.target; t.x = THREE.MathUtils.clamp(t.x, -6, 6); t.z = THREE.MathUtils.clamp(t.z, -12, 12); t.y = -.6; });
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x9fd8e6, 1.5));
+const sun = new THREE.DirectionalLight(0xfff4e4, 2.3);
+sun.position.set(7, 22, 9); sun.castShadow = true;
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 18, bottom: -18, near: 1, far: 60 });
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -.0004; sun.shadow.normalBias = .03;
+scene.add(sun);
+
+/* ───────── 캔버스 그림 ───────── */
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+function rng(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function tiles(n, base, grout, jit, seed) {
+  return canvasTex(512, 512, (g, w) => {
+    const r = rng(seed), s = w / n, gw = Math.max(2, s * .06);
+    g.fillStyle = grout; g.fillRect(0, 0, w, w);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const k = (r() - .5) * jit; g.fillStyle = `hsl(${base[0]} ${base[1]}% ${base[2] + k}%)`;
+      g.fillRect(i * s + gw / 2, j * s + gw / 2, s - gw, s - gw);
+    }
+  }, true);
+}
+// 물속 타일: 25cm 타일 8장 = 2m 한 장
+const poolTile = tiles(8, [193, 62, 74], '#d7f2f8', 5, 7);
+const deckTile = tiles(6, [180, 10, 92], '#d3dbda', 3, 11);
+const plane = (w, h, mat, uvW = 0, uvH = 0) => {
+  const g = new THREE.PlaneGeometry(w, h);
+  if (uvW) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / uvW, uv.getY(i) * h / uvH); }
+  return new THREE.Mesh(g, mat);
+};
+
+/* ───────── 물빛 무늬: 물속 면에만 흔들리는 빛 ───────── */
+const TIME = { value: 0 };
+const CAUSTIC = `
+uniform float uTime; varying vec3 vWPos;
+float caustic(vec2 uv, float time) {
+  vec2 p = mod(uv * 6.2831853, 6.2831853) - 250.0, i = p; float c = 1.0, inten = .005;
+  for (int n = 0; n < 5; n++) {
+    float t = time * (1.0 - (3.5 / float(n + 1)));
+    i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+    c += 1.0 / length(vec2(p.x / (sin(i.x + t) / inten), p.y / (cos(i.y + t) / inten)));
+  }
+  c = 1.17 - pow(c / 5.0, 1.4);
+  return pow(abs(c), 8.0);
+}
+`;
+function underwater(mat) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = TIME;
+    sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = CAUSTIC + sh.fragmentShader.replace('#include <tonemapping_fragment>', `
+      float under = step(vWPos.y, -.04), deep = clamp(-vWPos.y / 1.2, 0.0, 1.0);
+      float cz = caustic(vWPos.xz * .32, uTime * .55) + caustic(vWPos.xz * .32 + 3.7, uTime * .4) * .6;
+      gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * vec3(.72, .93, 1.02), under * (.35 + deep * .35));
+      gl_FragColor.rgb += under * vec3(.85, 1.0, 1.0) * cz * .32;
+      #include <tonemapping_fragment>`);
+  };
+  return mat;
+}
+
+/* ───────── 수조 ───────── */
+const tileMat = underwater(new THREE.MeshStandardMaterial({ map: poolTile, roughness: .55 }));
+const floor = plane(W, L, tileMat, 2, 2); floor.rotation.x = -Math.PI / 2; floor.position.y = -DEPTH; floor.receiveShadow = true; scene.add(floor);
+const wallH = DEPTH + DECK - .03;
+for (const [w, x, z, ry] of [[W, 0, -L / 2, 0], [W, 0, L / 2, Math.PI], [L, -W / 2, 0, Math.PI / 2], [L, W / 2, 0, -Math.PI / 2]]) {
+  const m = plane(w, wallH, tileMat, 2, 2); m.position.set(x, -DEPTH + wallH / 2, z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m);
+}
+// 레인 표시: 레인 가운데 남색 줄, 벽 2m 앞에서 T자로 끝난다. 끝벽에도 같은 표시
+const markMat = underwater(new THREE.MeshStandardMaterial({ color: 0x2a5aa8, roughness: .6 }));
+const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); scene.add(m); return m; };
+for (const x of LANES) {
+  box(.25, .01, L - 4, markMat, x, -DEPTH + .006, 0).receiveShadow = true;
+  for (const s of [-1, 1]) {
+    box(1, .01, .25, markMat, x, -DEPTH + .006, s * (L / 2 - 2)).receiveShadow = true;
+    box(.25, DEPTH - .3, .01, markMat, x, -DEPTH + (DEPTH - .3) / 2, s * (L / 2 - .006));
+    box(.6, .25, .01, markMat, x, -.42, s * (L / 2 - .006));
+  }
+}
+
+/* ───────── 물가와 바닥 ───────── */
+const deckMat = new THREE.MeshStandardMaterial({ map: deckTile, roughness: .7 });
+for (const [w, d, x, z] of [[2 * ROOM.x, ROOM.z - L / 2, 0, -(ROOM.z + L / 2) / 2], [2 * ROOM.x, ROOM.z - L / 2, 0, (ROOM.z + L / 2) / 2], [ROOM.x - W / 2, L, -(ROOM.x + W / 2) / 2, 0], [ROOM.x - W / 2, L, (ROOM.x + W / 2) / 2, 0]]) {
+  const m = plane(w, d, deckMat, 1.8, 1.8); m.rotation.x = -Math.PI / 2; m.position.set(x, DECK, z); m.receiveShadow = true; scene.add(m);
+}
+// 테두리 타일: 흰색 사이로 연노랑·연파랑이 번갈아 (30cm 한 장)
+const bandTex = canvasTex(512, 64, (g, w, h) => {
+  const cols = ['#ffffff', '#fbe9a0', '#ffffff', '#bfe2f5']; const s = w / 4;
+  g.fillStyle = '#dfe6e6'; g.fillRect(0, 0, w, h);
+  cols.forEach((c, i) => { g.fillStyle = c; g.fillRect(i * s + 2, 2, s - 4, h - 4); });
+}, true);
+const copeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .45 });
+const bandMat = new THREE.MeshStandardMaterial({ map: bandTex, roughness: .45 });
+for (const [len, x, z, ry] of [[W + .7, 0, -L / 2 - .175, 0], [W + .7, 0, L / 2 + .175, 0], [L, -W / 2 - .175, 0, Math.PI / 2], [L, W / 2 + .175, 0, Math.PI / 2]]) {
+  const c = new THREE.Mesh(new THREE.BoxGeometry(len, .15, .35), copeMat); c.position.set(x, DECK - .075 + .002, z); c.rotation.y = ry; c.receiveShadow = true; scene.add(c);
+  const b = plane(len, .35, bandMat, 1.2, .35); b.rotation.set(-Math.PI / 2, 0, ry); b.position.set(x, DECK + .004, z); b.receiveShadow = true; scene.add(b);
+}
+
+/* ───────── 물 ───────── */
+const waterGeo = new THREE.PlaneGeometry(W, L, 64, 128);
+const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ color: 0x3fb6dc, transparent: true, opacity: .38, roughness: .06, metalness: 0, depthWrite: false }));
+water.rotation.x = -Math.PI / 2; scene.add(water);
+const wave = (x, z, t) => .022 * Math.sin(x * 1.3 + t * 1.4) + .018 * Math.sin(z * .9 - t * 1.1) + .01 * Math.sin((x + z) * 2.7 + t * 2.3);
+function stepWater(t) {
+  const p = waterGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, wave(p.getX(i), -p.getY(i), t));
+  p.needsUpdate = true; waterGeo.computeVertexNormals();
+}
+
+/* ───────── 레인 줄: 작가님 그림처럼 노랑 4 · 남색 5가 번갈아 ───────── */
+const prof = [[0, -.035], [.068, -.035], [.085, -.02], [.085, .02], [.068, .035], [0, .035]].map(([x, y]) => new THREE.Vector2(x, y));
+const floatGeo = new THREE.LatheGeometry(prof, 22); floatGeo.rotateX(Math.PI / 2);
+const STEP = .1, PER = Math.floor((L - .4) / STEP), floats = new THREE.InstancedMesh(floatGeo, new THREE.MeshStandardMaterial({ roughness: .32 }), PER * ROPES.length);
+floats.castShadow = true;
+const YEL = new THREE.Color(0xf6d20f), NAV = new THREE.Color(0x1b3a9c), fl = [];
+ROPES.forEach((x) => { for (let i = 0; i < PER; i++) { const z = -L / 2 + .2 + i * STEP; fl.push([x, z]); floats.setColorAt(fl.length - 1, i % 9 < 4 ? YEL : NAV); } });
+scene.add(floats);
+const ropeMat = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: .6 });
+for (const x of ROPES) { const r = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, L, 6), ropeMat); r.rotation.x = Math.PI / 2; r.position.set(x, .01, 0); scene.add(r); }
+const dummy = new THREE.Object3D();
+function stepFloats(t) {
+  fl.forEach(([x, z], i) => {
+    const y = wave(x, z, t), slope = (wave(x, z + .1, t) - y) * 6;
+    dummy.position.set(x, y + .012, z); dummy.rotation.set(slope, 0, Math.sin(t * 1.7 + z * 1.9) * .06); dummy.updateMatrix();
+    floats.setMatrixAt(i, dummy.matrix);
+  });
+  floats.instanceMatrix.needsUpdate = true;
+}
+
+/* ───────── 출발대 · 사다리 · 킥판 ───────── */
+const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .4 });
+const steel = new THREE.MeshStandardMaterial({ color: 0xd9dee2, roughness: .2, metalness: .9 });
+LANES.forEach((x, i) => {
+  const blk = new THREE.Mesh(new RoundedBoxGeometry(.55, .5, .6, 3, .04), white); blk.position.set(x, DECK + .25, -L / 2 - .55); blk.rotation.x = -.08; blk.castShadow = blk.receiveShadow = true; scene.add(blk);
+  const num = canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#1b3a9c'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.font = '700 84px "Space Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i + 1), w / 2, h / 2 + 4); });
+  const n = plane(.3, .3, new THREE.MeshBasicMaterial({ map: num, toneMapped: false })); n.position.set(x, DECK + .28, -L / 2 - .24); scene.add(n);
+});
+for (const s of [-1, 1]) {
+  const pts = [[0, -.9, .12], [0, DECK, .12], [0, .7, .06], [0, .9, -.25], [0, .55, -.45]].map(([a, b, c]) => new THREE.Vector3(W / 2 - 1.2 + s * .25 + a, b, L / 2 - c));
+  const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, .025, 10), steel); rail.castShadow = true; scene.add(rail);
+}
+for (let k = 0; k < 3; k++) box(.5, .03, .06, steel, W / 2 - 1.2, -.25 - k * .3, L / 2 - .09);
+const boardGeo = new RoundedBoxGeometry(.3, .035, .45, 2, .015);
+for (let s = 0; s < 2; s++) for (let i = 0; i < 7; i++) {
+  const b = new THREE.Mesh(boardGeo, new THREE.MeshStandardMaterial({ color: i % 2 ? 0x1b3a9c : 0xf6d20f, roughness: .5 }));
+  b.position.set(8.6 + s * .45, DECK + .02 + i * .036, 6 + s * .1); b.rotation.y = (i % 3 - 1) * .05; b.castShadow = b.receiveShadow = true; scene.add(b);
+}
+
+/* ───────── 방: 밖에서 들여다보면 앞벽과 천장은 보이지 않는다 ───────── */
+const wallMat = new THREE.MeshStandardMaterial({ color: 0xdde9ec, roughness: .9 });
+const back = plane(2 * ROOM.x, ROOM.h, wallMat); back.position.set(0, ROOM.h / 2 + DECK, -ROOM.z); back.receiveShadow = true; scene.add(back);
+const side = plane(2 * ROOM.z, ROOM.h, wallMat); side.position.set(ROOM.x, ROOM.h / 2 + DECK, 0); side.rotation.y = -Math.PI / 2; side.receiveShadow = true; scene.add(side);
+const stripe = canvasTex(512, 32, (g, w, h) => { g.fillStyle = '#f6d20f'; g.fillRect(0, 0, w, h / 2); g.fillStyle = '#1b3a9c'; g.fillRect(0, h / 2, w, h / 2); }, true);
+for (const [w, x, z, ry] of [[2 * ROOM.x, 0, -ROOM.z + .01, 0], [2 * ROOM.z, ROOM.x - .01, 0, -Math.PI / 2]]) {
+  const s = plane(w, .24, new THREE.MeshStandardMaterial({ map: stripe, roughness: .8 })); s.position.set(x, DECK + 1.3, z); s.rotation.y = ry; scene.add(s);
+}
+// 왼쪽 벽은 높은 통창: 아침 햇빛
+const win = canvasTex(1024, 512, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f8fdff'); gr.addColorStop(1, '#d6eef6'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#c7d3d8'; for (let i = 0; i <= 8; i++) g.fillRect(i * w / 8 - 5, 0, 10, h); g.fillRect(0, h * .62, w, 8); g.fillRect(0, 0, w, 10); g.fillRect(0, h - 10, w, 10);
+});
+const winM = plane(2 * ROOM.z, ROOM.h, new THREE.MeshBasicMaterial({ map: win, toneMapped: false })); winM.position.set(-ROOM.x, ROOM.h / 2 + DECK, 0); winM.rotation.y = Math.PI / 2; scene.add(winM);
+
+/* ───────── 뒷벽: 수영장 이름과 페이스 시계 ───────── */
+const clockFace = canvasTex(512, 512, (g, w) => {
+  const c = w / 2; g.fillStyle = '#ffffff'; g.beginPath(); g.arc(c, c, c - 6, 0, 7); g.fill(); g.lineWidth = 12; g.strokeStyle = '#1b3a9c'; g.stroke();
+  for (let i = 0; i < 60; i++) { const a = i / 60 * Math.PI * 2, r1 = c - 22, r2 = i % 5 ? c - 40 : c - 62; g.lineWidth = i % 5 ? 4 : 9; g.strokeStyle = '#16264f'; g.beginPath(); g.moveTo(c + Math.sin(a) * r1, c - Math.cos(a) * r1); g.lineTo(c + Math.sin(a) * r2, c - Math.cos(a) * r2); g.stroke(); }
+  g.fillStyle = '#16264f'; g.font = '700 46px "Space Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  [[60, 0], [15, 1], [30, 2], [45, 3]].forEach(([n, k]) => { const a = k * Math.PI / 2; g.fillText(String(n), c + Math.sin(a) * (c - 108), c - Math.cos(a) * (c - 108)); });
+});
+const clock = plane(2.2, 2.2, new THREE.MeshBasicMaterial({ map: clockFace, transparent: true, toneMapped: false })); clock.position.set(-6.2, 4.4, -ROOM.z + .03); scene.add(clock);
+const hand = new THREE.Group(); hand.position.set(-6.2, 4.4, -ROOM.z + .06); scene.add(hand);
+const handBar = new THREE.Mesh(new THREE.BoxGeometry(.05, .9, .02), new THREE.MeshBasicMaterial({ color: 0xd8332b })); handBar.position.y = .35; hand.add(handBar);
+async function drawSign() {
+  await Promise.race([Promise.all(['80px "Black Han Sans"', '700 40px "Space Mono"'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]);
+  const t = canvasTex(2048, 512, (g, w, h) => {
+    g.fillStyle = '#1b3a9c'; g.font = '700 64px "Space Mono", monospace'; g.fillText('HYUNDAESAHOE SPORTS CENTER · MORNING SWIM', 20, 110);
+    g.fillStyle = '#16264f'; g.font = '210px "Black Han Sans", sans-serif'; g.fillText('해달도 배워야 수영을 한다.', 12, 360);
+  });
+  const s = plane(9.6, 2.4, new THREE.MeshBasicMaterial({ map: t, transparent: true, toneMapped: false })); s.position.set(2.2, 4.5, -ROOM.z + .03); scene.add(s);
+  // 물가 바닥의 수심 표시
+  const dt = canvasTex(256, 96, (g, w, h) => { g.fillStyle = '#1b3a9c'; g.font = '700 40px "Space Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('수심 1.2m', w / 2, h / 2); });
+  for (const [x, z] of [[-W / 2 - .75, -8], [-W / 2 - .75, 8], [W / 2 + .75, -8], [W / 2 + .75, 8]]) { const d = plane(.8, .3, new THREE.MeshBasicMaterial({ map: dt, transparent: true, toneMapped: false })); d.rotation.set(-Math.PI / 2, 0, x < 0 ? -Math.PI / 2 : Math.PI / 2); d.position.set(x, DECK + .005, z); scene.add(d); }
+}
+drawSign();
+
+/* ───────── 헤엄치는 사람들: 단순한 남색 실루엣. 레인 안에서는 오른쪽으로 돈다 ───────── */
+const ink = new THREE.MeshStandardMaterial({ color: 0x1a3560, roughness: .85 });
+function swimmer() {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.16, .62, 4, 10), ink); torso.rotation.x = Math.PI / 2; body.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.13, 14, 10), ink); head.position.set(0, .03, -.58); body.add(head);
+  const arms = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * .22, 0, -.32); const a = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .5, 3, 8), ink); a.rotation.x = Math.PI / 2; a.position.z = -.3; p.add(a); body.add(p); return p; });
+  const legs = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * .09, 0, .36); const l = new THREE.Mesh(new THREE.CapsuleGeometry(.065, .55, 3, 8), ink); l.rotation.x = Math.PI / 2; l.position.z = .32; p.add(l); body.add(p); return p; });
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  scene.add(g); return { g, body, arms, legs };
+}
+const swimmers = [[0, -6, -1, 1.05], [0, 5, 1, .9], [1, -2, 1, 1.25], [3, 3, -1, 1.1], [3, -9, 1, .95], [4, 0, -1, .8]].map(([lane, z, dir, sp], i) => ({ ...swimmer(), x: LANES[lane], z, dir, sp, ph: i * 1.7, off: 0, yaw: dir < 0 ? 0 : Math.PI }));
+function stepSwimmers(dt, t) {
+  for (const s of swimmers) {
+    s.z += s.dir * s.sp * dt;
+    if (Math.abs(s.z) > L / 2 - 1.1) { s.z = Math.sign(s.z) * (L / 2 - 1.1); s.dir = -s.dir; }
+    const wantOff = s.dir < 0 ? .55 : -.55; s.off += (wantOff - s.off) * Math.min(1, dt * 1.4);
+    const wantYaw = s.dir < 0 ? 0 : Math.PI; s.yaw += (wantYaw - s.yaw) * Math.min(1, dt * 3);
+    s.g.position.set(s.x + s.off, -.1 + wave(s.x, s.z, t) * .6, s.z); s.g.rotation.y = s.yaw;
+    const a = t * 3.2 * s.sp + s.ph; s.arms[0].rotation.x = a; s.arms[1].rotation.x = a + Math.PI;
+    s.legs[0].rotation.x = Math.sin(a * 2.6) * .22; s.legs[1].rotation.x = -Math.sin(a * 2.6) * .22;
+    s.body.rotation.z = Math.sin(a) * .28;
+  }
+}
+
+/* ───────── 얼빵해달: 그림 그대로 물 위에 누워 둥둥 ───────── */
+const otterTex = new THREE.TextureLoader().load('img/swim-otter.webp'); otterTex.colorSpace = THREE.SRGBColorSpace; otterTex.anisotropy = 8;
+const otter = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5 * 668 / 469), new THREE.MeshBasicMaterial({ map: otterTex, alphaTest: .45, toneMapped: false, side: THREE.DoubleSide }));
+otter.rotation.x = -Math.PI / 2; otter.castShadow = true; scene.add(otter);
+const ringTex = canvasTex(256, 256, (g, w) => { g.strokeStyle = '#ffffff'; g.lineWidth = 10; g.beginPath(); g.arc(w / 2, w / 2, w / 2 - 12, 0, 7); g.stroke(); });
+const rings = [0, 1, 2].map((i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, toneMapped: false })); m.rotation.x = -Math.PI / 2; scene.add(m); return { m, k: i / 3 }; });
+let spin = 0, spinV = 0;
+function stepOtter(dt, t) {
+  const x = Math.sin(t * .11) * .45, z = 2 + Math.sin(t * .07) * 3.2, y = wave(x, z, t) + .045;
+  spinV *= Math.pow(.25, dt); spin += spinV * dt;
+  otter.position.set(x, y, z); otter.rotation.z = Math.sin(t * .23) * .18 + spin;
+  for (const r of rings) {
+    r.k = (r.k + dt * .28 * (1 + Math.min(3, Math.abs(spinV)))) % 1;
+    r.m.position.set(x, y - .035, z); r.m.scale.setScalar(1.1 + r.k * 2.2); r.m.material.opacity = (1 - r.k) * .55;
+  }
+}
+
+/* ───────── 소리: 녹음 없이 브라우저에서 만든 실내수영장 ───────── */
+let ac = null, master = null;
+function noiseBuf(sec, pink) {
+  const b = ac.createBuffer(2, ac.sampleRate * sec, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); let b0 = 0, b1 = 0, b2 = 0; for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; if (pink) { b0 = .997 * b0 + w * .029591; b1 = .985 * b1 + w * .032534; b2 = .95 * b2 + w * .048056; d[i] = (b0 + b1 + b2 + w * .1848) * .3; } else d[i] = w; } }
+  return b;
+}
+function startAudio() {
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
+  // 넓은 타일 홀의 울림
+  const ir = ac.createBuffer(2, ac.sampleRate * 3, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3.2); }
+  const verb = ac.createConvolver(); verb.buffer = ir; const wet = ac.createGain(); wet.gain.value = .9; verb.connect(wet); wet.connect(master);
+  // 늘 깔리는 물 출렁임과 공조 소리
+  const bed = ac.createBufferSource(); bed.buffer = noiseBuf(6, true); bed.loop = true;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+  const lfo = ac.createOscillator(), lfoG = ac.createGain(); lfo.frequency.value = .13; lfoG.gain.value = 260; lfo.connect(lfoG); lfoG.connect(lp.frequency); lfo.start();
+  const bedG = ac.createGain(); bedG.gain.value = .55; bed.connect(lp); lp.connect(bedG); bedG.connect(master); bedG.connect(verb); bed.start();
+  // 이따금 멀리서 첨벙, 가까이서 팔 젓는 소리
+  const burst = noiseBuf(1, false);
+  function splash(near) {
+    const s = ac.createBufferSource(); s.buffer = burst; const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = (near ? 900 : 1400) + Math.random() * 1400; f.Q.value = .8;
+    const g = ac.createGain(), p = ac.createStereoPanner(), n = ac.currentTime, len = near ? .35 : .22 + Math.random() * .2;
+    p.pan.value = Math.random() * 1.6 - .8; g.gain.setValueAtTime(0, n); g.gain.linearRampToValueAtTime(near ? .5 : .22, n + .015); g.gain.exponentialRampToValueAtTime(.001, n + len);
+    s.connect(f); f.connect(g); g.connect(p); p.connect(verb); if (near) p.connect(master); s.start(n, Math.random() * .5, len + .05);
+  }
+  (function loop() { splash(false); if (Math.random() < .5) setTimeout(() => splash(false), 180 + Math.random() * 220); setTimeout(loop, 900 + Math.random() * 2600); })();
+  return splash;
+}
+let splashFx = null, soundOn = false;
+const sndBtn = document.getElementById('snd');
+sndBtn.addEventListener('click', () => {
+  if (!ac) splashFx = startAudio();
+  soundOn = !soundOn; ac.resume();
+  master.gain.setTargetAtTime(soundOn ? .8 : 0, ac.currentTime, .3);
+  sndBtn.setAttribute('aria-pressed', String(soundOn)); sndBtn.querySelector('span').textContent = soundOn ? '소리 끄기' : '소리 켜기';
+});
+
+/* ───────── 해달 누르기 ───────── */
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera);
+  if (ray.intersectObject(otter).length) { spinV += 9; if (soundOn && splashFx) splashFx(true); }
+});
+
+/* ───────── 돌리기 ───────── */
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = camera.aspect < .8 ? 58 : 40; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+if (camera.aspect < .8) camera.position.set(0, 21, 19);   // 세로 화면은 레인 끝까지 보이게 더 높이서
+const clk = new THREE.Clock(); let t = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clk.getDelta(), .05); t += dt * PACE; TIME.value = t;
+  stepWater(t); stepFloats(t); stepSwimmers(dt * PACE, t); stepOtter(dt * PACE, t);
+  hand.rotation.z = -((performance.now() / 1000) % 60) / 60 * Math.PI * 2;
+  controls.update(); renderer.render(scene, camera);
+});
+</script>

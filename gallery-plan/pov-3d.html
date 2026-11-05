@@ -1,0 +1,335 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>POV 방 샘플</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* 레이아웃: 화면 전체가 POV 방, 글자와 버튼은 가장자리에 작게만 얹는다. 한 가지 화면으로 고정. */
+:root {
+  --ground: #2b1f1c;
+  --coral: #e7a596;
+  --ink: #1d1a17;
+  --glass: rgba(255, 251, 245, .82);
+  --hair: rgba(29, 26, 23, .16);
+  --yolk: #f2c230;
+  --f-title: "Black Han Sans", "Noto Sans KR", sans-serif;
+  --f-body: "Noto Sans KR", system-ui, sans-serif;
+  --f-mono: "Space Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--ground); color: var(--ink); font-family: var(--f-body); overflow: hidden; }
+canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.plate { position: fixed; z-index: 2; top: calc(14px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  max-width: min(370px, calc(100% - 32px)); padding: 12px 14px; background: var(--glass); border: 1px solid var(--hair); border-radius: 10px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: grid; gap: 4px; }
+.plate .eye { font: 700 10px/1.3 var(--f-mono); letter-spacing: .08em; color: #a0503f; }
+.plate h1 { margin: 0; font: 400 24px/1.1 var(--f-title); }
+.plate p { margin: 0; font-size: 12px; line-height: 1.55; color: #4a3f39; }
+.bar { position: fixed; z-index: 2; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 8px; pointer-events: none; }
+.bar .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bar .lab { pointer-events: auto; padding: 7px 10px; border-radius: 999px; background: rgba(29, 26, 23, .72); font: 700 11px/1 var(--f-body); color: #fff; }
+.bar button i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink); margin-right: 6px; vertical-align: -3px; }
+.bar button { pointer-events: auto; padding: 9px 15px; border-radius: 999px; border: 2px solid var(--ink); background: #fffdf7; color: var(--ink);
+  font: 700 12px/1 var(--f-body); cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
+.bar button[aria-pressed="true"] { background: var(--yolk); }
+.bar button:focus-visible { outline: 3px solid var(--yolk); outline-offset: 2px; }
+.hint { pointer-events: auto; padding: 8px 12px; border-radius: 999px; background: rgba(29, 26, 23, .6); color: #fff; font-size: 12px; line-height: 1.4; }
+</style>
+
+<canvas id="c" aria-label="POV 방 3D 샘플. 해달과 조개 무늬 코랄 벽지 위에 POV 네 점이 걸려 있고, 은색 말풍선 풍선들이 천장 아래 떠 있다. 들어오는 통로 벽에는 점점 커지는 코랄 점무늬가 있다."></canvas>
+<div class="plate">
+  <div class="eye">POV 방 샘플 · 컨셉에는 아직 넣지 않음</div>
+  <h1>POV</h1>
+  <p>워홀의 벽지(휘트니 1971)와 「Silver Clouds」(1966), 리히텐슈타인의 벤데이 점을 빌려 온 시안이에요. 작품은 실제 크기예요.</p>
+</div>
+<div class="bar">
+  <div class="row"><span class="lab">벽 색</span>
+    <button type="button" id="p-warhol" data-pal="warhol"><i style="background:#f6dc6e;box-shadow:inset -6px 0 0 #f3a9c0"></i>워홀 노랑·분홍</button>
+    <button type="button" id="p-cream" data-pal="cream"><i style="background:#f5ecd2;box-shadow:inset -6px 0 0 #c3d7ef"></i>버터 크림·하늘</button>
+    <button type="button" id="p-pink" data-pal="pink"><i style="background:#f5c4d0;box-shadow:inset -6px 0 0 #fbe1e8"></i>풍선껌 분홍</button>
+    <button type="button" id="p-coral" data-pal="coral"><i style="background:#e7a596;box-shadow:inset -6px 0 0 #eaab9c"></i>지금 코랄</button>
+  </div>
+  <div class="row"><span class="lab">무늬</span>
+    <button type="button" id="m-both" data-motif="both">해달·조개</button>
+    <button type="button" id="m-shell" data-motif="shell">조개만</button>
+    <button type="button" id="m-none" data-motif="none">무늬 없음</button>
+  </div>
+  <div class="row">
+  <button type="button" id="v-pass" data-view="pass">통로에서 들어오기</button>
+  <button type="button" id="v-wall" data-view="wall" aria-pressed="true">작품 벽</button>
+  <button type="button" id="v-cloud" data-view="cloud">말풍선 올려다보기</button>
+  <span class="hint">끌어서 둘러보기 · 말풍선을 눌러 보세요</span>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches, PACE = RM ? .35 : 1;
+await Promise.race([Promise.all(['80px "Black Han Sans"', '700 40px "Noto Sans KR"', '700 40px "Space Mono"'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]);
+
+// 방 10 × 8 m, 층고 4.2 m. 앞쪽(z 4 ~ 6.6)은 앞방에서 넘어오는 꺾인 통로
+const RX = 5, RZ = 4, H = 4.2, CZ = 6.6, CH = 3.2, OPEN = [2.8, 4.8];
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2b1f1c);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; scene.environmentIntensity = .5;
+
+const camera = new THREE.PerspectiveCamera(55, 1, .05, 80);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
+controls.minDistance = .3; controls.maxDistance = 6; controls.rotateSpeed = .6;
+
+scene.add(new THREE.HemisphereLight(0xfff6ee, 0xd8b3a6, 1.1));
+const top = new THREE.DirectionalLight(0xfff3e6, .9); top.position.set(1, 9, 2); top.castShadow = true;
+Object.assign(top.shadow.camera, { left: -6, right: 6, top: 7, bottom: -7, near: 1, far: 20 }); top.shadow.mapSize.set(1024, 1024); top.shadow.radius = 6;
+scene.add(top);
+
+/* ───────── 캔버스 그림 ───────── */
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+function rng(s) { return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const loadImg = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+const plane = (w, h, mat, rep) => {
+  const g = new THREE.PlaneGeometry(w, h);
+  if (rep) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / rep, uv.getY(i) * h / rep); }
+  return new THREE.Mesh(g, mat);
+};
+
+/* ───────── 벽지: 워홀의 소 벽지처럼 한 무늬를 반복, 대신 거의 같은 색끼리 은은하게 ───────── */
+const [otterImg, shellImg] = await Promise.all([loadImg('img/otter-cutout.webp'), loadImg('img/shell-stamp.webp')]);
+function tint(img, color, w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  if (img) { g.drawImage(img, 0, 0, w, h); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, w, h); }
+  return c;
+}
+const PAPER = 1.6;   // 무늬 한 판 1.6 m
+// 벽 색 후보: 바탕, 무늬, 걸레받이, 통로 끝 제목 글자
+const PALETTES = {
+  warhol: { name: '워홀 노랑·분홍', base: '#f6dc6e', motif: '#f3a9c0', skirt: '#e2be3c', title: '#3d6ff0' },
+  cream: { name: '버터 크림·하늘', base: '#f5ecd2', motif: '#c3d7ef', skirt: '#dccca4', title: '#f2c230' },
+  pink: { name: '풍선껌 분홍', base: '#f5c4d0', motif: '#fbe1e8', skirt: '#e4a1b3', title: '#f2c230' },
+  coral: { name: '지금 코랄', base: '#e7a596', motif: '#eaab9c', skirt: '#d98d7d', title: '#f2c230' },
+};
+const MOTIFS = { both: '해달·조개', shell: '조개만', none: '무늬 없음' };
+function paperTex(pal, motif) {
+  return canvasTex(1024, 1024, (g, w) => {
+    g.fillStyle = pal.base; g.fillRect(0, 0, w, w);
+    if (motif === 'none') return;
+    const ot = tint(otterImg, pal.motif, 170, 252), sh = tint(shellImg, pal.motif, 170, 139);
+    // 반 칸씩 내려 붙이는 하프드롭 반복
+    const A = [[256, 256], [768, 768], [768, -256], [256, 1280]], B = [[768, 256], [256, 768], [-256, 768], [1280, 256]];
+    for (const [x, y] of A) motif === 'both' ? g.drawImage(ot, x - 85, y - 126) : g.drawImage(sh, x - 85, y - 70);
+    for (const [x, y] of B) g.drawImage(sh, x - 85, y - 70);
+  }, true);
+}
+const wallMat = new THREE.MeshStandardMaterial({ roughness: .92 });
+
+/* ───────── 바닥: 밝은 테라초 ───────── */
+const terrazzo = canvasTex(1024, 1024, (g, w) => {
+  g.fillStyle = '#efe9e0'; g.fillRect(0, 0, w, w); const r = rng(5);
+  const chips = [['#3d6ff0', 70], ['#f2c230', 70], ['#e7a596', 90], ['#b9b2a8', 260], ['#ffffff', 160]];
+  for (const [c, n] of chips) for (let i = 0; i < n; i++) {
+    const x = r() * w, y = r() * w, s = 3 + r() * r() * 13, k = 4 + Math.floor(r() * 3); g.fillStyle = c; g.beginPath();
+    for (let j = 0; j < k; j++) { const a = j / k * 6.283 + r() * .8, rr = s * (.6 + r() * .5); g[j ? 'lineTo' : 'moveTo'](x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    g.fill();
+  }
+}, true);
+const floorMat = new THREE.MeshStandardMaterial({ map: terrazzo, roughness: .35 });
+const floor = plane(2 * RX, CZ + RZ, floorMat, 2); floor.rotation.x = -Math.PI / 2; floor.position.z = (CZ - RZ) / 2; floor.receiveShadow = true; scene.add(floor);
+const ceilMat = new THREE.MeshStandardMaterial({ color: 0xf6efe8, roughness: 1, emissive: 0x8a7a72, emissiveIntensity: .6 });
+const ceil = plane(2 * RX, 2 * RZ, ceilMat); ceil.rotation.x = Math.PI / 2; ceil.position.y = H; scene.add(ceil);
+
+/* ───────── 방 벽 ───────── */
+function wall(w, h, x, y, z, ry, mat = wallMat) { const m = plane(w, h, mat, PAPER); m.position.set(x, y, z); m.rotation.y = ry; m.receiveShadow = true; scene.add(m); return m; }
+wall(2 * RX, H, 0, H / 2, -RZ, 0);
+wall(2 * RZ, H, -RX, H / 2, 0, Math.PI / 2);
+wall(2 * RZ, H, RX, H / 2, 0, -Math.PI / 2);
+// 앞벽: 통로로 이어지는 입구 자리만 뚫는다
+wall(OPEN[0] + RX, H, (OPEN[0] - RX) / 2, H / 2, RZ, Math.PI);
+wall(RX - OPEN[1], H, (RX + OPEN[1]) / 2, H / 2, RZ, Math.PI);
+wall(OPEN[1] - OPEN[0], H - 2.6, (OPEN[0] + OPEN[1]) / 2, 2.6 + (H - 2.6) / 2, RZ, Math.PI);
+const skirt = new THREE.MeshStandardMaterial({ roughness: .6 });
+for (const [w, x, z, ry] of [[2 * RX, 0, -RZ + .006, 0], [2 * RZ, -RX + .006, 0, Math.PI / 2], [2 * RZ, RX - .006, 0, -Math.PI / 2]]) { const s = plane(w, .1, skirt); s.position.set(x, .05, z); s.rotation.y = ry; scene.add(s); }
+
+/* ───────── 통로: 앞방의 흰 벽에서 이 방 색으로, 리히텐슈타인 점이 점점 커진다 ───────── */
+const dotsTex = (pal) => canvasTex(4096, 1280, (g, w, h) => {
+  g.fillStyle = '#fbf8f3'; g.fillRect(0, 0, w, h);
+  const step = 34; g.fillStyle = pal.base;
+  for (let y = 0, row = 0; y < h + step; y += step * .866, row++) for (let x = (row % 2) * step / 2; x < w + step; x += step) {
+    const t = Math.max(0, (x / w - .08) / .92), r = Math.pow(t, 1.15) * step * .62;
+    if (r > .6) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  }
+});
+const dotMat = new THREE.MeshStandardMaterial({ roughness: .9, color: 0xcfc6c0, side: THREE.DoubleSide });
+const len = 2 * RX;
+// 바깥 벽은 뒤집어 붙여서 들어오는 쪽(왼쪽)부터 점이 작게 시작한다
+const outer = plane(len, CH, dotMat); outer.position.set(0, CH / 2, CZ); outer.rotation.y = Math.PI; outer.scale.x = -1; scene.add(outer);
+const inner = plane(OPEN[0] + RX, CH, new THREE.MeshStandardMaterial({ roughness: .9, color: 0xcfc6c0 }));
+inner.position.set((OPEN[0] - RX) / 2, CH / 2, RZ + .01); scene.add(inner);
+const cceil = plane(len, CZ - RZ, new THREE.MeshStandardMaterial({ color: 0x6f625c, roughness: 1 })); cceil.rotation.x = Math.PI / 2; cceil.position.set(0, CH, (RZ + CZ) / 2); scene.add(cceil);
+const from = plane(CZ - RZ, CH, new THREE.MeshBasicMaterial({ color: 0xf4f2ee, toneMapped: false })); from.position.set(-RX - .4, CH / 2, (RZ + CZ) / 2); from.rotation.y = Math.PI / 2; scene.add(from);
+// 꺾이는 벽: 들어서며 정면으로 만나는 섹션 이름. 작품이 늘어도 고칠 일 없게 이름만
+const titleTex = (pal) => canvasTex(1024, 1280, (g, w) => {
+  g.fillStyle = pal.base; g.fillRect(0, 0, w, 1280);
+  g.textAlign = 'center'; g.lineJoin = 'round';
+  g.font = '330px "Black Han Sans", sans-serif';
+  g.fillStyle = '#1d1a17'; g.fillText('POV', w / 2 + 22, 600 + 22);
+  g.lineWidth = 34; g.strokeStyle = '#1d1a17'; g.strokeText('POV', w / 2, 600);
+  g.fillStyle = pal.title; g.fillText('POV', w / 2, 600);
+  g.fillStyle = '#1d1a17'; g.font = '700 46px "Space Mono", monospace'; g.fillText('POINT OF VIEW', w / 2, 740);
+});
+const tw = plane(CZ - RZ, CH, new THREE.MeshStandardMaterial({ roughness: .85, color: 0xe6dcd6 })); tw.position.set(RX - .01, CH / 2, (RZ + CZ) / 2); tw.rotation.y = -Math.PI / 2; scene.add(tw);
+const passLight = new THREE.SpotLight(0xfff0dc, 14, 7, .55, .7, 2); passLight.position.set(2.4, CH - .05, (RZ + CZ) / 2); passLight.target.position.set(RX, 1.7, (RZ + CZ) / 2); scene.add(passLight, passLight.target);
+
+/* ───────── 벽 색과 무늬 바꿔 보기 ───────── */
+let curPal = 'warhol', curMotif = 'shell';
+function setMap(mat, tex) { if (mat.map) mat.map.dispose(); mat.map = tex; mat.needsUpdate = true; }
+function applyLook() {
+  const pal = PALETTES[curPal];
+  setMap(wallMat, paperTex(pal, curMotif));
+  const d = dotsTex(pal); setMap(dotMat, d);
+  const d2 = d.clone(); d2.repeat.set((OPEN[0] + RX) / len, 1); d2.needsUpdate = true; setMap(inner.material, d2);
+  setMap(tw.material, titleTex(pal));
+  skirt.color.set(pal.skirt);
+  document.querySelectorAll('[data-pal]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pal === curPal)));
+  document.querySelectorAll('[data-motif]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.motif === curMotif)));
+}
+document.querySelectorAll('[data-pal]').forEach((b) => b.addEventListener('click', () => { curPal = b.dataset.pal; applyLook(); }));
+document.querySelectorAll('[data-motif]').forEach((b) => b.addEventListener('click', () => { curMotif = b.dataset.motif; applyLook(); }));
+applyLook();
+
+/* ───────── 작품: 실제 크기, 오른쪽 아래 캡션, 위에서 하나씩 비추는 빛 ───────── */
+const WORKS = [
+  { id: 'HD-2026-006', t: 'POV : 출근', s: 20, x: -2.7 },
+  { id: 'HD-2026-003', t: 'POV : 업무 중', s: 53, x: -.95 },
+  { id: 'HD-2026-007', t: 'POV : 퇴근', s: 20, x: .85 },
+  { id: 'HD-2026-010', t: 'POV : 유급휴일', s: 27, x: 2.55 },
+];
+const loader = new THREE.TextureLoader();
+const edge = new THREE.MeshStandardMaterial({ color: 0x15110f, roughness: .5 });
+for (const w of WORKS) {
+  const m = w.s / 100, tex = loader.load(`img/${w.id}.webp`); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const face = new THREE.MeshStandardMaterial({ map: tex, roughness: .35, metalness: .15 });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(m, m, .03), [edge, edge, edge, edge, face, edge]);
+  box.position.set(w.x, 1.5, -RZ + .016); box.castShadow = true; scene.add(box);
+  const cap = canvasTex(512, 160, (g) => {
+    g.fillStyle = '#1d1a17'; g.font = '700 46px "Noto Sans KR", sans-serif'; g.fillText(w.t, 4, 56);
+    g.fillStyle = '#5b4a43'; g.font = '400 32px "Space Mono", monospace'; g.fillText(`${w.s} × ${w.s} cm · 2026`, 4, 112);
+  });
+  const c = plane(.36, .1125, new THREE.MeshBasicMaterial({ map: cap, transparent: true, toneMapped: false })); c.position.set(w.x + m / 2 + .2, 1.5 - m / 2 + .04, -RZ + .004); scene.add(c);
+  const sp = new THREE.SpotLight(0xfff2e0, 26, 7, .2 + m * .3, .65, 2); sp.position.set(w.x, H - .1, -RZ + 1.6); sp.target.position.set(w.x, 1.5, -RZ); scene.add(sp, sp.target);
+}
+
+/* ───────── 은색 말풍선: Silver Clouds처럼 떠다니고, 다가가면 밀려난다 ───────── */
+function bubbleShape(rx, ry) {
+  const s = new THREE.Shape(), N = 64, gap0 = -1.95, gap1 = -1.55;
+  for (let i = 0; i <= N; i++) { const a = gap1 + (i / N) * (Math.PI * 2 - (gap1 - gap0)); const p = [Math.cos(a) * rx, Math.sin(a) * ry]; i ? s.lineTo(...p) : s.moveTo(...p); }
+  s.lineTo(Math.cos(-1.75) * rx * 1.55 - rx * .12, Math.sin(-1.75) * ry * 1.7); s.closePath();
+  return s;
+}
+// 은박 풍선: 방의 코랄빛을 살짝 머금은 밝은 은색
+const silver = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: .85, roughness: .22, envMapIntensity: 2.6, emissive: 0x6e5a56, emissiveIntensity: .35 });
+const LINES = [['아아 사느라', '늦겠다!'], ['얼른 집에 가서', '각 잡고 봐야지'], null, null, null, null, null];
+const bubbles = LINES.map((lines, i) => {
+  const r = rng(30 + i * 7), sc = .8 + r() * .5;
+  const geo = new THREE.ExtrudeGeometry(bubbleShape(.55 * sc, .38 * sc), { depth: .16, bevelEnabled: true, bevelThickness: .2 * sc, bevelSize: .12 * sc, bevelSegments: 10, curveSegments: 48 });
+  geo.center();
+  const g = new THREE.Group(), m = new THREE.Mesh(geo, silver); m.castShadow = true; g.add(m);
+  if (r() > .5) g.scale.x = -1;
+  if (lines) {
+    const tx = canvasTex(512, 320, (c, w, h) => { c.fillStyle = '#1d1a17'; c.textAlign = 'center'; c.font = '900 70px "Noto Sans KR", sans-serif'; c.fillText(lines[0], w / 2, 135); c.fillText(lines[1], w / 2, 225); });
+    const t = plane(.8 * sc, .5 * sc, new THREE.MeshBasicMaterial({ map: tx, transparent: true, toneMapped: false })); t.position.z = .08 + .2 * sc + .004; t.position.y = .02; g.add(t);
+    if (g.scale.x < 0) t.scale.x = -1;
+  }
+  const pos = new THREE.Vector3(-3.6 + i * 1.2 + (r() - .5) * .6, 2.5 + r() * 1.1, -2.6 + r() * 5);
+  g.position.copy(pos); scene.add(g);
+  return { g, m, v: new THREE.Vector3(), seed: r() * 100, home: 2.4 + r() * 1.1, spin: 0 };
+});
+const tmp = new THREE.Vector3();
+function stepBubbles(dt, t) {
+  for (const b of bubbles) {
+    const p = b.g.position, s = b.seed;
+    b.v.x += Math.sin(t * .23 + s) * .05 * dt; b.v.z += Math.cos(t * .19 + s * 1.3) * .05 * dt;
+    b.v.y += (b.home + Math.sin(t * .4 + s) * .15 - p.y) * .3 * dt;
+    // 사람이 다가가면 밀려난다
+    tmp.subVectors(p, camera.position); const d = tmp.length();
+    if (d < 1.7) b.v.addScaledVector(tmp.normalize(), (1.7 - d) * 1.6 * dt);
+    for (const o of bubbles) if (o !== b) { tmp.subVectors(p, o.g.position); const e = tmp.length(); if (e < 1.1) b.v.addScaledVector(tmp.normalize(), (1.1 - e) * .8 * dt); }
+    b.v.multiplyScalar(Math.pow(.55, dt)); p.addScaledVector(b.v, dt);
+    if (Math.abs(p.x) > RX - .7) { p.x = Math.sign(p.x) * (RX - .7); b.v.x *= -.6; }
+    if (p.z < -RZ + .7) { p.z = -RZ + .7; b.v.z *= -.6; } if (p.z > RZ - .7) { p.z = RZ - .7; b.v.z *= -.6; }
+    if (p.y > H - .45) { p.y = H - .45; b.v.y *= -.5; }
+    b.spin *= Math.pow(.4, dt);
+    b.g.rotation.set(Math.sin(t * .5 + s) * .12, Math.sin(t * .17 + s) * .5 + b.spin, Math.sin(t * .37 + s) * .1);
+  }
+}
+
+/* ───────── 보기 전환 ───────── */
+const VIEWS = {
+  wall: { pos: [.7, 1.6, -.4], look: [-.1, 1.5, -RZ] },
+  pass: { pos: [-4.3, 1.6, (RZ + CZ) / 2], look: [RX, 1.75, (RZ + CZ) / 2] },
+  cloud: { pos: [.4, 1.2, 2.2], look: [-.2, 3.1, -1] },
+};
+let tween = null;
+function go(name, instant) {
+  const v = VIEWS[name], tp = new THREE.Vector3(...v.pos), tl = new THREE.Vector3(...v.look);
+  // 둘러보는 중심은 보는 방향으로 0.5 m 앞
+  const look = tp.clone().add(tl.clone().sub(tp).normalize().multiplyScalar(.5));
+  if (instant) { camera.position.copy(tp); controls.target.copy(look); controls.update(); return; }
+  tween = { t: 0, p0: camera.position.clone(), l0: controls.target.clone(), p1: tp, l1: look };
+  document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+}
+document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => go(b.dataset.view)));
+go('wall', true);
+
+/* ───────── 말풍선 누르기 ───────── */
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+  ptr.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects(bubbles.map((b) => b.m))[0];
+  if (hit) { const b = bubbles.find((x) => x.m === hit.object); b.v.addScaledVector(ray.ray.direction, 1.4); b.v.y += .5; b.spin += 2.5; }
+});
+
+/* ───────── 돌리기 ───────── */
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.fov = camera.aspect < .8 ? 72 : 55; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const clk = new THREE.Clock(); let t = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clk.getDelta(), .05); t += dt * PACE;
+  if (tween) {
+    tween.t = Math.min(1, tween.t + dt / 1.3); const k = tween.t * tween.t * (3 - 2 * tween.t);
+    camera.position.lerpVectors(tween.p0, tween.p1, k); controls.target.lerpVectors(tween.l0, tween.l1, k);
+    if (tween.t >= 1) tween = null;
+  }
+  controls.update();
+  // 벽 밖으로 나가지 않게
+  const p = camera.position; p.x = THREE.MathUtils.clamp(p.x, -RX + .25, RX - .25); p.y = THREE.MathUtils.clamp(p.y, .4, H - .3); p.z = THREE.MathUtils.clamp(p.z, -RZ + .25, CZ - .25);
+  if (p.z > RZ - .25 && p.z < RZ + .25 && (p.x < OPEN[0] || p.x > OPEN[1])) p.z = p.z < RZ ? RZ - .25 : RZ + .25;
+  stepBubbles(dt * PACE, t);
+  renderer.render(scene, camera);
+});
+</script>

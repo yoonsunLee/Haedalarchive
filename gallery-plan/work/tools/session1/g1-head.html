@@ -1,0 +1,254 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>신해달 갤러리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* 레이아웃: 화면 전체가 3D 전시장, 그 위에 옻칠처럼 검은 패널이 가장자리에만 얹힌다. 한 가지 어두운 화면으로 고정. */
+:root {
+  --lacquer: #13100e;
+  --lacquer-2: #1f1a16;
+  --hanji: #efe9df;
+  --muted: #a89f92;
+  --line: rgba(239, 233, 223, 0.16);
+  --nacre: linear-gradient(100deg, #f4c6d6 0%, #d9d2f7 38%, #bfe6e4 70%, #f1e6c4 100%);
+  --pool: #2b4ec9;
+  --pool-2: #eaf1ff;
+  --display: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "Space Mono", "Noto Sans KR", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; overflow: hidden; background: var(--lacquer); color: var(--hanji); }
+body { font-family: var(--body); font-size: 14px; line-height: 1.55; -webkit-tap-highlight-color: transparent; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#scene.dragging { cursor: grabbing; }
+#scene.pointing { cursor: pointer; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid #d9d2f7; outline-offset: 2px; }
+.glass { background: rgba(19,16,14,.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 10px; }
+
+/* 위쪽 안내판 */
+.bar { position: fixed; z-index: 5; left: 0; right: 0; top: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.brand { pointer-events: auto; display: flex; flex-direction: column; line-height: 1.2; flex: none; padding: 8px 12px; }
+.brand b { font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .02em; }
+.brand span { font-size: 10.5px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+.nav { pointer-events: auto; display: flex; gap: 2px; padding: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { flex: none; background: none; border: 0; border-radius: 7px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--hanji); }
+.nav button:hover { background: rgba(239,233,223,.08); }
+.nav button.on { background: var(--hanji); color: var(--lacquer); }
+.nav .sep { width: 1px; background: var(--line); margin: 6px 2px; flex: none; }
+.shells { pointer-events: auto; margin-left: auto; flex: none; display: flex; align-items: center; gap: 4px; padding: 6px 10px; }
+.shells img { width: 26px; height: 21px; object-fit: contain; filter: grayscale(1) brightness(.55); opacity: .45; transition: filter .5s, opacity .5s, transform .5s cubic-bezier(.2,1.6,.4,1); }
+.shells img.got { filter: none; opacity: 1; }
+.shells img.pop { transform: scale(1.5) rotate(-8deg); }
+.shells button { margin-left: 6px; border: 1px solid var(--line); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+.shells button[hidden] { display: none; }
+
+/* 조작 안내와 알림 */
+.hint { position: fixed; z-index: 4; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: rgba(19,16,14,.72); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 12.5px; color: var(--muted);
+  white-space: nowrap; pointer-events: none; transition: opacity .6s; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
+.hint.gone { opacity: 0; }
+body:has(.intro:not(.gone)) .hint { opacity: 0; }
+.toast { position: fixed; z-index: 7; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 78px); transform: translate(-50%, -8px); opacity: 0;
+  padding: 10px 16px 10px 12px; display: flex; align-items: center; gap: 10px; pointer-events: none; transition: opacity .3s, transform .3s cubic-bezier(.2,.8,.2,1); max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast img { width: 34px; height: 28px; object-fit: contain; flex: none; }
+.toast b { display: block; font-weight: 500; }
+.toast small { color: var(--muted); }
+.tip { position: fixed; z-index: 6; pointer-events: none; padding: 5px 10px; border-radius: 6px; background: rgba(19,16,14,.9); border: 1px solid var(--line); font-size: 12.5px; transform: translate(14px, 14px); white-space: nowrap; }
+.act { position: fixed; z-index: 6; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px); transform: translateX(-50%);
+  border: 0; border-radius: 999px; background: var(--hanji); color: var(--lacquer); padding: 10px 18px; font-weight: 500; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+
+/* 작품 설명: 오른쪽에 뜨는 카드 */
+.card { position: fixed; z-index: 8; right: max(16px, env(safe-area-inset-right, 0px)); top: 50%; width: min(360px, calc(100% - 32px)); max-height: min(78vh, 680px);
+  transform: translate(0, -50%); overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  background: rgba(19,16,14,.94); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  transition: opacity .22s, transform .28s cubic-bezier(.2,.8,.2,1); }
+.card.closed { opacity: 0; transform: translate(24px, -50%); pointer-events: none; visibility: hidden; transition: opacity .18s, transform .18s, visibility 0s .18s; }
+.card .close { position: absolute; right: 10px; top: 10px; background: rgba(19,16,14,.7); border: 1px solid var(--line); border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 17px; line-height: 1; z-index: 1; }
+.card figure { margin: 0; background: #0b0908; border-radius: 8px; overflow: hidden; display: grid; place-items: center; }
+.card figure[hidden] { display: none; }
+.card figure img { display: block; max-height: 30vh; width: auto; max-width: 100%; object-fit: contain; }
+.card .kicker { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-right: 36px; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.35; text-wrap: balance; padding-right: 30px; }
+.card .meta { margin: 0; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.card .body { margin: 0; white-space: pre-line; font-size: 13.5px; }
+.card .ex h3 { margin: 0 0 6px; font-size: 10.5px; letter-spacing: .16em; color: var(--muted); font-weight: 500; }
+.card .ex ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #cfc7bb; font-variant-numeric: tabular-nums; }
+.card .links { display: flex; flex-wrap: wrap; gap: 8px; }
+.card .links a { color: var(--lacquer); background: var(--hanji); text-decoration: none; border-radius: 8px; padding: 8px 13px; font-weight: 500; font-size: 13px; }
+.card .links a.ghost { background: none; color: var(--hanji); border: 1px solid var(--line); }
+.card .rule { height: 2px; border-radius: 2px; background: var(--nacre); width: 40px; }
+
+/* 작품 목록 */
+.list { position: fixed; z-index: 9; inset: 0; background: rgba(10,8,7,.86); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
+.list-in { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.list-head { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; }
+.list-head h2 { margin: 0; font-family: var(--display); font-size: 26px; }
+.list-head p { margin: 0; color: var(--muted); }
+.list-head button { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; flex: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.grid button { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: #0b0908; transition: transform .2s; }
+.grid button:hover img { transform: scale(1.03); }
+.grid b { font-weight: 500; font-size: 13px; line-height: 1.35; }
+.grid small { color: var(--muted); font-size: 11.5px; }
+.grid .where { font-size: 10.5px; letter-spacing: .1em; color: var(--muted); }
+
+/* 멤버십 카드 */
+.modal { position: fixed; z-index: 11; inset: 0; display: grid; place-items: center; background: rgba(8,10,20,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.modal-in { width: min(520px, 100%); display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.modal h2 { margin: 0; font-family: var(--display); font-size: 22px; text-align: center; }
+.modal p.lead { margin: 0; text-align: center; color: #d8d0c4; }
+.issue { display: flex; gap: 8px; }
+.issue input { flex: 1; min-width: 0; border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--hanji); border-radius: 10px; padding: 11px 14px; font: inherit; }
+.issue button, .modal .row button { border: 0; background: var(--hanji); color: var(--lacquer); border-radius: 10px; padding: 11px 18px; font-weight: 500; cursor: pointer; flex: none; }
+.modal .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.modal .row button.ghost { background: none; color: var(--hanji); border: 1px solid var(--line); }
+.flip { perspective: 1400px; cursor: pointer; }
+.flip-in { position: relative; width: 100%; aspect-ratio: 1.586; transition: transform .9s cubic-bezier(.3,.7,.2,1); transform-style: preserve-3d; }
+.flip.back .flip-in { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.face.front { background: #fff; display: grid; place-items: center; }
+.face.front img { width: 118%; max-width: none; margin: -6% 0 0 -2%; }
+.face.backside { transform: rotateY(180deg); background: var(--pool-2); border: 7px solid var(--pool); color: #20307a; display: flex; flex-direction: column; padding: 5.5% 7% 5%; gap: 4%; }
+.face.backside .q { font-family: var(--display); font-weight: 700; font-size: clamp(11px, 3.1vw, 16px); line-height: 1.6; text-wrap: balance; }
+.face.backside .who { display: flex; justify-content: space-between; gap: 8px; font: 500 clamp(9px, 2.3vw, 12px)/1.3 var(--mono); color: #3c55b5; border-top: 2px solid var(--pool); padding-top: 3%; margin-top: auto; }
+.face.backside .who b { font-family: var(--body); font-weight: 700; color: #20307a; }
+.face.backside .stamps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3%; }
+.face.backside .stamps span { aspect-ratio: 1.25; border: 2px dashed #9fb2e8; border-radius: 10px; display: grid; place-items: center; padding: 6%; }
+.face.backside .stamps img { width: 100%; height: 100%; object-fit: contain; transform: rotate(var(--r, -6deg)); }
+.photo img { width: 100%; border-radius: 12px; display: block; }
+
+/* 처음 화면 */
+.intro { position: fixed; z-index: 10; inset: 0; display: grid; place-items: end start; background: linear-gradient(180deg, rgba(19,16,14,0) 25%, rgba(19,16,14,.9) 78%);
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 32px) max(16px, env(safe-area-inset-left, 0px)); transition: opacity .6s; }
+.intro.gone { opacity: 0; pointer-events: none; }
+.intro-in { max-width: 580px; display: flex; flex-direction: column; gap: 14px; padding-left: clamp(0px, 4vw, 40px); }
+.intro .eyebrow { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.intro .eyebrow i { display: block; width: 36px; height: 2px; border-radius: 2px; background: var(--nacre); }
+.intro h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(38px, 7vw, 64px); line-height: 1.1; }
+.intro p { margin: 0; max-width: 48ch; color: #d8d0c4; }
+.intro ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.intro ul li::before { content: "·"; margin-right: 6px; }
+.intro .go { align-self: flex-start; display: flex; align-items: center; gap: 12px; margin-top: 6px; background: var(--hanji); color: var(--lacquer); border: 0; border-radius: 999px; padding: 12px 22px; font-weight: 500; cursor: pointer; font-size: 15px; }
+.intro .go:disabled { opacity: .6; cursor: progress; }
+.intro .go small { font-size: 12px; color: #6f665a; font-variant-numeric: tabular-nums; }
+.fade { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .22s; }
+.fade.on { opacity: 1; }
+
+/* 손가락용 이동 패드 */
+.pad { position: fixed; z-index: 4; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+  width: 112px; height: 112px; border-radius: 50%; border: 1px solid var(--line); background: rgba(19,16,14,.45); touch-action: none; }
+.pad i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(239,233,223,.85); }
+@media (pointer: fine) { .pad { display: none; } }
+@media (max-width: 760px) {
+  .brand span { display: none; }
+  .bar { flex-wrap: wrap; gap: 8px; }
+  .nav { order: 3; flex-basis: 100%; }
+  .card { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: none; max-height: 56vh; width: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); }
+  .card.closed { transform: translateY(24px); }
+  .card figure img { max-height: 22vh; }
+  .toast { top: calc(env(safe-area-inset-top, 0px) + 112px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .card.closed, .intro, .hint, .toast, .flip-in, .shells img, .fade { transition: none; }
+}
+</style>
+
+<canvas id="scene" aria-label="신해달 갤러리 3D 전시장"></canvas>
+
+<header class="bar">
+  <div class="brand glass"><b>신해달 갤러리</b><span>Shin Haedal · Najeonchilgi</span></div>
+  <nav class="nav glass" aria-label="전시장 안 이동">
+    <button data-go="lobby">로비</button>
+    <button data-go="artist">⓪ 작가소개</button>
+    <button data-go="works">① 작품</button>
+    <button data-go="court">중정</button>
+    <button data-go="ip">② IP관</button>
+    <button data-go="obong">③ 일월오봉단</button>
+    <button data-go="lounge">라운지</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="openList">작품 목록</button>
+  </nav>
+  <div class="shells glass" id="shells" aria-label="조개 도장"><button id="myCard" hidden>내 카드</button></div>
+</header>
+
+<div class="hint" id="hint">드래그로 둘러보기 · WASD·방향키로 걷기 · 바닥을 누르면 그곳으로 · 작품을 누르면 자세히</div>
+<div class="toast glass" id="toast" role="status" aria-live="polite"><img src="img/shell-stamp.webp" alt=""><div><b id="toastT"></b><small id="toastS"></small></div></div>
+<div class="tip" id="tip" hidden></div>
+<button class="act" id="act" hidden></button>
+<div class="pad" id="pad" aria-hidden="true"><i></i></div>
+<div class="fade" id="fade"></div>
+
+<aside class="card closed" id="card" aria-live="polite" aria-label="자세히 보기">
+  <button class="close" id="cardClose" aria-label="닫기">×</button>
+  <figure id="cardFig"><img id="cardImg" alt=""></figure>
+  <div class="kicker" id="cardKicker"></div>
+  <h2 id="cardTitle"></h2>
+  <p class="meta" id="cardMeta"></p>
+  <div class="rule" aria-hidden="true"></div>
+  <p class="body" id="cardBody"></p>
+  <div class="ex" id="cardEx" hidden><h3 id="cardExTitle">전시 이력</h3><ul id="cardExList"></ul></div>
+  <div class="links" id="cardLinks"></div>
+</aside>
+
+<section class="list" id="list" hidden aria-label="작품 목록">
+  <div class="list-in">
+    <div class="list-head">
+      <div><h2>걸려 있는 작품</h2><p>누르면 그 작품 앞으로 가요.</p></div>
+      <button id="listClose">닫기</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<section class="modal" id="memberModal" hidden aria-label="멤버십 카드">
+  <div class="modal-in">
+    <h2 id="mmTitle">현대사회스포츠센터 회원이 되었어요</h2>
+    <p class="lead" id="mmLead">다섯 곳을 모두 둘러본 해달에게 드리는 멤버십 카드예요.</p>
+    <form class="issue" id="issueForm">
+      <label for="nick" class="sr" hidden>카드에 새길 이름</label>
+      <input id="nick" maxlength="12" placeholder="카드에 새길 이름 (12자까지)" autocomplete="nickname">
+      <button type="submit">발급받기</button>
+    </form>
+    <div class="flip" id="flip" hidden title="눌러서 뒤집기">
+      <div class="flip-in">
+        <div class="face front"><img src="img/card-front.webp" alt="현대사회스포츠센터 멤버십 카드 앞면"></div>
+        <div class="face backside">
+          <p class="q">처음부터 능숙한 존재는 없습니다.<br>누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다.<br>누군가의 미숙함을 너그럽게 보길 바라는 마음을 담았습니다.</p>
+          <div class="stamps" id="cardStamps"></div>
+          <div class="who"><span>MEMBER <b id="cardName"></b></span><span id="cardNo"></span><span id="cardDate"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="row"><button class="ghost" id="mmFlip" hidden>뒤집기</button><button id="mmClose">닫기</button></div>
+  </div>
+</section>
+
+<section class="modal" id="photoModal" hidden aria-label="기념 사진">
+  <div class="modal-in photo">
+    <h2>얼빵해달과 한 장</h2>
+    <img id="photoImg" alt="중정 등신대 앞에서 찍은 기념 사진">
+    <p class="lead">사진을 길게 누르거나 오른쪽 버튼으로 눌러 저장하세요.</p>
+    <div class="row"><button id="photoClose">닫기</button></div>
+  </div>
+</section>
+
+<section class="intro" id="intro">
+  <div class="intro-in">
+    <div class="eyebrow"><i></i>Virtual Gallery · 마당을 둘러싼 다섯 채</div>
+    <h1>신해달 갤러리</h1>
+    <p>이곳에서는 모두가 얼빵해달이에요. 중정을 가운데 두고 작가소개, 작품 전시관, 팝업북 속 IP관, 일월오봉단관이 둘러서 있어요. 다섯 곳에서 조개 도장을 모으면 출구 라운지에서 현대사회스포츠센터 멤버십 카드를 받을 수 있어요.</p>
+    <ul id="introKeys"></ul>
+    <button class="go" id="enter" disabled>들어가기 <small id="loadPct">불러오는 중</small></button>
+  </div>
+</section>

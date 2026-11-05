@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "gallery", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8791", "--directory", "gallery"], "port": 8791 },
+    { "name": "plan", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "8792", "--directory", "gallery-plan"], "port": 8792 }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "blender": {
+      "type": "stdio",
+      "command": "C:\\Users\\yoons\\.blender-mcp\\venv\\Scripts\\blender-mcp.exe",
+      "args": [],
+      "env": {}
+    }
+  }
+}

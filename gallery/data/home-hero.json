@@ -1,0 +1,12 @@
+{
+ "slides": [
+  {
+   "id": "default",
+   "kind": "image",
+   "image": "assets/landing/hero-bg.webp",
+   "w": 1448,
+   "h": 1086,
+   "work": null
+  }
+ ]
+}

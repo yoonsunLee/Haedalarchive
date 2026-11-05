@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전시 서문 — 나전칠기로 ART하는 法</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+/* 홈페이지(shinhaedal.com/about) 색·글꼴을 그대로: 옻칠 검정 바탕, 아이보리 글자 세 단계, 자개빛 그라디언트 */
+:root{
+  --bg:#0b0b0f;
+  --ivory:#f5f0e6;
+  --ivory-dim:rgba(245,240,230,.72);
+  --ivory-muted:rgba(245,240,230,.55);
+  --line:rgba(245,240,230,.16);
+  --accent:#86b6e8;
+  --teal:#BFE9F2; --pearl:#E8E6E0; --lavender:#C9BEED;
+  --desk:#2a2a30;
+}
+/* 종이 인쇄용(잉크 절약) — 미색 바탕에 옻칠색 글자 */
+body.paper{
+  --bg:#f5f0e6;
+  --ivory:#0b0b0f;
+  --ivory-dim:rgba(11,11,15,.78);
+  --ivory-muted:rgba(11,11,15,.55);
+  --line:rgba(11,11,15,.18);
+  --accent:#1b2a4a;
+  --teal:#2f7d8f; --pearl:#6d6a63; --lavender:#6a58b0;
+  --desk:#cfcac0;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+body{background:var(--desk); font-family:"Noto Sans KR",sans-serif; color:var(--ivory); word-break:keep-all; padding:24px 16px 64px;}
+
+.toolbar{display:flex; gap:8px; justify-content:center; margin-bottom:20px; font-family:"Space Mono",monospace; font-size:12px;}
+.toolbar button{font:inherit; letter-spacing:1px; padding:8px 14px; border:1px solid rgba(255,255,255,.3); background:#111420; color:#f5f0e6; border-radius:999px; cursor:pointer;}
+.toolbar button[aria-pressed="true"]{background:#f5f0e6; color:#0b0b0f;}
+
+.page{
+  width:210mm; height:297mm; margin:0 auto 24px; background:var(--bg);
+  padding:24mm 22mm 20mm; position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:0 10px 40px rgba(0,0,0,.35);
+}
+.mono{font-family:"Space Mono",monospace; letter-spacing:.12em; font-size:7.5pt; color:var(--ivory-muted); text-transform:uppercase;}
+.han{font-family:"Noto Sans KR",sans-serif; font-weight:900;}
+.pearl{
+  background:linear-gradient(100deg,var(--lavender) 0%,var(--pearl) 45%,var(--teal) 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:var(--teal);
+}
+.head{display:flex; justify-content:space-between; align-items:baseline; padding-bottom:5mm; border-bottom:.3mm solid var(--line);}
+.foot{margin-top:auto;}
+.quote + .foot{margin-top:0; display:flex; justify-content:space-between; padding-top:4mm; border-top:.3mm solid var(--line);}
+
+/* 1쪽 — 서문 */
+.ex-title{font-family:"Black Han Sans",sans-serif; font-weight:400; font-size:38pt; line-height:1.15; margin:14mm 0 3mm; letter-spacing:-.01em;}
+.ex-sub{font-size:10pt; color:var(--ivory-muted); margin-bottom:12mm;}
+.hook{font-size:15pt; line-height:1.6; font-weight:500; margin-bottom:7mm;}
+.prose p{font-size:9.6pt; line-height:1.95; color:var(--ivory-dim); margin-bottom:4.2mm;}
+.prose p.close{color:var(--ivory); font-weight:500; font-size:10.4pt; margin-top:6mm;}
+.quote{margin-top:auto; margin-bottom:10mm; padding-top:7mm; border-top:.3mm solid var(--line); position:relative;}
+.quote blockquote{font-size:12.5pt; line-height:1.7; font-weight:500; padding-left:7mm; position:relative;}
+.quote blockquote::before{content:""; position:absolute; left:0; top:.35em; bottom:.35em; width:.6mm; background:linear-gradient(180deg,var(--lavender),var(--pearl),var(--teal));}
+.quote cite{display:block; font-style:normal; margin-top:3mm; padding-left:7mm; font-size:8.6pt; color:var(--ivory-muted);}
+
+/* 2쪽 — 작가소개 (홈페이지 About, 사진 제외) */
+.name{font-family:"Black Han Sans",sans-serif; font-weight:400; font-size:34pt; line-height:1.15; margin-top:12mm;}
+.role{font-size:9.5pt; color:var(--ivory-muted); margin-top:2mm;}
+.eng{margin-top:1.5mm;}
+.lede{font-size:13pt; line-height:1.75; margin:8mm 0 6mm;}
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:10mm; margin-top:2mm; flex:1;}
+.cols .prose p{font-size:8.9pt; line-height:1.85; margin-bottom:3.2mm;}
+.note-title{font-family:"Black Han Sans",sans-serif; font-weight:400; font-size:14pt; margin-bottom:3mm;}
+.note-hook{font-size:11.5pt; line-height:1.65; margin-bottom:5mm;}
+.prose p.key{color:var(--ivory); font-weight:500; font-size:9.6pt;}
+.prose p.start{margin-top:5mm;}
+.col-intro{border-right:.3mm solid var(--line); padding-right:10mm;}
+
+@page{size:A4; margin:0;}
+@media print{
+  body{background:none; padding:0;}
+  .toolbar{display:none;}
+  .page{margin:0; box-shadow:none; break-after:page;}
+}
+@media screen and (max-width:860px){
+  .page{width:100%; height:auto; min-height:0; padding:28px 20px;}
+  .cols{grid-template-columns:1fr;}
+  .col-intro{border-right:0; padding-right:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button type="button" data-theme="lacquer" aria-pressed="true">옻칠 검정</button>
+  <button type="button" data-theme="paper" aria-pressed="false">미색 종이</button>
+  <button type="button" onclick="window.print()">인쇄 / PDF</button>
+</div>
+
+<!-- 1쪽: 전시 서문 + 비평 -->
+<section class="page">
+  <div class="head">
+    <span class="mono">Shin Haedal · Solo Exhibition</span>
+    <span class="mono">Preface</span>
+  </div>
+
+  <h1 class="ex-title">나전칠기로 <span class="pearl">ART</span>하는 <span class="pearl han">法</span></h1>
+  <p class="ex-sub">신해달 개인전 서문</p>
+
+  <p class="hook">공예와 현대미술의 경계가 있는가?</p>
+
+  <div class="prose">
+    <p>실용성의 유무일까, 숙련된 기술일까, 작가가 전달하려는 메시지일까. 혹은 재료의 물성을 탐구하고 새로운 표현을 찾아가는 과정에서 그 경계는 이미 흐려지고 있는 것일까.</p>
+    <p>나전칠기는 오랜 시간 고유한 미학과 기술적 체계를 발전시켜 온 예술이다. 작가에게 평면 작업으로의 전환은 공예를 예술로 바꾸는 과정이 아니라, 익숙한 재료와 기법으로 무엇을 더 표현할 수 있는지 질문하는 과정이었다.</p>
+    <p>옻칠과 천연자개를 비롯한 다양한 재료의 물성을 탐구하고 현대적 소재를 결합하는 실험은 그 질문에서 출발한다. 작가는 재료의 아름다움과 기술의 완성도에 더해, 그것들이 작품의 이야기와 어떻게 관계 맺는지를 탐색한다.</p>
+    <p>법학을 공부하고 가르쳐 온 작가는 법과 사회의 규범 속에서 작품의 소재를 발견한다. 수영을 못하는 조개배달부 '얼빵해달'은 작품 속 예술적 대리인이 되어 법학적 개념을 엉뚱한 장면으로 바꿔 놓는다. 얼빵해달의 이야기인 줄 알았던 것이 어느새 관객 자신의 일상과 겹쳐진다.</p>
+    <p class="close">《나전칠기로 ART하는 法》에서 '法'은 작품의 소재인 법률이자, 나전칠기로 예술을 표현하는 작가 자신의 '고민법'이다.</p>
+  </div>
+
+  <figure class="quote">
+    <blockquote>"'나'를 '우리'로 만드는 건 생각보다 간단한 행동으로 가능하다는 것을 증명한 작가."</blockquote>
+    <cite>— 정봉주, 비평가</cite>
+  </figure>
+
+  <div class="foot">
+    <span class="mono">shinhaedal.com</span>
+    <span class="mono">@haedal_space</span>
+  </div>
+</section>
+
+<script>
+document.querySelectorAll('[data-theme]').forEach(b=>b.addEventListener('click',()=>{
+  document.body.classList.toggle('paper', b.dataset.theme==='paper');
+  document.querySelectorAll('[data-theme]').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+}));
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+- [Don't repeat dismissed critique points](feedback-dont-repeat-dismissed-points.md) — once the user settles a point, drop it in later reviews
+- [Blender MCP setup](blender-mcp-setup.md) — official Blender Lab MCP installed; launch Blender with --online-mode, bridge on :9876
+- [Gallery 3D pipeline](gallery-3d-pipeline.md) — Blender bake → embedded glTF .json + lightmaps (artifacts refuse .glb)
+- [Gallery v31 preferred](gallery-v31-preferred.md) — user likes built Version 31 best; improve it rather than redesign the exterior
+- [Gallery visitor presence](gallery-visitor-presence.md) — visitor is invisible, same footprints everywhere (owner unknown to visitors); in the IP zone the visitor becomes 얼빵해달, no avatar gestures
+- [Works hall first piece](works-first-piece.md) — HD-2026-001 must be the first work seen on entering, in any future section layout
+- [One space at a time](feedback-one-space-at-a-time.md) — build one gallery space, show it, wait for the user's go before the next
+- [Board carry-over items](feedback-board-carryover-items.md) — board lines from the old 설계안 weren't chosen by the user; ask before building them

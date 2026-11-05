@@ -1,0 +1,1838 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>신해달 갤러리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* 레이아웃: 화면 전체가 3D 전시장, 그 위에 옻칠처럼 검은 패널이 가장자리에만 얹힌다. 한 가지 어두운 화면으로 고정. */
+:root {
+  --lacquer: #13100e;
+  --lacquer-2: #1f1a16;
+  --hanji: #efe9df;
+  --muted: #a89f92;
+  --line: rgba(239, 233, 223, 0.16);
+  --nacre: linear-gradient(100deg, #f4c6d6 0%, #d9d2f7 38%, #bfe6e4 70%, #f1e6c4 100%);
+  --pool: #2b4ec9;
+  --pool-2: #eaf1ff;
+  --display: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --mono: "Space Mono", "Noto Sans KR", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; overflow: hidden; background: var(--lacquer); color: var(--hanji); }
+body { font-family: var(--body); font-size: 14px; line-height: 1.55; -webkit-tap-highlight-color: transparent; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#scene.dragging { cursor: grabbing; }
+#scene.pointing { cursor: pointer; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid #d9d2f7; outline-offset: 2px; }
+.glass { background: rgba(19,16,14,.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 10px; }
+
+/* 위쪽 안내판 */
+.bar { position: fixed; z-index: 5; left: 0; right: 0; top: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.brand { pointer-events: auto; display: flex; flex-direction: column; line-height: 1.2; flex: none; padding: 8px 12px; }
+.brand b { font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .02em; }
+.brand span { font-size: 10.5px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+.nav { pointer-events: auto; display: flex; gap: 2px; padding: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav button { flex: none; background: none; border: 0; border-radius: 7px; padding: 7px 11px; cursor: pointer; white-space: nowrap; color: var(--hanji); }
+.nav button:hover { background: rgba(239,233,223,.08); }
+.nav button.on { background: var(--hanji); color: var(--lacquer); }
+.nav .sep { width: 1px; background: var(--line); margin: 6px 2px; flex: none; }
+.shells { pointer-events: auto; margin-left: auto; flex: none; display: flex; align-items: center; gap: 4px; padding: 6px 10px; }
+.shells img { width: 26px; height: 21px; object-fit: contain; filter: grayscale(1) brightness(.55); opacity: .45; transition: filter .5s, opacity .5s, transform .5s cubic-bezier(.2,1.6,.4,1); }
+.shells img.got { filter: none; opacity: 1; }
+.shells img.pop { transform: scale(1.5) rotate(-8deg); }
+.shells button { margin-left: 6px; border: 1px solid var(--line); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+.shells button[hidden] { display: none; }
+
+/* 조작 안내와 알림 */
+.hint { position: fixed; z-index: 4; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: rgba(19,16,14,.72); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-size: 12.5px; color: var(--muted);
+  white-space: nowrap; pointer-events: none; transition: opacity .6s; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
+.hint.gone { opacity: 0; }
+.loading { position: fixed; z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 10px 18px; font-size: 13px; color: var(--muted); transition: opacity .5s; pointer-events: none; }
+.loading.done { opacity: 0; }
+.toast { position: fixed; z-index: 7; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 78px); transform: translate(-50%, -8px); opacity: 0;
+  padding: 10px 16px 10px 12px; display: flex; align-items: center; gap: 10px; pointer-events: none; transition: opacity .3s, transform .3s cubic-bezier(.2,.8,.2,1); max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast img { width: 34px; height: 28px; object-fit: contain; flex: none; }
+.toast b { display: block; font-weight: 500; }
+.toast small { color: var(--muted); }
+.tip { position: fixed; z-index: 6; pointer-events: none; padding: 5px 10px; border-radius: 6px; background: rgba(19,16,14,.9); border: 1px solid var(--line); font-size: 12.5px; transform: translate(14px, 14px); white-space: nowrap; }
+.act { position: fixed; z-index: 6; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 58px); transform: translateX(-50%);
+  border: 0; border-radius: 999px; background: var(--hanji); color: var(--lacquer); padding: 10px 18px; font-weight: 500; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+
+/* 작품 설명: 오른쪽에 뜨는 카드 */
+.card { position: fixed; z-index: 8; right: max(16px, env(safe-area-inset-right, 0px)); top: 50%; width: min(360px, calc(100% - 32px)); max-height: min(78vh, 680px);
+  transform: translate(0, -50%); overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  background: rgba(19,16,14,.94); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  transition: opacity .22s, transform .28s cubic-bezier(.2,.8,.2,1); }
+.card.closed { opacity: 0; transform: translate(24px, -50%); pointer-events: none; visibility: hidden; transition: opacity .18s, transform .18s, visibility 0s .18s; }
+.card .close { position: absolute; right: 10px; top: 10px; background: rgba(19,16,14,.7); border: 1px solid var(--line); border-radius: 999px; width: 32px; height: 32px; cursor: pointer; font-size: 17px; line-height: 1; z-index: 1; }
+.card figure { margin: 0; background: #0b0908; border-radius: 8px; overflow: hidden; display: grid; place-items: center; }
+.card figure[hidden] { display: none; }
+.card figure img { display: block; max-height: 30vh; width: auto; max-width: 100%; object-fit: contain; }
+.card .kicker { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-right: 36px; }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.35; text-wrap: balance; padding-right: 30px; }
+.card .meta { margin: 0; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.card .body { margin: 0; white-space: pre-line; font-size: 13.5px; }
+.card .ex h3 { margin: 0 0 6px; font-size: 10.5px; letter-spacing: .16em; color: var(--muted); font-weight: 500; }
+.card .ex ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #cfc7bb; font-variant-numeric: tabular-nums; }
+.card .links { display: flex; flex-wrap: wrap; gap: 8px; }
+.card .links a { color: var(--lacquer); background: var(--hanji); text-decoration: none; border-radius: 8px; padding: 8px 13px; font-weight: 500; font-size: 13px; }
+.card .links a.ghost { background: none; color: var(--hanji); border: 1px solid var(--line); }
+.card .rule { height: 2px; border-radius: 2px; background: var(--nacre); width: 40px; }
+
+/* 작품 목록 */
+.list { position: fixed; z-index: 9; inset: 0; background: rgba(10,8,7,.86); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px)); }
+.list-in { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.list-head { display: flex; align-items: baseline; gap: 12px; justify-content: space-between; }
+.list-head h2 { margin: 0; font-family: var(--display); font-size: 26px; }
+.list-head p { margin: 0; color: var(--muted); }
+.list-head button { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; flex: none; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.grid button { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: #0b0908; transition: transform .2s; }
+.grid button:hover img { transform: scale(1.03); }
+.grid b { font-weight: 500; font-size: 13px; line-height: 1.35; }
+.grid small { color: var(--muted); font-size: 11.5px; }
+.grid .where { font-size: 10.5px; letter-spacing: .1em; color: var(--muted); }
+
+/* 멤버십 카드 */
+.modal { position: fixed; z-index: 11; inset: 0; display: grid; place-items: center; background: rgba(8,10,20,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.modal-in { width: min(520px, 100%); display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.modal h2 { margin: 0; font-family: var(--display); font-size: 22px; text-align: center; }
+.modal p.lead { margin: 0; text-align: center; color: #d8d0c4; }
+.issue { display: flex; gap: 8px; }
+.issue input { flex: 1; min-width: 0; border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--hanji); border-radius: 10px; padding: 11px 14px; font: inherit; }
+.issue button, .modal .row button { border: 0; background: var(--hanji); color: var(--lacquer); border-radius: 10px; padding: 11px 18px; font-weight: 500; cursor: pointer; flex: none; }
+.modal .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.modal .row button.ghost { background: none; color: var(--hanji); border: 1px solid var(--line); }
+.flip { perspective: 1400px; cursor: pointer; }
+.flip-in { position: relative; width: 100%; aspect-ratio: 1.586; transition: transform .9s cubic-bezier(.3,.7,.2,1); transform-style: preserve-3d; }
+.flip.back .flip-in { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.face.front { background: #fff; display: grid; place-items: center; }
+.face.front img { width: 118%; max-width: none; margin: -6% 0 0 -2%; }
+.face.backside { transform: rotateY(180deg); background: var(--pool-2); border: 7px solid var(--pool); color: #20307a; display: flex; flex-direction: column; padding: 5.5% 7% 5%; gap: 4%; }
+.face.backside .q { font-family: var(--display); font-weight: 700; font-size: clamp(11px, 3.1vw, 16px); line-height: 1.6; text-wrap: balance; }
+.face.backside .who { display: flex; justify-content: space-between; gap: 8px; font: 500 clamp(9px, 2.3vw, 12px)/1.3 var(--mono); color: #3c55b5; border-top: 2px solid var(--pool); padding-top: 3%; margin-top: auto; }
+.face.backside .who b { font-family: var(--body); font-weight: 700; color: #20307a; }
+.face.backside .stamps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3%; }
+.face.backside .stamps span { aspect-ratio: 1.25; border: 2px dashed #9fb2e8; border-radius: 10px; display: grid; place-items: center; padding: 6%; }
+.face.backside .stamps img { width: 100%; height: 100%; object-fit: contain; transform: rotate(var(--r, -6deg)); }
+.photo img { width: 100%; border-radius: 12px; display: block; }
+
+/* 처음 화면 */
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 32px) max(16px, env(safe-area-inset-left, 0px)); transition: opacity .6s; }
+.fade { position: fixed; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity .22s; }
+.fade.on { opacity: 1; }
+
+/* 손가락용 이동 패드 */
+.pad { position: fixed; z-index: 4; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 56px);
+  width: 112px; height: 112px; border-radius: 50%; border: 1px solid var(--line); background: rgba(19,16,14,.45); touch-action: none; }
+.pad i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(239,233,223,.85); }
+@media (pointer: fine) { .pad { display: none; } }
+@media (max-width: 760px) {
+  .brand span { display: none; }
+  .bar { flex-wrap: wrap; gap: 8px; }
+  .nav { order: 3; flex-basis: 100%; }
+  .card { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: none; max-height: 56vh; width: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); }
+  .card.closed { transform: translateY(24px); }
+  .card figure img { max-height: 22vh; }
+  .toast { top: calc(env(safe-area-inset-top, 0px) + 112px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .card.closed, .hint, .toast, .flip-in, .shells img, .fade { transition: none; }
+}
+</style>
+
+<canvas id="scene" aria-label="신해달 갤러리 3D 전시장"></canvas>
+
+<header class="bar">
+  <div class="brand glass"><b>신해달 갤러리</b><span>Shin Haedal · Najeonchilgi</span></div>
+  <nav class="nav glass" aria-label="전시장 안 이동">
+    <button data-go="lobby">로비</button>
+    <button data-go="artist">작가소개</button>
+    <button data-go="works">작품</button>
+    <button data-go="court">중정</button>
+    <button data-go="ip">IP관</button>
+    <button data-go="obong">일월오봉단</button>
+    <button data-go="lounge">라운지</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="openList">작품 목록</button>
+  </nav>
+  <div class="shells glass" id="shells" aria-label="조개 도장"><button id="myCard" hidden>내 카드</button></div>
+</header>
+
+<div class="hint" id="hint">드래그로 둘러보기 · 휠로 확대·축소 · WASD·방향키로 걷기 · 바닥을 누르면 그곳으로</div>
+<div class="toast glass" id="toast" role="status" aria-live="polite"><img src="img/shell-stamp.webp" alt=""><div><b id="toastT"></b><small id="toastS"></small></div></div>
+<div class="tip" id="tip" hidden></div>
+<button class="act" id="act" hidden></button>
+<div class="pad" id="pad" aria-hidden="true"><i></i></div>
+<div class="fade" id="fade"></div>
+
+<aside class="card closed" id="card" aria-live="polite" aria-label="자세히 보기">
+  <button class="close" id="cardClose" aria-label="닫기">×</button>
+  <figure id="cardFig"><img id="cardImg" alt=""></figure>
+  <div class="kicker" id="cardKicker"></div>
+  <h2 id="cardTitle"></h2>
+  <p class="meta" id="cardMeta"></p>
+  <div class="rule" aria-hidden="true"></div>
+  <p class="body" id="cardBody"></p>
+  <div class="ex" id="cardEx" hidden><h3 id="cardExTitle">전시 이력</h3><ul id="cardExList"></ul></div>
+  <div class="links" id="cardLinks"></div>
+</aside>
+
+<section class="list" id="list" hidden aria-label="작품 목록">
+  <div class="list-in">
+    <div class="list-head">
+      <div><h2>걸려 있는 작품</h2><p>누르면 그 작품 앞으로 가요.</p></div>
+      <button id="listClose">닫기</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<section class="modal" id="memberModal" hidden aria-label="멤버십 카드">
+  <div class="modal-in">
+    <h2 id="mmTitle">현대사회스포츠센터 회원이 되었어요</h2>
+    <p class="lead" id="mmLead">다섯 곳을 모두 둘러본 해달에게 드리는 멤버십 카드예요.</p>
+    <form class="issue" id="issueForm">
+      <label for="nick" class="sr" hidden>카드에 새길 이름</label>
+      <input id="nick" maxlength="12" placeholder="카드에 새길 이름 (12자까지)" autocomplete="nickname">
+      <button type="submit">발급받기</button>
+    </form>
+    <div class="flip" id="flip" hidden title="눌러서 뒤집기">
+      <div class="flip-in">
+        <div class="face front"><img src="img/card-front.webp" alt="현대사회스포츠센터 멤버십 카드 앞면"></div>
+        <div class="face backside">
+          <p class="q">처음부터 능숙한 존재는 없습니다.<br>누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다.<br>누군가의 미숙함을 너그럽게 보길 바라는 마음을 담았습니다.</p>
+          <div class="stamps" id="cardStamps"></div>
+          <div class="who"><span>MEMBER <b id="cardName"></b></span><span id="cardNo"></span><span id="cardDate"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="row"><button class="ghost" id="mmFlip" hidden>뒤집기</button><button id="mmClose">닫기</button></div>
+  </div>
+</section>
+
+<section class="modal" id="photoModal" hidden aria-label="기념 사진">
+  <div class="modal-in photo">
+    <h2>얼빵해달과 한 장</h2>
+    <img id="photoImg" alt="중정 등신대 앞에서 찍은 기념 사진">
+    <p class="lead">사진을 길게 누르거나 오른쪽 버튼으로 눌러 저장하세요.</p>
+    <div class="row"><button id="photoClose">닫기</button></div>
+  </div>
+</section>
+
+<div class="loading glass" id="loading"><span id="loadPct">불러오는 중</span></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// 캔버스에 글자를 그리기 전에 글꼴부터 받는다(늦어도 2.5초 뒤엔 그대로 진행)
+await Promise.race([
+  Promise.all(['300 40px "Noto Sans KR"', '400 40px "Noto Sans KR"', '500 40px "Noto Sans KR"', '700 40px "Noto Sans KR"', '900 40px "Noto Sans KR"', '400 40px "Black Han Sans"', '400 40px "Space Mono"', '700 40px "Space Mono"'].map(f => document.fonts.load(f, '가ㄱSH@&#'))),
+  new Promise(r => setTimeout(r, 2500)),
+]).catch(() => {});
+
+/* ───────── 자료 ───────── */
+// 홈페이지가 발행하는 공개 자료(data/*.json)를 그대로 읽는다. shinhaedal.com/gallery/ 에 올리면 '../data/'로 바꾸면 된다
+const DATA = 'data/';
+const getJSON = (f, fb) => fetch(DATA + f).then(r => r.ok ? r.json() : fb).catch(() => fb);
+const [WORKS_INDEX, EXHIBITIONS, SERIES] = await Promise.all([getJSON('works-index.json', []), getJSON('exhibitions.json', []), getJSON('series.json', [])]);
+const SITE = 'https://shinhaedal.com';
+const SHOP_URL = 'https://www.idus.com/v2/artist/b987fcad-fa10-4f28-a90d-8553dbaab0ad/product';
+const TODAY = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);   // 한국 날짜
+const SCALE = 2.5;            // 작품을 화면에서 보기 좋게 실제 크기의 2.5배로 건다
+const LOCAL_IMG = new Set(['HD-2025-001', 'HD-2025-002', 'HD-2025-004', 'HD-2026-001', 'HD-2026-002', 'HD-2026-003', 'HD-2026-004', 'HD-2026-005', 'HD-2026-006', 'HD-2026-007', 'HD-2026-008', 'HD-2026-009', 'HD-2026-010', 'HD-2026-011', 'HD-2026-012']);
+const workImg = w => LOCAL_IMG.has(w.id) ? `img/${w.id}.webp` : `${SITE}/${w.thumb}`;
+const TOY_ID = 'HD-2026-012';
+const DETAIL = {"HD-2025-001": {"en": "Accumulation of Rights: From 2D to 3D", "medium": "천연자개, 옻칠, 삼베 등 · 15 × 15 cm · 2025", "body": ["자개와 레진의 반복적 적층(Layering)으로 구현한 견고한 그리드는 사회의 규율이자 작가가 추구하는 질서를 상징한다. 평면의 권리가 입체적 실체로 축적되는 과정을 구조적으로 드러낸 작품이다."], "ex": ["2026.02.05 – 2026.02.09 9인9색전, 갤러리가우디움, 서울, 대한민국", "2025.12.24 – 2025.12.28 서울아트쇼 2025, 코엑스, 서울, 대한민국"]}, "HD-2025-002": {"en": "HI! Bye! First Sale Doctrine", "medium": "천연자개, 옻칠, 크롬 등 · 27.3 × 27.3 cm · 2025", "body": ["뒤집은 캔버스와 관람자를 투영하는 크롬 소재는, 작가의 권리가 소진(Bye)되고 소유자의 권리가 시작(Hi)되는 법적 전복의 순간을 포착한다. 질서 정연한 그리드 위 펑키한 오브제는 작가의 통제에서 벗어나 오롯이 소유자의 것이 된 작품의 해방을 선언한다."], "ex": ["[예정] 2026.11.23 – 2026.11.29 나전칠기로 ART하는 法, 갤러리 비브, 서울, 대한민국", "2026.07.30 – 2026.08.02 어반브레이크 & 토이콘서울 단독 부스, 코엑스, 서울, 대한민국", "2026.04.16 – 2026.05.15 갤러리비브 단체전, 하나증권WM센터, 서울, 대한민국", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국", "2026.02.05 – 2026.02.09 9인9색전, 갤러리가우디움, 서울, 대한민국", "2025.12.24 – 2025.12.28 서울아트쇼 2025, 코엑스, 서울, 대한민국"]}, "HD-2025-004": {"en": "nn-th Degree Derivative Works a", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · 15 × 15 cm · 2025", "body": ["자개의 근원인 '조개'를 원형(Original)으로 삼아, 해체와 재구축을 통해 본질로 환원한 시리즈다. 2차적 저작물로서 끊임없이 확장되는 예술의 생명력과 창작의 순환을 담았다."], "ex": ["2026.04.29 – 2026.05.03 요코하마 국제아트페스티벌, 요코하마 시민갤러리, 요코하마, 일본", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국", "2026.02.05 – 2026.02.09 9인9색전, 갤러리가우디움, 서울, 대한민국", "2025.12.24 – 2025.12.28 서울아트쇼 2025, 코엑스, 서울, 대한민국"]}, "HD-2026-001": {"en": "Spaced-out Sea Otter: Invoked as a Neighboring Rights Holder in An Other World", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · 45 × 45 cm · 2026", "body": ["웹소설적 상상력을 통해 이 세계로 소환된 얼빵해달은, 작가를 대리하는 '저작인접권자'라는 독창적 법적 지위를 획득했다. 멀티버스 세계관 속에서 실연자로서의 주체성을 확보한 작가의 페르소나(Persona)를 위트 있게 조명했다."], "ex": ["[예정] 2026.11.23 – 2026.11.29 나전칠기로 ART하는 法, 갤러리 비브, 서울, 대한민국", "[예정] 2026.12.18 – 2026.12.20 2026 서울아트살롱, 그랜드 하얏트 서울, 서울, 대한민국", "[예정] 2026.12.23 – 2026.12.27 2026 서울아트쇼, 코엑스, 서울, 대한민국", "[예정] 2027.05.06 – 2027.05.09 2027 뱅크아트페어, SETEC, 서울, 대한민국", "2026.07.30 – 2026.08.02 어반브레이크 & 토이콘서울 단독 부스, 코엑스, 서울, 대한민국", "2026.06.26 – 2026.06.29 CODE NAME: BLUE, 레온갤러리, 서울, 대한민국", "2026.04.10 – 2026.04.12 아트쇼핑, 루브르 카루젤, 파리, 프랑스", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국", "2026.02.05 – 2026.02.09 9인9색전, 갤러리가우디움, 서울, 대한민국", "2025.12.24 – 2025.12.28 서울아트쇼 2025, 코엑스, 서울, 대한민국"]}, "HD-2026-002": {"en": "N-th Degree Derivative Works A", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · 27.3 × 27.3 cm · 2026", "body": ["자개의 근원인 '조개'를 원형(Original)으로 삼아 해체와 재구축을 거침으로써, 2차적 저작물로서 확장되는 창작의 순환을 담아낸다."], "ex": ["2026.04.08 – 2026.04.13 눈부신 4월, 처마끝에서 피어나다, 리수갤러리, 서울, 대한민국", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국", "2026.02.05 – 2026.02.09 9인9색전, 갤러리가우디움, 서울, 대한민국", "2025.12.24 – 2025.12.28 서울아트쇼 2025, 코엑스, 서울, 대한민국"]}, "HD-2026-003": {"en": "POV : Working...", "medium": "목심나전칠기(천연자개, 옻칠), 지태칠기(한지, 옻칠) · 53 × 53 cm · 2026", "body": ["얼빵해달의 직업은 조개배달부다. 매일 조개를 한 아름 안고 신해달 작가의 작업실 문을 두드린다. 작가는 그 조개로 나전칠기 작품을 만든다. 얼빵해달은 그 대가로 돈을 받는다. 영리성, 계속성, 반복성, 법이 하나의 행위를 '업(業)'으로 인정하기 위해 요구하는 세 가지 조건을, 이 작은 해달은 매일 묵묵히 충족해가고 있다. 화면을 가득 메운 자개 조개들은 하루도 빠짐없이 이어진 발걸음의 흔적이고, 그 한복판에 홀로 빛나는 금화 한 닢은 성실한 노동이 마침내 법적 언어로 번역되는 순간이다."], "ex": ["2026.04.08 – 2026.04.13 눈부신 4월, 처마끝에서 피어나다, 리수갤러리, 서울, 대한민국", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국"]}, "HD-2026-004": {"en": "Outer Space Treaty", "medium": "목심나전칠기(천연자개, 옻칠), 유리, 한지 등 · 37.9 × 37.9 cm · 2026", "body": ["팔각 창살 너머는 우주다. 자개로 빚은 해(Sun)와 달(Moon)이 유리 헬멧을 쓴 우주인처럼 그 광활한 공간을 유영한다. 해와 달, 두 천체의 이름을 나란히 부르면 하나의 생명 '해달'이 된다. 창살 안쪽, 자개 바다 위에서 얼빵해달은 배영 중이다. 눈을 감고, 공상 중이다. 1967년 우주조약은 선언한다. 우주는 어떤 국가도 점유하거나 소유할 수 없는 인류 공동의 공간이라고. 지구의 관할권이 닿지 않는 그곳에서, 해달은 아무런 주권에도 귀속되지 않은 채 그저 자유롭게 떠다닌다. 공상은 그 어떤 법도 규율할 수 없는 마지막 치외법권이다. 해(Sun)와 달(Moon)을 나란히 읽으면 '해달'이 된다."], "ex": ["2026.04.10 – 2026.04.12 아트쇼핑, 루브르 카루젤, 파리, 프랑스", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국"]}, "HD-2026-005": {"en": "Article 10 of the Constitution: The Right to Pursue Happiness*", "medium": "목심나전칠기(천연자개, 옻칠, 변칠기법) · 31.8 × 31.8 cm · 2026", "body": ["여러 겹의 옻칠을 쌓고 긁어내는 변칠 기법으로 완성한 군청 체크는, 작가에게 가장 큰 안도감과 기쁨을 주는 지극히 사적인 취향이자 우리를 둘러싼 사회의 규범과 제도를 닮은 구조다. 그 광활한 체크 한 귀퉁이에, 자개로 빚은 얼빵해달이 조용히 잠들어 있다. 측면까지 이어진 자개 별들은 그 작은 존재가 머무는 세계가 캔버스 너머까지 뻗어 있음을 말한다. 법학 논문 대신 옻칠로 쓴 이 작품은, 헌법 제10조의 가장 개인적인 해석이다.", "*헌법 제10조 행복추구권은 타인의 권리를 침해하지 않는 범위 내에서 자신의 개성을 자유롭게 발현하고 스스로 삶의 방식을 결정할 수 있는 권리를 의미합니다."], "ex": ["2026.04.29 – 2026.05.03 요코하마 국제아트페스티벌, 요코하마 시민갤러리, 요코하마, 일본", "2026.03.20 – 2026.03.22 언노운바이브 더블룸, 신라호텔, 서울, 대한민국"]}, "HD-2026-006": {"en": "POV : Commute", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · 20 × 20 cm · 2026", "body": ["조개배달부 얼빵해달의 하루가 밝았다. 아이스아메리카노를 사느라 늦겠다. 서둘러 출근한다. 근로기준법이 정한 오늘의 노동, 취업규칙이 정한 시업시각(START)이 지금 막 카운트되었다."], "ex": ["2026.06.17 – 2026.06.22 인사아트위크 2026, 리수갤러리, 서울, 대한민국", "2026.05.13 – 2026.05.18 재료의 언어, 마루아트센터, 서울, 대한민국"]}, "HD-2026-007": {"en": "POV : Off Work", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · 20 × 20 cm · 2026", "body": ["조개배달부 얼빵해달의 하루가 저물고 있다. 즐거운 퇴근길, SNS에 재밌는 게 올라와 있다. 얼른 집에 가서 각 잡고 봐야지. 근로기준법이 정한 오늘의 노동, 취업규칙이 정한 종업시각(FINISH)이 지금 막 카운트되었다."], "ex": ["2026.06.17 – 2026.06.22 인사아트위크 2026, 리수갤러리, 서울, 대한민국", "2026.05.13 – 2026.05.18 재료의 언어, 마루아트센터, 서울, 대한민국"]}, "HD-2026-008": {"en": "The Bluebook", "medium": "목심저피나전칠기(천연자개, 옻칠, 삼베 등) · A1 (59.4 × 84.1) cm · 2026", "body": ["블루북은 미국 로스쿨생의 악몽이자 필수도서다. 법률 문헌의 인용 형식을 규정하는 규칙집으로, 쉼표 하나와 마침표 하나까지도 엄격하게 요구한다. 작가는 블루북의 규칙을 차용해 얼빵해달을 인용하며 작품을 쓴다. 화면의 각주는 작가 자신에게서 발췌한 문장들이다. 가장 사적인 이야기가 가장 엄격한 형식으로 인용된다."], "ex": ["[예정] 2026.11.23 – 2026.11.29 나전칠기로 ART하는 法, 갤러리 비브, 서울, 대한민국", "2026.06.26 – 2026.06.29 CODE NAME: BLUE, 레온갤러리, 서울, 대한민국"]}, "HD-2026-009": {"en": "High Seas", "medium": "목심지태나전칠기(천연자개, 옻칠, 한지 등) · 38 × 38 cm · 2026", "body": ["유엔해양법협약(UNCLOS) 제89조, 공해(公海)는 어떤 국가도 주권을 주장할 수 없는 만인의 바다다.", "창살 바깥은 영해(領海), 나라가 주인인 바다. 창살 안쪽은 공해(公海), 누구도 주인이 될 수 없는 바다다.", "그 안에서 얼빵해달은 자유롭게 떠다니고, 우리는 창살 이편에서 그 자유를 바라본다."], "ex": ["[예정] 2026.11.23 – 2026.11.29 나전칠기로 ART하는 法, 갤러리 비브, 서울, 대한민국", "[예정] 2026.11.25 – 2026.11.30 제주 바람전, 서귀포예술의전당, 제주도, 대한민국", "2026.11.02 – 2026.11.16 숨을 고르는 순간, 갤러리 비브, 서울, 대한민국", "2026.07.30 – 2026.08.02 어반브레이크 & 토이콘서울 단독 부스, 코엑스, 서울, 대한민국", "2026.07.16 – 2026.07.23 여름, 빛을 켜다 단체전, W갤러리, 분당, 대한민국", "2026.06.26 – 2026.06.29 CODE NAME: BLUE, 레온갤러리, 서울, 대한민국"]}, "HD-2026-010": {"en": "POV : Paid Holiday", "medium": "목심지태나전칠기(천연자개, 옻칠, 한지 등) · 27 × 27 cm · 2026", "body": ["달력 속 파란 날, 토요일이다. 얼빵해달은 그럴싸한 계획이 있었지만 그냥 누워서 폰만 하며 보냈다. 근로기준법 제55조에서는 근로자에게 1주에 평균 1회 이상의 유급휴일을 보장한다."], "ex": ["2026.06.26 – 2026.06.29 CODE NAME: BLUE, 레온갤러리, 서울, 대한민국"]}, "HD-2026-011": {"en": "N-th Degree Derivative Works B", "medium": "천연자개, 옻칠, 삼베 등 · 27.3 × 27.3 cm · 2026", "body": ["자개의 근원인 '조개'를 원형(Original)으로 삼아 해체와 재구축을 거침으로써, 2차적 저작물로서 확장되는 창작의 순환을 담아낸다. 창살은 레트로 게임의 타일로, 자개는 픽셀로 치환했다. 이번 작업은 〈N차적 저작물〉 시리즈에 속한다."], "ex": ["[예정] 2026.11.23 – 2026.11.29 나전칠기로 ART하는 法, 갤러리 비브, 서울, 대한민국", "2026.07.30 – 2026.08.02 어반브레이크 & 토이콘서울 단독 부스, 코엑스, 서울, 대한민국", "2026.07.16 – 2026.07.23 여름, 빛을 켜다 단체전, W갤러리, 분당, 대한민국"]}, "HD-2026-012": {"en": "Shell Delivery Spaced-out Sea Otter 2026 Limited Edition", "medium": "굴패각 친환경 수지, 옻칠, 천연자개 · 10 × 9 × 6 cm · 2026", "body": ["멍해 보이지만, 사실은 머릿속이 늘 딴 세상에 가 있다. 생각이 없는 게 아니라, 생각이 너무 많아서 겉으로는 멍하게 보일 뿐이다.", "다른 해달들이 수영을 배울 때도 공상에 빠져 있다가 그만 배우지 못했다. 그래서 매일 두 발로 걸어 조개를 배달한다. 이대로는 안 되겠다 싶어, 얼빵해달은 스포츠센터 아침수영반에 등록했다.", "얼빵해달이 배달하는 조개는 누군가에게는 마음이 되고, 누군가에게는 위로가 된다. 그리고 그 조개를 받는 이들 중 한 명인 작가 신해달에게는 나전칠기 작품의 재료가 된다."], "ex": ["2026.08.06 – 2026.08.18 LOOPOP 2026, 더현대서울, 서울, 대한민국", "2026.07.30 – 2026.08.02 어반브레이크 & 토이콘서울 단독 부스, 코엑스, 서울, 대한민국", "2026.06.26 – 2026.06.29 CODE NAME: BLUE, 레온갤러리, 서울, 대한민국"]}};
+const ABOUT = {
+  head: '독해하고, 해석하고, 번역하는 것.',
+  lead: '저는 법을 읽고 의미를 찾아, 그것을 나전칠기의 언어로 옮깁니다.',
+  intro: ['오랫동안 법을 공부하고 가르치며 텍스트의 의미를 읽고 해석해왔습니다.', '우연히 마주한 옻칠의 느리고 정직한 공정에 마음을 빼앗겼고, 텍스트 속에 살던 시간은 버려지는 대신 손의 시간과 하나로 이어졌습니다.', '예전에는 법을 논문과 강의로 설명했다면, 지금은 옻칠과 자개로 이야기합니다.'],
+  noteHead: '쉽게 들어와서 오래 머무는 작업. 순서가 다를 뿐, 깊이는 같습니다.',
+  note: ['제 작업은 법과 사회의 규범 안에서 살아가는 개인에 대한 이야기입니다.', '저에게 법은 차갑고 어려운 규칙에 머무는 것이 아니라, 결국 사람을 위해 사람들이 만든 규칙입니다. 그리고 그 안을 살아가는 개인은 저마다 다른 모습과 빛깔을 지닙니다.', '그래서 작업은 이미지보다 먼저 법학적 개념과 텍스트에서 시작합니다. 개념을 고르고, 제목과 서사를 먼저 씁니다. 그 이야기를 하나의 장면으로 구상한 뒤, 나전칠기의 시각언어로 번역합니다.', '법학적 개념 → 제목과 서사 → 시각화.', '천연자개는 같은 조각도 빛과 바라보는 각도에 따라 다른 색을 보여줍니다. 작게 자르고 쪼개어도 고유의 영롱한 빛은 사라지지 않습니다. 저는 그 모습에서 사회의 규범 안에서도 저마다의 빛깔로 살아가는 개인을 떠올립니다.', '옻칠은 여러 번 칠하고 말리고 갈아내며 깊이를 만듭니다. 옻칠의 깊이는 자개의 빛을 돋보이게 하고, 자개의 영롱함은 다시 옻칠의 깊이를 드러냅니다.', '그리고 그 이야기에는 현대인의 일상과 저의 페르소나인 \'얼빵해달\'이 함께 살아갑니다.', '처음부터 어렵게 이해할 필요는 없습니다. 얼빵해달이 귀여워서, 자개가 반짝여서 작품 앞에 멈춰 서도 좋습니다. 그 다음 제목을 읽고, 그 안에 법과 전통의 이야기가 있다는 것을 발견하고, 조금 더 오래 바라보게 되기를 바랍니다.', '그리고 작품을 떠날 때에는 사회 속의 자기 자신을 한 번쯤 다정하게 바라볼 수 있었으면 합니다.'],
+};
+const CV = [
+  ['EDUCATION', [['2014.02', '중앙대학교 일반대학원 법학과 박사수료'], ['2012.02', '중앙대학교 일반대학원 법학과 석사'], ['2009.02', '단국대학교 법학과 학사']]],
+  ['CERTIFICATIONS', [['2024.09', '국가유산수리장인전문교육(칠공) 수료'], ['2022.05', '국가유산수리기능자(칠공) 취득']]],
+  ['BRAND & ACTIVITIES', [['2025.09', '소담상회 인사점 입점'], ['2025.09', '한글복합문화공간 \'한글상점\' 입점'], ['2022.04', '아이디어스 해달자개 브랜드 입점']]],
+];
+const PRESS = [
+  ['이슈메이커', '2026-06-01', '차가운 법 조문을 영롱한 자개로 번역하는 다정한 예술가', 'https://www.issuemaker.kr/news/articleView.html?idxno=51514'],
+  ['아트코리아방송', '2026-07-16', '여름, 빛을 켜다 – 당신의 하루를 밝히는 특별한 전시', 'https://www.artkoreatv.com/news/articleView.html?idxno=103511'],
+  ['데일리아트', '2026-05-13', '라트, \'재료의 언어\' 통해 신진 작가들의 물성과 감각 탐구 조명', 'https://www.d-art.co.kr/news/articleView.html?idxno=5575'],
+  ['코리안투데이', '2026-04-30', '나전칠기 신해달 작가, 법학적 사유를 자개의 빛으로 시각화하다', 'https://m.thekorean.today/49646'],
+  ['코리안투데이', '2026-04-01', '까루젤 드 루브르 아트쇼핑에서 한국 현대미술의 정수를 선보이는 갤러리미쉘', 'https://thekorean.today/48869'],
+  ['브랜딧매거진', '2025-07-14', '전통과 현대의 멋스러운 조화, 나전칠기 브랜드 \'해달자개\'', 'https://www.branditmag.co.kr/news/articleView.html?idxno=415'],
+];
+// 홈페이지 MEET THE FIVE와 같은 크기 규칙: 그림 높이 = T·s·k, 아래로 T·s·g 만큼 내린다
+const FRIENDS = [
+  { c: 'crane', name: '학두루미', en: 'SUN', role: '경비원', item: 'ㅎ', k: 1.1656, g: .0359, s: 1 },
+  { c: 'rabbit', name: '정월토끼', en: 'MOON', role: '신분을 숨긴 공주', item: '달맞이꽃', k: 1.4076, g: .0461, s: 1 },
+  { c: 'tiger', name: '선한백호', en: 'MOUNTAIN', role: '산지기', item: '곶감', k: 1.2589, g: .0898, s: 1.15 },
+  { c: 'deer', name: '솔직사슴', en: 'PINE', role: '나무꾼', item: '솔방울', k: 1.3070, g: .0268, s: 1 },
+  { c: 'otter', name: '얼빵해달', en: 'SEA', role: '조개배달부', item: '자개', k: 1.0560, g: .0285, s: 1 },
+];
+const STAMPS = [['court', '중정'], ['artist', '작가소개'], ['works', '작품 전시관'], ['ip', 'IP관'], ['obong', '일월오봉단관']];
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
+const store = { get(k, d) { try { const v = localStorage.getItem('haedal-gallery:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('haedal-gallery:' + k, JSON.stringify(v)); } catch {} } };
+
+/* ───────── 렌더러 ───────── */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(coarse ? 66 : 58, innerWidth / innerHeight, 0.05, 400);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.35;
+
+const manager = new THREE.LoadingManager();
+const loader = new THREE.TextureLoader(manager);
+const loadPct = document.getElementById('loadPct');
+manager.onProgress = (_, done, total) => { loadPct.textContent = `불러오는 중 ${Math.round(done / total * 100)}%`; };
+manager.onLoad = () => { loadPct.textContent = '준비됨'; document.getElementById('loading').classList.add('done'); };
+
+/* ───────── 도움 함수 ───────── */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function canvasTex(w, h, draw, repeat = [1, 1], srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); t.anisotropy = maxAniso;
+  return t;
+}
+function speckle(g, w, h, n, r, colors, alpha, rnd) {
+  for (let i = 0; i < n; i++) { g.globalAlpha = alpha * (0.4 + rnd() * 0.6); g.fillStyle = colors[(rnd() * colors.length) | 0]; const s = r * (0.3 + rnd()); g.fillRect(rnd() * w, rnd() * h, s, s); }
+  g.globalAlpha = 1;
+}
+function scaleBoxUV(geo, w, h, d, tu, tv) {
+  const uv = geo.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * dims[f][0] / tu, uv.getY(k) * dims[f][1] / tv); }
+}
+function boxMM(x0, x1, y0, y1, z0, z1, mat, tile, parent = scene) {
+  const w = x1 - x0, h = y1 - y0, d = z1 - z0;
+  const geo = new THREE.BoxGeometry(w, h, d);
+  if (tile) scaleBoxUV(geo, w, h, d, tile[0], tile[1]);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  parent.add(m); return m;
+}
+function tex(path) { const t = loader.load(path); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return t; }
+// 그림 한 장: 높이를 정하면 너비는 그림 비율대로. 아래 가운데가 원점
+function cutout(path, height, { basic = true, alpha = true, tint = 1, side = THREE.DoubleSide } = {}) {
+  const g = new THREE.Group();
+  const t = loader.load(path, tt => { const a = tt.image.width / tt.image.height; m.scale.x = height * a; g.userData.width = height * a; g.userData.onSize && g.userData.onSize(height * a); });
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso;
+  const mat = basic ? new THREE.MeshBasicMaterial({ map: t, side, color: new THREE.Color(tint, tint, tint), toneMapped: false }) : new THREE.MeshStandardMaterial({ map: t, side, roughness: .8 });
+  if (alpha) { mat.alphaTest = .35; mat.transparent = false; }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  m.scale.set(height, height, 1); m.position.y = height / 2;
+  g.add(m); g.userData.mesh = m; return g;
+}
+function wrapText(g, text, maxW) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const word of para.split(' ')) {
+      const tryLine = line ? line + ' ' + word : word;
+      if (g.measureText(tryLine).width <= maxW) { line = tryLine; continue; }
+      if (line) out.push(line);
+      if (g.measureText(word).width <= maxW) { line = word; continue; }
+      line = '';
+      for (const ch of word) { if (g.measureText(line + ch).width > maxW) { out.push(line); line = ch; } else line += ch; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+// 홈페이지와 같은 글꼴: 본문 Noto Sans KR, 표지·제목 Black Han Sans, 작은 라벨 Space Mono
+const FONT_D = '"Noto Sans KR", "Malgun Gothic", sans-serif', FONT_B = '"Noto Sans KR", "Malgun Gothic", sans-serif', FONT_M = '"Space Mono", "Noto Sans KR", monospace', FONT_K = '"Black Han Sans", "Noto Sans KR", sans-serif';
+// 글자판: 1 m 당 px 밀도로 캔버스를 만들고 draw(g, W, H)로 그린 뒤 평면으로
+// 한글 글꼴은 글자 묶음별로 나눠 받는다. 처음 그릴 때 아직 안 온 글자는 다른 글꼴로 그려지므로, 글꼴이 더 오면 다시 그린다
+const REDRAW = [];
+let redrawTimer = 0;
+document.fonts.addEventListener('loadingdone', () => { clearTimeout(redrawTimer); redrawTimer = setTimeout(() => { for (const r of REDRAW) { const g = r.t.image.getContext('2d'); g.clearRect(0, 0, r.W, r.H); r.draw(g, r.W, r.H); r.t.needsUpdate = true; } }, 250); });
+function panel(wm, hm, draw, { ppm = 260, basic = true, transparent = false } = {}) {
+  const W = Math.round(wm * ppm), H = Math.round(hm * ppm);
+  const t = canvasTex(W, H, (g) => draw(g, W, H));
+  REDRAW.push({ t, W, H, draw });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  const mat = basic ? new THREE.MeshBasicMaterial({ map: t, transparent, toneMapped: false }) : new THREE.MeshStandardMaterial({ map: t, roughness: .85, transparent });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(wm, hm), mat);
+  return m;
+}
+function textBlock(g, lines, x, y, lh) { lines.forEach((l, i) => g.fillText(l, x, y + i * lh)); return y + lines.length * lh; }
+
+/* ───────── 재질 무늬 ───────── */
+const T = {};
+T.facade = canvasTex(1024, 1024, (g, w, h) => {      // 2.4 m 판 네 장: 옻칠한 검은 판
+  const r = rng(41); g.fillStyle = '#16110f'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 4; i++) {
+    const x0 = i * w / 4, gr = g.createLinearGradient(x0, 0, x0 + w / 4, 0), l = 9 + r() * 3;
+    gr.addColorStop(0, `hsl(15 18% ${l}%)`); gr.addColorStop(.5, `hsl(15 16% ${l + 2}%)`); gr.addColorStop(1, `hsl(15 18% ${l}%)`);
+    g.fillStyle = gr; g.fillRect(x0, 0, w / 4, h);
+    g.fillStyle = '#050303'; g.fillRect(x0, 0, 3, h); g.fillStyle = 'rgba(255,240,230,.05)'; g.fillRect(x0 + 3, 0, 1, h);
+  }
+});
+T.plaster = canvasTex(512, 512, (g, w, h) => { const r = rng(3); g.fillStyle = '#ece8e1'; g.fillRect(0, 0, w, h); speckle(g, w, h, 5000, 2, ['#d9d3c9', '#f6f3ee', '#e0dbd2'], .35, r); });
+T.white = canvasTex(512, 512, (g, w, h) => { const r = rng(5); g.fillStyle = '#f3f1ed'; g.fillRect(0, 0, w, h); speckle(g, w, h, 3000, 2, ['#e6e3dd', '#faf9f7'], .3, r); });
+T.stone = canvasTex(1024, 1024, (g, w, h) => {      // 2.4 m 안에 60 cm 회색 석재 4×4장
+  const r = rng(9), n = 4, s = w / n;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const l = 52 + r() * 8; g.fillStyle = `hsl(30 4% ${l}%)`; g.fillRect(i * s, j * s, s, s);
+    speckle(g, s, s, 0, 1, [], 0, r);
+    for (let k = 0; k < 900; k++) { g.globalAlpha = .18; g.fillStyle = r() > .5 ? '#6d6862' : '#a29d96'; g.fillRect(i * s + r() * s, j * s + r() * s, 2, 2); }
+    g.globalAlpha = 1; g.strokeStyle = 'rgba(40,36,32,.55)'; g.lineWidth = 3; g.strokeRect(i * s + 1.5, j * s + 1.5, s - 3, s - 3);
+  }
+});
+T.maru = canvasTex(512, 1024, (g, w, h) => {        // 툇마루: 1.2 m 폭 널 다섯 장
+  const r = rng(12), n = 5, s = w / n;
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = `hsl(28 ${30 + r() * 8}% ${40 + r() * 6}%)`; g.fillRect(i * s, 0, s, h);
+    for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(60,35,18,${.06 + r() * .1})`; g.lineWidth = 1 + r() * 2; const x = i * s + r() * s; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 6, h * .3, x - 6, h * .6, x + 3, h); g.stroke(); }
+    g.fillStyle = 'rgba(30,18,10,.6)'; g.fillRect(i * s, 0, 2, h);
+  }
+});
+T.gravel = canvasTex(512, 512, (g, w, h) => { const r = rng(21); g.fillStyle = '#cfc6b4'; g.fillRect(0, 0, w, h); speckle(g, w, h, 16000, 3, ['#b8ae9b', '#e3dccd', '#a69c89', '#d9d1c0', '#8f8676'], .7, r); });
+T.bakseok = canvasTex(1024, 1024, (g, w, h) => {   // 박석: 크기가 제각각인 화강석
+  const r = rng(33); g.fillStyle = '#5b5750'; g.fillRect(0, 0, w, h);
+  let y = 0;
+  while (y < h) { const rh = 90 + r() * 90; let x = -r() * 120; while (x < w) { const rw = 120 + r() * 160, l = 62 + r() * 10; g.fillStyle = `hsl(35 ${5 + r() * 5}% ${l}%)`; g.beginPath(); g.roundRect(x + 4, y + 4, rw - 8, rh - 8, 10); g.fill(); x += rw; } y += rh; }
+  speckle(g, w, h, 12000, 2, ['#8a857c', '#c9c3b8'], .3, r);
+});
+T.changho = canvasTex(512, 512, (g, w, h) => {      // 창호: 한지 위 짙은 나무 살, 1.2 m
+  g.fillStyle = '#efe6d2'; g.fillRect(0, 0, w, h);
+  const r = rng(4); speckle(g, w, h, 1500, 3, ['#e2d6bd', '#f7f0e0'], .5, r);
+  g.fillStyle = '#3a2618';   // 살은 가로 하나만, 테두리는 가늘게
+  g.fillRect(0, h * .62 - 3, w, 6);
+  g.fillRect(0, 0, w, 9); g.fillRect(0, h - 9, w, 9); g.fillRect(0, 0, 9, h); g.fillRect(w - 9, 0, 9, h);
+});
+T.earth = canvasTex(512, 512, (g, w, h) => { const r = rng(55); g.fillStyle = '#0a0909'; g.fillRect(0, 0, w, h); speckle(g, w, h, 6000, 2, ['#121010', '#060505', '#161313'], .5, r); });   // 오봉단관: 무광 검정 벽
+T.navy = canvasTex(512, 512, (g, w, h) => { const r = rng(66); g.fillStyle = '#26377a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 7000, 2, ['#2d3f88', '#1f2d66', '#33469a'], .4, r); });
+T.paper = canvasTex(512, 512, (g, w, h) => { const r = rng(77); g.fillStyle = '#f6eedb'; g.fillRect(0, 0, w, h); speckle(g, w, h, 6000, 2, ['#ece2c9', '#fbf6ea', '#e6dbc0'], .45, r); });
+T.dark = canvasTex(512, 512, (g, w, h) => { const r = rng(88); g.fillStyle = '#1b1715'; g.fillRect(0, 0, w, h); speckle(g, w, h, 6000, 2, ['#24201d', '#141110'], .5, r); });
+T.hanjiCeil = canvasTex(512, 512, (g, w, h) => {   // 한지 광천장: 빛나는 한지 판과 가는 놋쇠 줄눈, 1.8 m
+  g.fillStyle = '#fff6e6'; g.fillRect(0, 0, w, h);
+  const r = rng(8); speckle(g, w, h, 2500, 4, ['#f4e7cf', '#fffaf0'], .5, r);
+  g.fillStyle = '#9c7a45'; g.fillRect(0, 0, w, 6); g.fillRect(0, 0, 6, h); g.fillRect(w / 2 - 2, 0, 4, h); g.fillRect(0, h / 2 - 2, w, 4);
+});
+T.stars = canvasTex(2048, 1024, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#0d1433'); gr.addColorStop(1, '#1b2a5c'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  const r = rng(99);
+  for (let i = 0; i < 1400; i++) { g.globalAlpha = .3 + r() * .7; g.fillStyle = r() > .85 ? '#ffe9b0' : '#ffffff'; const s = r() > .97 ? 3 : 1.4; g.beginPath(); g.arc(r() * w, r() * h, s, 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+});
+T.obongCeil = canvasTex(2048, 2048, (g, w, h) => {  // 사유의 방처럼 아주 어두운 천장에 박힌 작고 흐린 금빛
+  g.fillStyle = '#040304'; g.fillRect(0, 0, w, h); const r = rng(111);
+  for (let i = 0; i < 900; i++) { const x = r() * w, y = r() * h, s = .5 + r() * r() * 2.2, a = .12 + r() * r() * .55; g.globalAlpha = a; g.fillStyle = r() > .3 ? '#b99560' : '#d8c29a'; g.beginPath(); g.arc(x, y, s, 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+});
+T.wood = canvasTex(256, 512, (g, w, h) => { const r = rng(13); g.fillStyle = '#c9a77c'; g.fillRect(0, 0, w, h); for (let k = 0; k < 60; k++) { g.strokeStyle = `rgba(110,72,38,${.08 + r() * .12})`; g.lineWidth = 1 + r() * 2; const x = r() * w; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 8, h * .3, x - 8, h * .7, x, h); g.stroke(); } });
+
+/* ───────── 재질 ───────── */
+const std = (o) => new THREE.MeshStandardMaterial(o);
+const M = {
+  facade: new THREE.MeshPhysicalMaterial({ map: T.facade, roughness: .32, clearcoat: 1, clearcoatRoughness: .08 }),
+  pearl: new THREE.MeshPhysicalMaterial({ color: 0xf2f0ea, roughness: .38, metalness: .08, clearcoat: .6, clearcoatRoughness: .25, iridescence: .3, iridescenceIOR: 1.35, envMapIntensity: .9, side: THREE.DoubleSide }),
+  darkGlass: new THREE.MeshPhysicalMaterial({ color: 0x1b2328, roughness: .06, metalness: .4, clearcoat: 1 }),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xcfe3e6, roughness: .04, metalness: 0, transparent: true, opacity: .16, depthWrite: false }),
+  blackStone: std({ color: 0x1d1b1a, roughness: .6 }),
+  brass: std({ color: 0xb08a4a, roughness: .35, metalness: .9 }),
+  steel: std({ color: 0x15151a, roughness: .4, metalness: .6 }),
+  lacquer: new THREE.MeshPhysicalMaterial({ color: 0x14100e, roughness: .25, clearcoat: 1, clearcoatRoughness: .1 }),
+  plaster: std({ map: T.plaster, roughness: .95 }),
+  white: std({ map: T.white, roughness: .95 }),
+  stone: std({ map: T.stone, roughness: .7 }),
+  maru: std({ map: T.maru, roughness: .6 }),
+  gravel: std({ map: T.gravel, roughness: 1 }),
+  bakseok: std({ map: T.bakseok, roughness: .9 }),
+  changho: std({ map: T.changho, roughness: .9, emissive: 0x2a2010, emissiveIntensity: .25 }),
+  earth: std({ map: T.earth, roughness: 1, envMapIntensity: .2 }),
+  navy: std({ map: T.navy, roughness: 1 }),
+  paper: std({ map: T.paper, roughness: .95 }),
+  dark: std({ map: T.dark, roughness: .7 }),
+  wood: std({ map: T.wood, roughness: .7 }),
+  hanjiCeil: new THREE.MeshBasicMaterial({ map: T.hanjiCeil, color: 0xfff3dd, side: THREE.DoubleSide }),
+  stars: new THREE.MeshBasicMaterial({ map: T.stars, side: THREE.DoubleSide }),
+  obongCeil: new THREE.MeshBasicMaterial({ map: T.obongCeil, side: THREE.DoubleSide }),
+  soffit: std({ color: 0x3a2618, roughness: .7, side: THREE.DoubleSide }),
+};
+
+/* ───────── 하늘과 빛 ───────── */
+{
+  const skyTex = canvasTex(1024, 1024, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#8fb2cf'); gr.addColorStop(.45, '#c4d6e2'); gr.addColorStop(.62, '#e8edef'); gr.addColorStop(1, '#d9d6cf');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    const r = rng(7);
+    for (let i = 0; i < 40; i++) { const x = r() * w, y = h * (.08 + r() * .4), rr = 40 + r() * 120, c = g.createRadialGradient(x, y, 0, x, y, rr); c.addColorStop(0, 'rgba(255,255,255,.55)'); c.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = c; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+  });
+  skyTex.wrapS = THREE.RepeatWrapping;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 32, 16), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, toneMapped: false }));
+  scene.add(sky);
+}
+scene.add(new THREE.HemisphereLight(0xf4f1ea, 0x6d6458, 1.25));
+const sun = new THREE.DirectionalLight(0xfff0da, 1.1); sun.position.set(14, 30, 22); scene.add(sun);
+
+/* ───────── 바닥 ───────── */
+const floors = [], blockers = [], colliders = [];
+const solid = (x0, x1, z0, z1) => colliders.push([Math.min(x0, x1), Math.max(x0, x1), Math.min(z0, z1), Math.max(z0, z1)]);
+function ground(x0, x1, z0, z1, y, mat, tile = 2.4, click = true) {
+  const w = x1 - x0, d = z1 - z0, geo = new THREE.PlaneGeometry(w, d);
+  const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / tile, uv.getY(i) * d / tile);
+  const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+  scene.add(m); if (click) floors.push(m); return m;
+}
+function ceiling(x0, x1, z0, z1, y, mat, tile = 1.8) { const m = ground(x0, x1, z0, z1, y, mat, tile, false); m.rotation.x = Math.PI / 2; blockers.push(m); return m; }
+
+/* 평면 (북쪽이 -z, 입구가 +z)
+   오봉단관 x -10.4..10.4, z -27..-9.4  · 작품관 x -21..-10.4, z -20..9.4  · IP관 x 10.4..21, z -20..9.4
+   작가소개 x -21..-6, z 9.4..19.4 · 로비 x -6..6 · 출구 라운지 x 6..21 · 툇마루 x ±10.4, z ±9.4 · 중정 x ±8, z ±7 */
+// 층고: 오봉단관 12 · 작품관·IP관 8 · 로비 8.6 · 작가소개·라운지 6 (벽 높이, 천장은 0.4~0.6 m 아래)
+const HO = 12, HW = 8, HL = 8.6, HS = 6;
+const ROOMS = {
+  obong: { x0: -10.4, x1: 10.4, z0: -27, z1: -9.4, ceil: HO - .4, wall: HO },
+  works: { x0: -21, x1: -10.4, z0: -20, z1: 9.4, ceil: HW - .6, wall: HW },
+  ip: { x0: 10.4, x1: 21, z0: -20, z1: 9.4, ceil: HW - .6, wall: HW },
+  artist: { x0: -21, x1: -6, z0: 9.4, z1: 19.4, ceil: HS - .5, wall: HS },
+  lobby: { x0: -6, x1: 6, z0: 9.4, z1: 19.4, ceil: HL - .5, wall: HL },
+  lounge: { x0: 6, x1: 21, z0: 9.4, z1: 19.4, ceil: HS - .5, wall: HS },
+};
+const RING = 3.4;   // 툇마루 반자 높이
+
+ground(-24, 24, 19.4, 36, 0, M.stone, 2.4);                                   // 앞 광장
+ground(-23, -21, -20, 19.4, 0, M.stone, 2.4, false); ground(21, 23, -20, 19.4, 0, M.stone, 2.4, false);
+ground(-10.4, 10.4, -9.4, 9.4, .015, M.maru, 1.2);                            // 툇마루
+ground(-8, 8, -7, 7, .03, M.bakseok, 3);                                      // 중정 가장자리 박석
+ground(-6.6, 6.6, -5.6, 5.6, .04, M.gravel, 1.6);                             // 가운데 마사토
+ground(-24, 24, -34, 19.4, -.02, new THREE.MeshStandardMaterial({ color: 0x232b22, roughness: 1 }), 4, false); // 뒤뜰 흙
+ground(ROOMS.obong.x0, ROOMS.obong.x1, ROOMS.obong.z0, ROOMS.obong.z1, .02, M.dark, 2.4);
+ground(ROOMS.works.x0, ROOMS.works.x1, ROOMS.works.z0, ROOMS.works.z1, .02, M.stone, 2.4);
+ground(ROOMS.ip.x0, ROOMS.ip.x1, ROOMS.ip.z0, ROOMS.ip.z1, .02, new THREE.MeshStandardMaterial({ color: 0x3d4f96, roughness: .9 }), 2.4);
+ground(ROOMS.artist.x0, ROOMS.artist.x1, ROOMS.artist.z0, ROOMS.artist.z1, .02, M.stone, 2.4);
+ground(ROOMS.lobby.x0, ROOMS.lobby.x1, ROOMS.lobby.z0, ROOMS.lobby.z1, .02, M.stone, 2.4);
+ground(ROOMS.lounge.x0, ROOMS.lounge.x1, ROOMS.lounge.z0, ROOMS.lounge.z1, .02, M.stone, 2.4);
+// 디딤돌: 로비 문 → 오봉단 대문 축, 작품관 ↔ IP관 가로길
+{
+  const st = new THREE.MeshStandardMaterial({ color: 0x8a847a, roughness: .85 });
+  const r = rng(5);
+  for (let z = 6.2; z > -6.6; z -= 1.15) { const s = boxMM(-.55 - r() * .1, .55 + r() * .1, .03, .09, z - .4, z + .4, st); s.rotation.y = (r() - .5) * .12; }
+  for (const x of [-6.9, -5.6, -4.3, -3.0, -1.7, 1.7, 3.0, 4.3, 5.6, 6.9]) { const s = boxMM(x - .45, x + .45, .03, .09, -5.0, -4.0, st); s.rotation.y = (r() - .5) * .2; }
+  // 축선에 깔린 가는 빛줄
+  const glow = new THREE.MeshBasicMaterial({ color: 0xfff1d0 });
+  boxMM(-.03, .03, .03, .05, -6.9, 6.9, glow);
+}
+
+/* ───────── 벽 ───────── */
+// 벽 한 줄: 선을 따라 두께 .3, 높이 구간마다 양쪽 면 재질이 다르다(A: 선의 왼쪽/위쪽 −쪽, B: +쪽). 문은 [시작, 끝, 높이]
+const WT = .3;
+function wallLine(axis, fixed, a0, a1, parts, doors = []) {
+  // axis 'x': z = fixed, a = x / axis 'z': x = fixed, a = z
+  const cuts = [a0, a1]; for (const [d0, d1] of doors) cuts.push(d0, d1);
+  const pts = [...new Set(cuts)].sort((p, q) => p - q);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const s0 = pts[i], s1 = pts[i + 1], mid = (s0 + s1) / 2;
+    const door = doors.find(d => mid > d[0] && mid < d[1]);
+    for (const [y0, y1, mA, mB] of parts) {
+      const yy0 = door ? Math.max(y0, door[2]) : y0; if (yy0 >= y1) continue;
+      // 면 순서: +x, -x, +y, -y, +z, -z
+      const mats = axis === 'x' ? [mA, mA, M.facade, mA, mB, mA] : [mB, mA, M.facade, mA, mA, mA];
+      const geo = axis === 'x' ? new THREE.BoxGeometry(s1 - s0, y1 - yy0, WT) : new THREE.BoxGeometry(WT, y1 - yy0, s1 - s0);
+      if (axis === 'x') scaleBoxUV(geo, s1 - s0, y1 - yy0, WT, 2.4, 2.4); else scaleBoxUV(geo, WT, y1 - yy0, s1 - s0, 2.4, 2.4);
+      const m = new THREE.Mesh(geo, mats);
+      if (axis === 'x') m.position.set(mid, (yy0 + y1) / 2, fixed); else m.position.set(fixed, (yy0 + y1) / 2, mid);
+      scene.add(m); blockers.push(m);
+    }
+    if (!door) { if (axis === 'x') solid(s0, s1, fixed - WT / 2, fixed + WT / 2); else solid(fixed - WT / 2, fixed + WT / 2, s0, s1); }
+  }
+}
+const F = M.facade, C = M.changho, O = M.earth, G = M.white, P = M.navy, A = M.plaster, L = M.plaster, U = M.plaster;
+// 오봉단관
+wallLine('x', -27, -10.4, 10.4, [[0, HO, F, O]]);
+wallLine('z', -10.4, -27, -20, [[0, HO, F, O]]);
+wallLine('z', -10.4, -20, -9.4, [[0, HW, G, O], [HW, HO, F, O]]);
+wallLine('z', 10.4, -27, -20, [[0, HO, O, F]]);
+wallLine('z', 10.4, -20, -9.4, [[0, HW, O, P], [HW, HO, O, F]]);
+wallLine('x', -9.4, -10.4, 10.4, [[0, RING, O, C], [RING, HO, O, F]], [[-3, 3, 6.4]]);
+// 작품관
+wallLine('x', -20, -21, -10.4, [[0, HW, F, G]]);
+wallLine('z', -21, -20, 9.4, [[0, HW, F, G]]);
+wallLine('z', -10.4, -9.4, 9.4, [[0, RING, G, C], [RING, HW, G, F]], [[-6.5, -2.5, 3.1]]);
+// IP관
+wallLine('x', -20, 10.4, 21, [[0, HW, F, P]]);
+wallLine('z', 21, -20, 9.4, [[0, HW, P, F]]);
+wallLine('z', 10.4, -9.4, 9.4, [[0, RING, C, P], [RING, HW, F, P]], [[-6, -3, 3.3], [4.2, 6.8, 3.1]]);
+// 남쪽 줄(z = 9.4)
+wallLine('x', 9.4, -21, -10.4, [[0, HS, G, A], [HS, HW, G, F]], [[-18.5, -16, 3.1]]);
+wallLine('x', 9.4, -10.4, -6, [[0, RING, C, A], [RING, HS, F, A]]);   // 작가소개는 중정으로 문을 내지 않는다
+wallLine('x', 9.4, 6, 10.4, [[0, RING, C, U], [RING, HS, F, U]], [[7, 9.6, 3.0]]);
+wallLine('x', 9.4, 10.4, 21, [[0, HS, P, U], [HS, HW, P, F]]);
+// 로비 북쪽은 바닥부터 천장까지 중정으로 통째로 열린다. 가장자리만 가는 놋쇠 테
+boxMM(-6, 6, ROOMS.lobby.ceil - .06, ROOMS.lobby.ceil, 9.32, 9.48, M.brass);
+for (const x of [-5.95, 5.95]) boxMM(x - .05, x + .05, 0, ROOMS.lobby.ceil, 9.32, 9.48, M.brass);
+// 바깥 남쪽(z = 19.4)
+wallLine('x', 19.4, -21, -6, [[0, HS, A, F]]);
+wallLine('x', 19.4, -6, 6, [[0, HL, L, F]], [[-1.6, 1.6, 3.2]]);
+wallLine('x', 19.4, 6, 21, [[0, HS, U, F]]);   // 라운지는 로비를 거쳐 나간다(바깥벽은 디스플레이)
+wallLine('z', -21, 9.4, 19.4, [[0, HS, F, A]]);
+wallLine('z', 21, 9.4, 19.4, [[0, HS, U, F]]);
+wallLine('z', -6, 9.4, 19.4, [[0, HS, A, L], [HS, HL, F, L]], [[10.2, 12.6, 3.0]]);
+wallLine('z', 6, 9.4, 19.4, [[0, HS, L, U], [HS, HL, L, F]], [[10.2, 12.6, 3.0]]);
+// 뒤뜰은 들어갈 수 없다
+solid(-24, -10.4, -34, -20); solid(10.4, 24, -34, -20); solid(-24, 24, -34, -27);
+
+/* ───────── 천장 ───────── */
+ceiling(-21, -6, 9.4, 19.4, ROOMS.artist.ceil, M.hanjiCeil, 1.8);
+ceiling(-6, 6, 9.4, 19.4, ROOMS.lobby.ceil, M.hanjiCeil, 1.8);
+ceiling(6, 21, 9.4, 19.4, ROOMS.lounge.ceil, M.hanjiCeil, 1.8);
+ceiling(-21, -10.4, -20, 9.4, ROOMS.works.ceil, M.hanjiCeil, 1.8);
+for (let z = -18.5; z < 9; z += 2.6) boxMM(-21, -10.4, ROOMS.works.ceil - .28, ROOMS.works.ceil, z - .14, z + .14, M.wood);   // 밝은 나무 보
+ceiling(10.4, 21, -20, 9.4, ROOMS.ip.ceil, M.stars, 30);
+ceiling(-10.4, 10.4, -27, -9.4, ROOMS.obong.ceil, M.obongCeil, 12);
+// 툇마루 반자: 여덟모로 하늘을 오려 낸다
+{
+  const s = new THREE.Shape(); s.moveTo(-10.4, -9.4); s.lineTo(10.4, -9.4); s.lineTo(10.4, 9.4); s.lineTo(-10.4, 9.4); s.closePath();
+  const oct = [[-4.5, -6], [4.5, -6], [7, -3.5], [7, 3.5], [4.5, 6], [-4.5, 6], [-7, 3.5], [-7, -3.5]];
+  const hole = new THREE.Path(); oct.forEach(([x, z], i) => i ? hole.lineTo(x, z) : hole.moveTo(x, z)); hole.closePath(); s.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: .3, bevelEnabled: false });
+  const m = new THREE.Mesh(geo, M.soffit); m.rotation.x = Math.PI / 2; m.position.y = RING + .3; scene.add(m); blockers.push(m);
+  // 반자 아래 서까래 결
+  for (let i = -10; i <= 10; i += .55) { const zs = 6.3 + Math.max(0, Math.abs(i) - 4.5); if (zs > 9.2) continue; boxMM(i - .05, i + .05, RING - .1, RING, -9.25, -zs, M.wood); boxMM(i - .05, i + .05, RING - .1, RING, zs, 9.25, M.wood); }   // 구멍 밖 반자에만
+  // 구멍 가장자리: 가는 놋쇠 띠
+  for (let k = 0; k < oct.length; k++) {
+    const [x0, z0] = oct[k], [x1, z1] = oct[(k + 1) % oct.length], len = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(z1 - z0, x1 - x0);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(len, .05, .05), M.brass); band.position.set((x0 + x1) / 2, RING - .02, (z0 + z1) / 2); band.rotation.y = -ang; scene.add(band);
+  }
+}
+// 툇마루 기둥(검은 금속)
+for (const [x, z] of [[-8, -7], [8, -7], [-8, 7], [8, 7], [-8, 0], [8, 0], [-4, -7], [4, -7], [-4, 7], [4, 7]]) { boxMM(x - .09, x + .09, 0, RING, z - .09, z + .09, M.steel); solid(x - .09, x + .09, z - .09, z + .09); }
+
+/* ───────── 지붕: 처마 끝이 들린 진주빛 곡면 ───────── */
+function roof({ w, d, cx, cz, h0, lift, ridge, thick = .22, alongZ = false }) {
+  const nu = 48, nv = 24, pos = [], idx = [];
+  const P = (u, v) => {
+    const au = Math.abs(u), av = Math.abs(v);
+    const a = u * w / 2 * (1 + .05 * av * av), b = v * d / 2 * (1 + .07 * au * au);
+    const y = h0 + ridge * (1 - av * av) + lift * Math.pow(au, 3) * (.3 + .7 * av * av) + lift * .5 * Math.pow(av, 4) * (.25 + .75 * au * au);
+    return alongZ ? [cx + b, y, cz + a] : [cx + a, y, cz + b];
+  };
+  for (const off of [0, -thick]) for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) { const [x, y, z] = P(i / nu * 2 - 1, j / nv * 2 - 1); pos.push(x, y + off, z); }
+  const N = (nu + 1) * (nv + 1), id = (i, j, l) => l * N + j * (nu + 1) + i;
+  for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+    idx.push(id(i, j, 0), id(i, j + 1, 0), id(i + 1, j, 0), id(i + 1, j, 0), id(i, j + 1, 0), id(i + 1, j + 1, 0));
+    idx.push(id(i, j, 1), id(i + 1, j, 1), id(i, j + 1, 1), id(i + 1, j, 1), id(i + 1, j + 1, 1), id(i, j + 1, 1));
+  }
+  const ring = [];
+  for (let i = 0; i < nu; i++) ring.push([i, 0]); for (let j = 0; j < nv; j++) ring.push([nu, j]);
+  for (let i = nu; i > 0; i--) ring.push([i, nv]); for (let j = nv; j > 0; j--) ring.push([0, j]);
+  for (let k = 0; k < ring.length; k++) { const [i, j] = ring[k], [i2, j2] = ring[(k + 1) % ring.length]; idx.push(id(i, j, 0), id(i2, j2, 0), id(i, j, 1), id(i2, j2, 0), id(i2, j2, 1), id(i, j, 1)); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, M.pearl); scene.add(m); return m;
+}
+// 띠창: 몸체와 지붕 사이 어두운 유리 띠
+function band(x0, x1, z0, z1, y) { boxMM(x0 + .1, x1 - .1, y, y + .4, z0 + .1, z1 - .1, M.darkGlass); }
+for (const [k, R] of Object.entries(ROOMS)) band(R.x0, R.x1, R.z0, R.z1, R.wall);
+roof({ w: 23.6, d: 20.4, cx: 0, cz: -18.2, h0: HO + .45, lift: 2.2, ridge: 1.9 });
+roof({ w: 32.2, d: 10.4, cx: -15.9, cz: -5.3, h0: HW + .45, lift: 1.5, ridge: 1.1, alongZ: true });
+roof({ w: 32.2, d: 10.4, cx: 15.9, cz: -5.3, h0: HW + .45, lift: 1.5, ridge: 1.1, alongZ: true });
+roof({ w: 17.4, d: 12.6, cx: -13.5, cz: 14.4, h0: HS + .45, lift: 1.0, ridge: .75 });
+roof({ w: 17.4, d: 12.6, cx: 13.5, cz: 14.4, h0: HS + .45, lift: 1.0, ridge: .75 });
+roof({ w: 14.4, d: 12.6, cx: 0, cz: 14.4, h0: HL + .45, lift: 1.2, ridge: 1.1 });
+boxMM(-24, 24, -.02, .06, 19.4, 20.2, M.blackStone);   // 기단
+
+/* ───────── 누를 수 있는 것들 ───────── */
+const pickables = [];
+function pickable(obj, info) { obj.traverse(o => { if (o.isMesh) { o.userData.info = info; pickables.push(o); } }); return obj; }
+// 벽 앞 물건 놓기: 벽 면(nx, nz = 방 안쪽 방향)에 붙인다
+function place(obj, x, y, z, nx, nz) { obj.position.set(x, y, z); obj.rotation.y = Math.atan2(nx, nz); scene.add(obj); return obj; }
+const focusFrom = (x, y, z, nx, nz, dist = 2.6) => ({ pos: [x + nx * dist, z + nz * dist], look: [x, y, z] });
+const animators = [];   // 매 장면 부를 것: (t, dt, me) => {}
+
+// 벽에 바로 쓴 글자(시트 커팅처럼): 바탕 없이 글자만
+const INK = '#1d1a17', INK2 = '#6b635a', ACCENT = '#8a6a3a';
+function letters(wm, hm, draw, ppm = 460) {
+  const m = panel(wm, hm, (g, W, H) => { g.clearRect(0, 0, W, H); draw(g, W, H); }, { transparent: true, ppm });
+  m.material.depthWrite = false; m.material.polygonOffset = true; m.material.polygonOffsetFactor = -2; m.renderOrder = 2;
+  return m;
+}
+const font = (g, size, weight, fam, color = INK) => { g.font = `${weight} ${size}px ${fam}`; g.fillStyle = color; };
+// 문 위 안내: 다음 방 이름과 화살표
+function doorSign(text, sub, x, y, z, nx, nz, w = 2.4, align = 'center') {
+  const s = letters(w, .42, (g, W, H) => {
+    g.textAlign = align; const X = align === 'center' ? W / 2 : align === 'right' ? W : 0;
+    font(g, H * .5, 400, FONT_K); g.fillText(text, X, H * .52);
+    if (sub) { font(g, H * .2, 400, FONT_M, INK2); g.fillText(sub, X, H * .92); }
+  });
+  return place(s, x, y, z, nx, nz);
+}
+// 바닥 조개 도장 자리: 밟으면 도장이 찍힌다
+const stampMarks = {};
+function stampMark(key, x, z) {
+  const g = new THREE.Group();
+  const ring = panel(1.2, 1.2, (c, W, H) => { c.clearRect(0, 0, W, H); const gr = c.createRadialGradient(W / 2, H / 2, W * .18, W / 2, H / 2, W / 2); gr.addColorStop(0, 'rgba(255,240,200,.55)'); gr.addColorStop(1, 'rgba(255,240,200,0)'); c.fillStyle = gr; c.fillRect(0, 0, W, H); }, { transparent: true, ppm: 200 });
+  ring.material.depthWrite = false; ring.rotation.x = -Math.PI / 2; g.add(ring);
+  const shell = cutout('img/shell-stamp.webp', .62); shell.rotation.x = -Math.PI / 2; shell.position.set(0, .004, .31); g.add(shell);
+  g.position.set(x, .045, z); scene.add(g);
+  stampMarks[key] = { x, z, g, ring, shell };
+}
+
+// 홈페이지 첫 화면: 그리드 위 자개 해달. 바깥 디스플레이가 홈페이지처럼 천천히 움직이며 보여 준다
+const HERO_W = 1280, HERO_H = 960;
+const heroTex = canvasTex(HERO_W, HERO_H, () => {});
+heroTex.wrapS = heroTex.wrapT = THREE.ClampToEdgeWrapping;
+const heroOtter = new Image(); heroOtter.src = 'ip/mosaic-otter.webp';
+function drawDiamond(g, x, y, r, a) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  const faces = [['#d9d4cc', [0, -r], [r, 0], [0, 0]], ['#8a847b', [r, 0], [0, r], [0, 0]], ['#5c5750', [0, r], [-r, 0], [0, 0]], ['#b7b1a8', [-r, 0], [0, -r], [0, 0]]];
+  for (const [c, p, q, o] of faces) { g.fillStyle = c; g.beginPath(); g.moveTo(...p); g.lineTo(...q); g.lineTo(...o); g.fill(); }
+  g.restore();
+}
+function drawHero(t) {
+  const g = heroTex.image.getContext('2d'), W = HERO_W, H = HERO_H;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  const cell = W / 12, off = (t * 6) % cell;
+  g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2.2;
+  for (let x = -cell + off; x < W + cell; x += cell) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+  for (let y = -cell + off * .5; y < H + cell; y += cell) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  if (heroOtter.complete && heroOtter.naturalWidth) {
+    const s = 1 + Math.sin(t * .5) * .015, w = W * s, h = w * heroOtter.naturalHeight / heroOtter.naturalWidth;
+    g.drawImage(heroOtter, (W - w) / 2, (H - h) / 2 + Math.sin(t * .8) * 8, w, h);
+  }
+  drawDiamond(g, W * .86, H * .17, 34, Math.sin(t * .6) * .25); drawDiamond(g, W * .15, H * .7, 28, Math.cos(t * .5) * .25);
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, H * .76, W, H * .24);
+  g.font = `400 ${H * .072}px ${FONT_K}`; g.fillStyle = '#e8e3dc';
+  g.fillText('쉽게 들어와서 오래 머무는 작업.', W * .045, H * .86); g.fillText('순서가 다를 뿐, 깊이는 같습니다.', W * .045, H * .955);
+  heroTex.needsUpdate = true;
+}
+let heroT = 0;
+animators.push((t, dt) => { heroT += dt; if ((heroT * 30 | 0) !== ((heroT - dt) * 30 | 0)) drawHero(heroT); });
+
+/* ───────── 로비 ───────── */
+{
+  const LB = ROOMS.lobby;
+  // 서쪽 벽: 상설전시 · Upcoming(개막하면 Now on view) · 예정 전시
+  const solo = EXHIBITIONS.find(e => e.type === '개인전' && e.end_date >= TODAY);
+  const later = EXHIBITIONS.filter(e => e !== solo && e.start_date > TODAY).sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const dfmt = (e) => `${e.start_date.replace(/-/g, '.')} – ${e.end_date.slice(5).replace('-', '.')}`;
+  const venue = e => e.venue.split(',').slice(0, 2).join(',');
+  const dday = e => Math.round((Date.parse(e.start_date) - Date.parse(TODAY)) / 864e5);
+  const wallX = LB.x0 + .16;
+  // Upcoming → Now on view: 신해달 개인전
+  if (solo) {
+    const on = TODAY >= solo.start_date;
+    const head = letters(2.3, .5, (g, W, H) => {
+      font(g, H * .2, 700, FONT_M, on ? '#2f7d6d' : '#b5432f'); g.fillText(on ? 'NOW ON VIEW' : `UPCOMING · D-${dday(solo)}`, 0, H * .28);
+      font(g, H * .44, 400, FONT_K); g.fillText('신해달 개인전', 0, H * .82);
+    });
+    place(head, wallX, 3.3, 17.5, 1, 0);
+    const poster = cutout('ip/poster-EX-2026-01.webp', 1.95, { alpha: false });
+    place(poster, wallX, .95, 18.0, 1, 0);
+    const cap = letters(1.0, 1.4, (g, W, H) => {
+      font(g, H * .085, 700, FONT_B); textBlock(g, wrapText(g, solo.title, W), 0, H * .1, H * .1);
+      font(g, H * .05, 400, FONT_M, INK2); g.fillText(solo.title_en || '', 0, H * .3);
+      font(g, H * .055, 500, FONT_B); textBlock(g, [dfmt(solo), venue(solo)], 0, H * .42, H * .075);
+    });
+    place(cap, wallX, 1.65, 16.55, 1, 0);
+    const info = { kind: (on ? 'NOW ON VIEW' : 'UPCOMING') + ' · ' + solo.type, title: solo.title, meta: `${dfmt(solo)} · ${solo.venue}`, img: 'ip/poster-EX-2026-01.webp',
+      exTitle: '출품작', ex: solo.work_nos.split(',').map(id => (WORKS_INDEX.find(w => w.id === id) || {}).title || id), links: [[SITE + '/', '홈페이지에서 보기']], focus: focusFrom(wallX, 2, 17.3, 1, 0, 3.6) };
+    pickable(poster, info); pickable(cap, info);
+  }
+  // 예정 전시
+  const up = letters(2.0, 2.6, (g, W, H) => {
+    font(g, H * .045, 700, FONT_M, ACCENT); g.fillText('UPCOMING EXHIBITIONS', 0, H * .06);
+    font(g, H * .11, 400, FONT_K); g.fillText('예정 전시', 0, H * .2);
+    let y = H * .31;
+    for (const e of later.slice(0, 5)) {
+      font(g, H * .058, 700, FONT_B); g.fillText(e.title, 0, y + H * .02);
+      font(g, H * .034, 400, FONT_B, INK2); g.fillText(`${dfmt(e)}  ·  ${venue(e)}`, 0, y + H * .075);
+      y += H * .14;
+    }
+  });
+  place(up, wallX, 2.3, 14.15, 1, 0);
+  pickable(up, { kind: 'UPCOMING EXHIBITIONS', title: '예정 전시', body: later.map(e => `${e.title}\n${dfmt(e)} · ${e.type} · ${e.venue}`).join('\n\n'), links: [[SITE + '/cv/', 'CV에서 보기']], focus: focusFrom(wallX, 2, 13.6, 1, 0, 3.4) });
+  doorSign('작가소개', 'ABOUT THE ARTIST', wallX, 3.45, 11.4, 1, 0, 2.2);
+  // 동쪽 벽: 관람 안내도를 크게
+  const ex = LB.x1 - .16;
+  const guide = letters(5.6, 3.2, (g, W, H) => {
+    font(g, H * .04, 700, FONT_M, ACCENT); g.fillText('VISITOR GUIDE', 0, H * .05);
+    font(g, H * .1, 400, FONT_K); g.fillText('관람 안내', 0, H * .16);
+    // 평면: 가는 선만
+    const s = H * .78 / 46.4, ox = W * .5, oz = H * .2 + 27 * s;
+    const R = (x0, z0, x1, z1, n, label, bold) => {
+      g.strokeStyle = INK; g.lineWidth = bold ? 5 : 3; g.strokeRect(ox + x0 * s, oz + z0 * s, (x1 - x0) * s, (z1 - z0) * s);
+      g.textAlign = 'center'; const cx = ox + (x0 + x1) / 2 * s, cz = oz + (z0 + z1) / 2 * s;
+      if (n) { font(g, H * .03, 700, FONT_M, ACCENT); g.fillText(n, cx, cz - H * .018); }
+      font(g, H * .036, 700, FONT_B); g.fillText(label, cx, cz + H * .026); g.textAlign = 'left';
+    };
+    R(-10.4, -27, 10.4, -9.4, '', '일월오봉단관'); R(-21, -20, -10.4, 9.4, '', '작품 전시관'); R(10.4, -20, 21, 9.4, '', 'IP관');
+    g.setLineDash([10, 8]); R(-8, -7, 8, 7, '', '중정'); g.setLineDash([]);
+    R(-21, 9.4, -6, 19.4, '', '작가소개'); R(-6, 9.4, 6, 19.4, '', '로비 · 현 위치', true); R(6, 9.4, 21, 19.4, '', '출구 라운지');
+    g.fillStyle = '#b5432f'; g.beginPath(); g.arc(ox, oz + 16.6 * s, H * .012, 0, 7); g.fill();
+    // 오른쪽: 순서와 도장
+    const tx = W * .02;
+    font(g, H * .036, 700, FONT_B); textBlock(g, ['관람 순서'], tx, H * .3, 0);
+    font(g, H * .034, 400, FONT_B, INK2);
+    textBlock(g, ['로비', '→ 작가소개', '→ 작품 전시관', '→ 중정', '→ IP관', '→ 일월오봉단관', '→ 출구 라운지'], tx, H * .37, H * .05);
+    font(g, H * .036, 700, FONT_B); g.fillText('조개 도장', tx, H * .76);
+    font(g, H * .03, 400, FONT_B, INK2); textBlock(g, ['방마다 바닥의 조개 표시를', '밟으면 도장을 찍을 수 있습니다.', '다섯 개를 모으면 라운지에서', '멤버십 카드를 받을 수 있습니다.'], tx, H * .82, H * .045);
+  });
+  place(guide, ex, 2.25, 15.9, -1, 0);
+  doorSign('출구 라운지', 'EXIT LOUNGE', ex, 3.45, 11.4, -1, 0, 2.2);
+  // 남쪽 벽: 갤러리 이름(나갈 때 보인다)과 해달자개 샵 배너
+  const nm = letters(4.4, .7, (g, W, H) => { g.textAlign = 'center'; font(g, H * .5, 400, FONT_K); g.fillText('신해달 갤러리', W / 2, H * .6); font(g, H * .18, 700, FONT_M, INK2); g.fillText('SHIN HAEDAL GALLERY', W / 2, H * .92); });
+  place(nm, 0, 4.6, LB.z1 - .16, 0, -1);
+  // 해달자개 샵: 바탕 없이 벽에 로고와 글자만(들어온 쪽에서 보면 입구 왼쪽)
+  const shop = letters(1.7, 2.3, (g, W, H) => {
+    g.textAlign = 'center'; font(g, H * .062, 700, FONT_B, '#2b5fc9'); g.fillText('해달자개 브랜드샵', W / 2, H * .84);
+    font(g, H * .036, 400, FONT_M, '#6b7fae'); g.fillText('idus · 브랜드샵 바로가기 ↗', W / 2, H * .92);
+    const img = new Image(); img.src = 'img/haedal-jagae-logo.webp'; img.onload = () => { const w = W * .86, h = w * img.height / img.width; g.drawImage(img, (W - w) / 2, H * .04, w, h); shop.material.map.needsUpdate = true; };
+  });
+  place(shop, 3.9, 1.95, LB.z1 - .16, 0, -1);
+  pickable(shop, { kind: 'Brand Shop', title: '해달자개 브랜드샵', body: '한글자음 자개키링과 알파벳 자개키링, 나전칠기 굿즈는 아이디어스 해달자개 브랜드샵에서 만날 수 있어요.', img: 'img/haedal-jagae-logo.webp', links: [[SHOP_URL, '브랜드샵 바로가기']] });
+  // 안내 데스크
+  boxMM(2.4, 4.8, 0, 1.0, 12.6, 13.3, M.white, [2.4, 2.4]); boxMM(2.35, 4.85, 1.0, 1.05, 12.55, 13.35, M.wood); solid(2.35, 4.85, 12.55, 13.35);
+  const desk = letters(1.6, .24, (g, W, H) => { g.textAlign = 'center'; font(g, H * .5, 700, FONT_M, INK2); g.fillText('INFORMATION', W / 2, H * .7); }); place(desk, 3.6, .7, 13.32, 0, 1);
+}
+
+/* ───────── 작가소개 ───────── */
+{
+  const AR = ROOMS.artist, wx = AR.x0 + .16;
+  // 서쪽 벽: 작가 사진과 소개
+  const frame = new THREE.Group();
+  const photo = cutout('ip/artist-profile-1.webp', 2.4, { alpha: false }); frame.add(photo);
+  place(frame, wx, .7, 16.6, 1, 0);
+  const intro = letters(4.4, 2.9, (g, W, H) => {
+    font(g, H * .045, 700, FONT_M, ACCENT); g.fillText('SHIN HAEDAL · 나전칠기 아티스트', 0, H * .06);
+    font(g, H * .16, 400, FONT_K); g.fillText('신해달', 0, H * .24);
+    font(g, H * .085, 400, FONT_K); textBlock(g, wrapText(g, ABOUT.head, W), 0, H * .4, H * .1);
+    font(g, H * .05, 700, FONT_B); textBlock(g, wrapText(g, ABOUT.lead, W * .95), 0, H * .55, H * .07);
+    font(g, H * .035, 400, FONT_B, '#3b342d'); textBlock(g, wrapText(g, ABOUT.intro.join(' '), W * .9), 0, H * .7, H * .062);
+  });
+  place(intro, wx, 1.95, 12.9, 1, 0);
+  pickable(frame, { kind: 'About', title: '신해달 · 나전칠기 아티스트', body: [ABOUT.head + ' ' + ABOUT.lead, ...ABOUT.intro].join('\n\n'), img: 'ip/artist-profile-1.webp', links: [[SITE + '/about/', 'About 페이지']], focus: focusFrom(wx, 1.9, 14.6, 1, 0, 3.8) });
+  // 북쪽 벽: Artist Note
+  const nz = AR.z0 + .16;
+  const note = letters(9.0, 3.1, (g, W, H) => {
+    font(g, H * .04, 700, FONT_M, ACCENT); g.fillText('ARTIST NOTE', 0, H * .05);
+    font(g, H * .088, 400, FONT_K); textBlock(g, ['쉽게 들어와서 오래 머무는 작업.', '순서가 다를 뿐, 깊이는 같습니다.'], 0, H * .17, H * .1);
+    font(g, H * .027, 400, FONT_B, '#3b342d');
+    // 세 단으로 나눠 여유 있게
+    const cols = [[0, 1, 2], [3, 4, 5], [6, 7, 8]], cw = W * .29;
+    cols.forEach((idx, c) => { let y = H * .4; idx.forEach(i => { if (ABOUT.note[i]) y = textBlock(g, wrapText(g, ABOUT.note[i], cw), c * W * .355, y, H * .05) + H * .035; }); });
+  });
+  place(note, -11.0, 1.95, nz, 0, 1);
+  pickable(note, { kind: 'Artist Note', title: ABOUT.noteHead, body: ABOUT.note.join('\n\n'), img: 'ip/artist-profile-2-bg.webp', links: [[SITE + '/about/', 'About 페이지']], focus: focusFrom(-11.0, 1.9, nz, 0, 1, 4.6) });
+  doorSign('작품 전시관', 'NEXT · WORKS', -17.25, 3.45, nz, 0, 1, 2.6);
+  // 남쪽 벽: CV
+  const sz = AR.z1 - .16;
+  const byType = (t) => EXHIBITIONS.filter(e => e.type === t).sort((a, b) => b.start_date.localeCompare(a.start_date));
+  const exLine = e => `${e.start_date.slice(0, 7).replace('-', '.')}  ${e.title}${TODAY < e.start_date ? ' (예정)' : ''}`;
+  const cvWall = letters(13.4, 2.9, (g, W, H) => {
+    font(g, H * .04, 700, FONT_M, ACCENT); g.fillText('CURRICULUM VITAE', 0, H * .05);
+    font(g, H * .1, 400, FONT_K); g.fillText('CV', 0, H * .17);
+    let x = 0;
+    const col = (title, rows, w) => {
+      font(g, H * .032, 700, FONT_M); g.fillText(title, x, H * .28);
+      font(g, H * .03, 400, FONT_B, '#3b342d'); let y = H * .34;
+      for (const r of rows) { for (const l of wrapText(g, r, w * .95)) { g.fillText(l, x, y); y += H * .045; } y += H * .008; }
+      x += w;
+    };
+    const cw = W * .155;
+    col('EDUCATION', CV[0][1].map(([d, t]) => `${d}  ${t}`), cw);
+    col('CERTIFICATIONS', CV[1][1].map(([d, t]) => `${d}  ${t}`), cw);
+    col('BRAND & ACTIVITIES', CV[2][1].map(([d, t]) => `${d}  ${t}`), cw);
+    col('SOLO EXHIBITION', byType('개인전').map(exLine), cw * .85);
+    const groups = byType('단체전').map(exLine), half = Math.ceil(groups.length / 2);
+    col('GROUP EXHIBITIONS', groups.slice(0, half), cw * .95);
+    col(' ', groups.slice(half), cw * .95);
+    col('ART FAIRS', byType('아트페어').concat(byType('팝업')).map(exLine), cw);
+  }, 300);
+  place(cvWall, -13.5, 2.0, sz, 0, -1);
+  pickable(cvWall, { kind: 'CV', title: '신해달 CV', body: CV.map(([s, r]) => s + '\n' + r.map(([d, t]) => `${d}  ${t}`).join('\n')).join('\n\n'),
+    ex: EXHIBITIONS.slice().sort((a, b) => b.start_date.localeCompare(a.start_date)).map(e => `${e.start_date.replace(/-/g, '.')} – ${e.end_date.slice(5).replace('-', '.')} ${e.title}, ${e.venue}${TODAY < e.start_date ? ' (예정)' : ''}`), exTitle: 'EXHIBITIONS & PROJECTS',
+    links: [[SITE + '/cv/', 'CV 페이지']], focus: focusFrom(-13.5, 1.9, sz, 0, -1, 4.4) });
+  // 동쪽 벽: 언론 보도
+  const ewx = AR.x1 - .16;
+  const ph = letters(2.6, .5, (g, W, H) => { font(g, H * .2, 700, FONT_M, ACCENT); g.fillText('PRESS', 0, H * .26); font(g, H * .44, 400, FONT_K); g.fillText('언론 보도', 0, H * .82); });
+  place(ph, ewx, 3.2, 17.4, -1, 0);
+  PRESS.forEach(([outlet, date, title, url], i) => {
+    const col = i % 3, row = Math.floor(i / 3), z = 18.3 - col * 2.0, y = 2.3 - row * 1.05;
+    const p = letters(1.85, .9, (g, W, H) => {
+      font(g, H * .1, 400, FONT_M, INK2); g.fillText(`${date.replace(/-/g, '.')} · ${outlet}`, 0, H * .14);
+      font(g, H * .13, 700, FONT_B); textBlock(g, wrapText(g, title, W * .96).slice(0, 3), 0, H * .34, H * .16);
+      font(g, H * .09, 700, FONT_M, ACCENT); g.fillText('READ ↗', 0, H * .9);
+    });
+    place(p, ewx, y, z, -1, 0);
+    pickable(p, { kind: 'Press · ' + outlet, title, meta: date.replace(/-/g, '.'), body: '저의 작업이 다른 시선으로 읽히고 소개된 기록입니다.', links: [[url, '기사 원문 보기'], [SITE + '/press/', 'Press 페이지', true]], focus: focusFrom(ewx, y, z, -1, 0, 2.6) });
+  });
+  stampMark('artist', -13.5, 15.4);
+}
+
+/* ───────── 작품 전시관: 자료를 받아 저절로 건다 ───────── */
+// 묶음 = 연작(series_key가 같은 작품들) 또는 단독 작품. 묶음은 가장 새 작품 번호 순, 첫 묶음이 '신작'
+// 걸 자리 = 입구에서 걷는 차례대로 서쪽 벽 → 북쪽 벽 → 동쪽 벽. 모자라면 방 가운데 가벽을 세운다
+const parseSize = s => { const m = String(s).match(/([\d.]+)\s*×\s*([\d.]+)/); return m ? [parseFloat(m[1]), parseFloat(m[2])] : [30, 30]; };
+const hangable = WORKS_INDEX.filter(w => w.id !== TOY_ID);
+// 연작 안 순서: 아카이브에 series_order가 비어 있을 때 쓰는 작가 지정 순서
+const ORDER_FALLBACK = { 'HD-2026-002': 1, 'HD-2026-011': 2, 'HD-2025-004': 3 };
+const units = (() => {
+  const by = new Map();
+  for (const w of hangable) { const k = w.series_key || '#' + w.id; if (!by.has(k)) by.set(k, []); by.get(k).push(w); }
+  const out = [...by.entries()].map(([k, ws]) => {
+    ws.sort((a, b) => (a.series_order ?? ORDER_FALLBACK[a.id] ?? 99) - (b.series_order ?? ORDER_FALLBACK[b.id] ?? 99) || a.id.localeCompare(b.id));
+    return { key: k, series: !k.startsWith('#'), works: ws, newest: ws.reduce((m, w) => w.id > m ? w.id : m, '') };
+  });
+  out.sort((a, b) => b.newest.localeCompare(a.newest));
+  return out;
+})();
+const SERIES_NAME = { 'n-th-derivative': 'N차적 저작물', territory: '우주조약', pov: 'POV' };
+for (const s of SERIES) if (s.name) SERIES_NAME[s.key] = s.name;
+// 윗면 맞춤: 모든 작품의 윗면을 POV : 업무 중(53 cm)의 윗면 높이에 건다. 그 작품의 가운데가 눈높이 1.65 m
+const TOP = 1.65 + .53 * SCALE / 2;
+const GAP_IN = 1.45, GAP_UNIT = 2.6, CAP_W = 1.0;   // 작품 사이에 오른쪽 아래 캡션이 들어갈 자리
+for (const u of units) {
+  u.sizes = u.works.map(w => parseSize(w.size).map(v => v / 100 * SCALE));
+  u.width = u.sizes.reduce((s, [w]) => s + w, 0) + (u.works.length - 1) * GAP_IN + CAP_W;
+}
+const WR = ROOMS.works, IN = .17;
+// 벽면: 시작점, 진행 방향, 안쪽 방향, 길이
+const slots = [
+  { name: '서쪽 벽', o: [WR.x0 + IN, 8.2], d: [0, -1], n: [1, 0], len: 27.6 },
+  { name: '북쪽 벽', o: [WR.x0 + .9, WR.z0 + IN], d: [1, 0], n: [0, 1], len: 4.6 },
+  { name: '동쪽 벽', o: [WR.x1 - IN, -15.2], d: [0, 1], n: [-1, 0], len: 8.2 },
+  { name: '동쪽 벽', o: [WR.x1 - IN, -1.6], d: [0, 1], n: [-1, 0], len: 9.6 },
+];
+const extra = [   // 가벽: 필요할 때만
+  { name: '가벽', o: [-15.55, -12], d: [0, 1], n: [1, 0], len: 14, wall: [-15.85, -15.55, -12.3, 2.3] },
+  { name: '가벽', o: [-16.15, 2], d: [0, -1], n: [-1, 0], len: 14, wall: null },
+];
+const workFocus = new Map(), workPlaced = [];
+{
+  // 1) 묶음을 벽면에 나눠 담기
+  const fill = slots.map(s => ({ s, items: [], used: 0 }));
+  let si = 0;
+  for (const u of units) {
+    while (true) {
+      if (si >= fill.length) { const e = extra.shift(); if (!e) break; fill.push({ s: e, items: [], used: 0 }); if (e.wall) { boxMM(e.wall[0], e.wall[1], 0, 3.6, e.wall[2], e.wall[3], M.white, [2.4, 2.4]); solid(e.wall[0], e.wall[1], e.wall[2], e.wall[3]); } }
+      const f = fill[si], need = (f.items.length ? GAP_UNIT : 0) + u.width;
+      if (f.used + need <= f.s.len - .6 || (!f.items.length && u.width <= f.s.len)) { f.items.push(u); f.used += need; break; }
+      si++;
+    }
+  }
+  // 2) 벽면마다 남는 길이를 묶음 사이에 고르게 나눈다(너무 벌어지지 않게)
+  // 캡션: 작품 오른쪽 아래, 벽에 바로 쓴 글자
+  // 캡션: 작품 오른쪽, 마지막 줄이 작품 아랫면에 닿도록 아래에서부터 쌓는다
+  const CAP_H = .62;
+  const caption = (w) => letters(CAP_W - .08, CAP_H, (g, W, H) => {
+    const D = DETAIL[w.id] || {}, rows = [];
+    const add = (text, size, weight, fam, color, max = 2) => { font(g, H * size, weight, fam, color); for (const l of wrapText(g, text, W).slice(0, max)) rows.push([l, size, weight, fam, color]); };
+    add(w.title, .13, 700, FONT_B, INK);
+    add(w.title_en || D.en || '', .072, 400, FONT_M, INK2);
+    add((D.medium || '').split(' · ')[0], .078, 400, FONT_B, '#3b342d');
+    add(`${w.size} cm · ${w.year}`, .078, 400, FONT_B, '#3b342d', 1);
+    let y = H - H * .03;
+    for (let i = rows.length - 1; i >= 0; i--) { const [l, size, weight, fam, color] = rows[i]; font(g, H * size, weight, fam, color); g.fillText(l, 0, y); y -= H * size * 1.32; if (i === 2 || i === 1) y -= H * .01; }
+  }, 520);
+  const edgeMat = new THREE.MeshStandardMaterial({ color: 0x0f0c0b, roughness: .4 });
+  for (const f of fill) {
+    if (!f.items.length) continue;
+    const slack = f.s.len - f.used, gapAdd = Math.min(1.2, slack / (f.items.length + 1));
+    let a = (slack - gapAdd * (f.items.length - 1)) / 2;
+    for (const [ui, u] of f.items.entries()) {
+      if (ui) a += GAP_UNIT + gapAdd;
+      if (u.series) {   // 연작 이름
+        const nm = SERIES_NAME[u.key] || u.key;
+        const lab = letters(3.0, .5, (g, W, H) => { font(g, H * .17, 700, FONT_M, ACCENT); g.fillText('SERIES', 0, H * .22); font(g, H * .5, 400, FONT_K); g.fillText(nm, 0, H * .86); });
+        const p = [f.s.o[0] + f.s.d[0] * (a + 1.5), f.s.o[1] + f.s.d[1] * (a + 1.5)]; place(lab, p[0] + f.s.n[0] * .02, 3.35, p[1] + f.s.n[1] * .02, ...f.s.n);
+      }
+      u.works.forEach((w, k) => {
+        if (k) a += GAP_IN;
+        const [ww, hh] = u.sizes[k], c = a + ww / 2, cy = TOP - hh / 2;
+        const x = f.s.o[0] + f.s.d[0] * c, z = f.s.o[1] + f.s.d[1] * c, [nx, nz] = f.s.n;
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(ww, hh, .045), edgeMat); body.position.z = .0225; g.add(body);
+        const t = tex(workImg(w)); const face = new THREE.Mesh(new THREE.PlaneGeometry(ww, hh), new THREE.MeshBasicMaterial({ map: t, color: 0xeeeeee, toneMapped: false })); face.position.z = .046; g.add(face);
+        place(g, x, cy, z, nx, nz);
+        const lb = caption(w), cc = ww / 2 + .12 + (CAP_W - .08) / 2; place(lb, x + f.s.d[0] * cc + nx * .01, cy - hh / 2 + CAP_H / 2, z + f.s.d[1] * cc + nz * .01, nx, nz);
+        const D = DETAIL[w.id] || {};
+        const info = { kind: D.en || w.title_en || w.id, title: w.title, meta: D.medium || `${w.year} · ${w.size} cm`, body: (D.body || []).join('\n\n'), ex: D.ex, img: workImg(w), id: w.id,
+          links: [[`${SITE}/works/w/${w.id}/`, '작품 페이지'], [`${SITE}/contact/`, '작품 문의', true]], where: f.s.name, focus: focusFrom(x, cy, z, nx, nz, Math.max(2.4, hh * 1.6)) };
+        pickable(g, info); pickable(lb, info);
+        workFocus.set(w.id, info); workPlaced.push({ w, info });
+        a += ww;
+      });
+      a += CAP_W;
+    }
+  }
+}
+// 도장 자리: 북동쪽 모서리 바닥의 조개 표시
+const stampSpot = { x: -12.8, z: -17.6 };
+stampMark('works', stampSpot.x, stampSpot.z);
+doorSign('중정 · IP관 ↑', 'COURTYARD · NEXT', WR.x1 - .16, 3.6, -4.5, -1, 0, 3.0);
+doorSign('← 작가소개', 'ABOUT THE ARTIST', -17.25, 3.5, WR.z1 - .16, 0, -1, 2.6);
+
+/* ───────── 중정: 얼빵해달 등신대, 이정표, 현판 ───────── */
+const standeeSpot = { x: 3.4, z: 1.6 };
+{
+  const st = cutout('img/standee.webp', 1.75); place(st, standeeSpot.x, .04, standeeSpot.z, -.55, .83);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.42, .46, .05, 32), M.lacquer); base.position.set(standeeSpot.x, .065, standeeSpot.z); scene.add(base);
+  solid(standeeSpot.x - .35, standeeSpot.x + .35, standeeSpot.z - .2, standeeSpot.z + .2);
+  // 발자국 표시: 여기 서서 사진 찍기
+  const mark = panel(1.1, 1.1, (g, W, H) => {
+    g.clearRect(0, 0, W, H); g.strokeStyle = 'rgba(43,78,201,.9)'; g.lineWidth = W * .02; g.setLineDash([W * .04, W * .03]); g.beginPath(); g.arc(W / 2, H / 2, W * .44, 0, 7); g.stroke();
+    g.setLineDash([]); g.fillStyle = '#2b4ec9'; g.font = `700 ${W * .1}px ${FONT_B}`; g.textAlign = 'center'; g.fillText('사진 찍는 자리', W / 2, H * .55);
+  }, { transparent: true, ppm: 300 });
+  mark.rotation.x = -Math.PI / 2; mark.position.set(standeeSpot.x - .95, .05, standeeSpot.z + .9); scene.add(mark);
+  stampMark('court', -2.6, 1.8);
+  // 문 위 현판
+  const hyeon = (label, x, z, nx, nz) => { const p = panel(1.9, .36, (g, W, H) => { g.fillStyle = '#14100e'; g.fillRect(0, 0, W, H); g.strokeStyle = '#c9a86a'; g.lineWidth = 4; g.strokeRect(6, 6, W - 12, H - 12); g.fillStyle = '#d8b878'; g.font = `700 ${H * .46}px ${FONT_D}`; g.textAlign = 'center'; g.fillText(label, W / 2, H * .66); }, { ppm: 360 }); place(p, x, 3.12, z, nx, nz); };
+  hyeon('일월오봉단관', 0, -9.23, 0, 1); hyeon('작품 전시관', -10.23, -4.5, 1, 0); hyeon('IP관', 10.23, -4.5, -1, 0); hyeon('IP관 나가는 곳', 10.23, 5.5, -1, 0);
+  hyeon('출구 라운지', 8.3, 9.23, 0, -1); hyeon('로비', 0, 9.23, 0, -1);
+}
+
+/* ───────── 일월오봉단관 ───────── */
+const OB = ROOMS.obong, ROPE_Z = -21.4;
+{
+  // 정면 벽 전체: 가로로 긴 일월오봉도. 남는 양옆은 거울처럼 이어 그린다
+  const wallW = OB.x1 - OB.x0 - .3, wallH = 10.8;
+  const t = canvasTex(2400, Math.round(2400 * wallH / wallW), () => {});
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  const img = new Image(); img.src = 'img/ilwol-wide.webp';
+  const PW = wallH * 1644 / 957;   // 그림 한 장의 너비(m)
+  img.onload = () => {
+    const c = t.image, g = c.getContext('2d'), H = c.height, w = img.width * H / img.height, x0 = (c.width - w) / 2;
+    g.fillStyle = '#050404'; g.fillRect(0, 0, c.width, H);
+    g.drawImage(img, x0, 0, w, H);
+    if (x0 > 0) {
+      g.save(); g.translate(x0, 0); g.scale(-1, 1); g.drawImage(img, 0, 0, w, H); g.restore();
+      g.save(); g.translate(x0 + w * 2, 0); g.scale(-1, 1); g.drawImage(img, 0, 0, w, H); g.restore();
+    }
+    t.needsUpdate = true;
+  };
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(wallW, wallH), new THREE.MeshBasicMaterial({ map: t, color: 0xdedede, toneMapped: false })); wall.position.set(0, .1 + wallH / 2, OB.z0 + .17); scene.add(wall);
+  pickable(wall, { kind: 'IRWOROBONGDAN', title: '일월오봉단', body: '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.\n\n캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.', img: 'ip/friends.webp', links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: { pos: [0, ROPE_Z + 1.6], look: [0, 3.6, OB.z0] } });
+  // 두 단 단상: 뒷단 1.8 m, 앞단 0.85 m
+  const BH = 1.8, FH = .85, backZ0 = OB.z0 + .7, backZ1 = backZ0 + 1.4, frontZ1 = backZ1 + 1.5;
+  boxMM(-8.2, 8.2, 0, BH, backZ0, backZ1, M.lacquer); boxMM(-9.2, 9.2, 0, FH, backZ1, frontZ1, M.lacquer);
+  boxMM(-8.2, 8.2, BH - .02, BH + .01, backZ1 - .02, backZ1 + .01, M.brass); boxMM(-9.2, 9.2, FH - .02, FH + .01, frontZ1 - .02, frontZ1 + .01, M.brass);
+  solid(-9.2, 9.2, backZ0, frontZ1);
+  // 자리: 뒷줄은 그림 속 달(왼쪽)과 해(오른쪽) 아래, 앞줄은 소나무·가운데 봉우리·소나무 앞
+  const T0 = 2.4, moonX = (.295 - .5) * PW, sunX = (.735 - .5) * PW;
+  const spots = { rabbit: [moonX, BH, backZ0 + .7], crane: [sunX, BH, backZ0 + .7], deer: [-6.4, FH, backZ1 + .75], tiger: [0, FH, backZ1 + .75], otter: [6.4, FH, backZ1 + .75] };
+  for (const f of FRIENDS) {
+    const [x, y, z] = spots[f.c], h = T0 * f.s * f.k;
+    const fig = cutout(`img/${f.c}-cutout.webp`, h); place(fig, x, y - T0 * f.s * f.g, z, 0, 1);
+    // 명판: 단 앞면에 바로 쓴 밝은 글자
+    const back = y > 1, ph = back ? BH - FH - .12 : FH - .12;
+    const plaque = letters(2.2, ph, (g, W, H) => {
+      g.textAlign = 'center';
+      font(g, H * .15, 700, FONT_M, '#a9d6ce'); g.fillText(f.en, W / 2, H * .2);
+      font(g, H * .27, 700, FONT_B, '#f4f1ea'); g.fillText(f.name, W / 2, H * .5);
+      font(g, H * .15, 400, FONT_B, '#d6dedf'); g.fillText(f.role, W / 2, H * .72);
+      font(g, H * .13, 400, FONT_M, '#c0ccce'); g.fillText(`아이템: ${f.item}`, W / 2, H * .92);
+    }, 420);
+    place(plaque, x, back ? FH + ph / 2 + .06 : ph / 2 + .06, (back ? backZ1 : frontZ1) + .012, 0, 1);
+    const info = { kind: f.en, title: f.name, meta: `${f.role} · 아이템: ${f.item}`, body: '일월오봉단의 한 사람이에요.', img: `img/${f.c}-cutout.webp`, links: [[SITE + '/ip/#friends', '일월오봉단 소개']], focus: { pos: [x * .6, ROPE_Z + 1.4], look: [x, y + 1.1, z] } };
+    pickable(fig, info); pickable(plaque, info);
+  }
+  // 차단봉 줄: 검은 봉에 가는 줄, 명판을 가리지 않게 낮게
+  const black = new THREE.MeshStandardMaterial({ color: 0x0e0d0d, roughness: .35, metalness: .5 });
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0x141212, roughness: .7 });
+  const posts = []; for (let x = -9.6; x <= 9.61; x += 2.4) posts.push(x);
+  for (const x of posts) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .8, 12), black); p.position.set(x, .4, ROPE_Z); scene.add(p); const b = new THREE.Mesh(new THREE.CylinderGeometry(.13, .15, .03, 20), black); b.position.set(x, .015, ROPE_Z); scene.add(b); const k = new THREE.Mesh(new THREE.SphereGeometry(.035, 12, 8), black); k.position.set(x, .81, ROPE_Z); scene.add(k); }
+  for (let i = 0; i < posts.length - 1; i++) {
+    const a = posts[i], b = posts[i + 1], pts = [];
+    for (let k = 0; k <= 12; k++) { const t = k / 12; pts.push(new THREE.Vector3(a + (b - a) * t, .76 - Math.sin(t * Math.PI) * .12, ROPE_Z)); }
+    scene.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, .009, 6), ropeMat));
+  }
+  solid(OB.x0, OB.x1, ROPE_Z - .25, ROPE_Z + .1); solid(OB.x0, OB.x1, OB.z0, ROPE_Z);
+  // 그림 아래로 번지는 빛
+  const glow = panel(20, 6, (g, W, H) => { const gr = g.createRadialGradient(W / 2, 0, 0, W / 2, 0, W * .55); gr.addColorStop(0, 'rgba(255,214,150,.2)'); gr.addColorStop(1, 'rgba(255,214,150,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }, { transparent: true, ppm: 40 });
+  glow.material.depthWrite = false; glow.rotation.x = -Math.PI / 2; glow.position.set(0, .03, OB.z0 + 3.4); scene.add(glow);
+  // 깊이 있는 밤하늘: 천장 아래 한 겹 더, 드문드문 큰 별이 떠 있다
+  const stars2 = panel(20.4, 17.2, (g, W, H) => { g.clearRect(0, 0, W, H); const r = rng(77); for (let i = 0; i < 90; i++) { const x = r() * W, y = r() * H, s = 1.2 + r() * 1.6, gr = g.createRadialGradient(x, y, 0, x, y, s * 3); gr.addColorStop(0, `rgba(222,190,130,${.35 + r() * .35})`); gr.addColorStop(1, 'rgba(222,190,130,0)'); g.fillStyle = gr; g.fillRect(x - s * 3, y - s * 3, s * 6, s * 6); } }, { transparent: true, ppm: 60 });
+  stars2.material.depthWrite = false; stars2.material.side = THREE.DoubleSide; stars2.rotation.x = Math.PI / 2; stars2.position.set(0, OB.ceil - .9, (OB.z0 + OB.z1) / 2); scene.add(stars2);
+  stampMark('obong', 0, -19.9);
+  doorSign('중정 · 출구 라운지 →', 'COURTYARD · EXIT', 0, 7.0, OB.z1 - .16, 0, -1, 3.4);
+  // 들어서는 곳 안내: 다른 방처럼 벽에 바로 쓴 글자(어두운 흙벽이라 밝은 글자)
+  const intro = letters(3.6, 2.3, (g, W, H) => {
+    font(g, H * .045, 700, FONT_M, '#a9d6ce'); g.fillText('IRWOROBONGDAN', 0, H * .06);
+    font(g, H * .14, 400, FONT_K, '#f4f1ea'); g.fillText('혼자가 아니에요.', 0, H * .24);
+    font(g, H * .06, 400, FONT_B, '#ddd6cc');
+    const y = textBlock(g, wrapText(g, '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.', W * .95), 0, H * .4, H * .085);
+    textBlock(g, wrapText(g, '캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.', W * .95), 0, y + H * .04, H * .085);
+  });
+  place(intro, OB.x0 + .16, 1.9, -12.8, 1, 0);
+}
+
+/* ───────── IP관: 팝업북 속 얼빵해달 세계 ───────── */
+const IPR = ROOMS.ip;
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const easeBack = t => { const c = 1.4; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+// 글귀 카드: 그림책 종이에 쓴 글
+function paperCard(w, h, draw) {
+  return panel(w, h, (g, W, H) => {
+    g.fillStyle = '#fbf5e6'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#d9c9a4'; g.lineWidth = H * .012; g.strokeRect(H * .03, H * .03, W - H * .06, H - H * .06);
+    draw(g, W, H);
+  }, { ppm: 420 });
+}
+const ink = (g, size, weight = 400, font = FONT_B, color = '#2b2520') => { g.fillStyle = color; g.font = `${weight} ${size}px ${font}`; };
+const pages = [];
+function popPage({ x, z, nx, nz, layers, info }) {
+  const PS = 1.35;   // 책을 사람보다 크게: 그림책 속으로 들어온 느낌
+  const grp = new THREE.Group(); grp.position.set(x, 0, z); grp.rotation.y = Math.atan2(nx, nz); grp.scale.setScalar(PS); scene.add(grp);
+  const cover = boxMM(-1.7, 1.7, 0, .05, -1.25, 1.25, new THREE.MeshStandardMaterial({ color: 0x24336e, roughness: .7 }), null, grp);
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 2.4), M.paper); sheet.rotation.x = -Math.PI / 2; sheet.position.y = .055; grp.add(sheet);
+  const gutter = new THREE.Mesh(new THREE.PlaneGeometry(.04, 2.4), new THREE.MeshBasicMaterial({ color: 0xd9c9a4 })); gutter.rotation.x = -Math.PI / 2; gutter.position.y = .057; grp.add(gutter);
+  const hinges = layers.map(L => {
+    const h = new THREE.Group(); h.position.set(L.x || 0, .06, L.z); h.add(L.obj); grp.add(h); if (L.obj.position.x === 0 && L.ox) L.obj.position.x = L.ox;
+    return { h, delay: L.delay || 0 };
+  });
+  const wp = new THREE.Vector3(); grp.getWorldPosition(wp);
+  const pg = { grp, hinges, k: 0, x, z, update: null };
+  pages.push(pg);
+  // 펼친 쪽의 바닥 판은 밟지 못하게
+  const c = Math.cos(grp.rotation.y), s = Math.sin(grp.rotation.y), ex = (Math.abs(c) * 1.7 + Math.abs(s) * 1.25) * PS, ez = (Math.abs(s) * 1.7 + Math.abs(c) * 1.25) * PS;
+  solid(x - ex, x + ex, z - ez, z + ez);
+  if (info) pickable(grp, info);
+  return pg;
+}
+function stepPages(dt, me) {
+  for (const p of pages) {
+    const d = Math.hypot(me.x - p.x, me.z - p.z), want = smooth(7.0, 3.2, d);
+    p.k += (want - p.k) * Math.min(1, dt * (want > p.k ? 1.6 : 2.4));
+    for (const { h, delay } of p.hinges) {
+      const kl = Math.min(1, Math.max(0, (p.k - delay) / (1 - delay)));
+      const e = reduceMotion ? (kl > .5 ? 1 : 0) : easeBack(kl);
+      h.rotation.x = -(1 - Math.min(1, e)) * Math.PI / 2; h.scale.y = Math.max(.02, Math.min(1.06, e));   // 접혀 있을 땐 납작하게
+      h.visible = kl > .01;
+    }
+    p.update && p.update(p.k, dt);
+  }
+}
+{
+  // 입구: 그림책 표지가 문처럼 열린다
+  const coverTex = canvasTex(1200, 1320, (g, W, H) => {
+    g.fillStyle = '#1d2a5c'; g.fillRect(0, 0, W, H);
+    const r = rng(4); speckle(g, W, H, 9000, 2, ['#23336e', '#17224c'], .5, r);
+    g.strokeStyle = '#c9a86a'; g.lineWidth = 10; g.strokeRect(40, 40, W - 80, H - 80);
+    g.fillStyle = '#c9a86a'; g.textAlign = 'center'; g.font = `500 40px ${FONT_M}`; g.fillText('AN ORIGINAL CHARACTER BY SHIN HAEDAL', W / 2, 160);
+    g.font = `700 92px ${FONT_D}`; g.fillText('SPACED-OUT', W / 2, 300); g.fillText('SEA OTTER', W / 2, 410);
+    g.fillStyle = '#efe9df'; g.font = `400 150px ${FONT_K}`; g.fillText('얼빵해달', W / 2, 1150);
+  });
+  coverTex.wrapS = coverTex.wrapT = THREE.ClampToEdgeWrapping;
+  const halves = [];
+  // 문짝 바깥면: 홈페이지 IP 소개 바탕(자개 해달과 얼빵해달이 겹겹이) 그림을 두 문에 이어서
+  const face = new Image(); face.src = 'ip/ip-door.webp'; face.onload = () => {
+    const g = coverTex.image.getContext('2d'), W = 1200, H = 1320, s = Math.max(W / face.width, H / face.height), w = face.width * s, h = face.height * s;
+    g.drawImage(face, (W - w) / 2, (H - h) / 2, w, h); halves.forEach(t => t.needsUpdate = true);
+  };
+  const endTex = canvasTex(256, 256, (g, W, H) => { g.fillStyle = '#efe4c8'; g.fillRect(0, 0, W, H); g.fillStyle = '#d8c59c'; for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) { g.beginPath(); g.arc(i * 52 + (j % 2) * 26, j * 52, 9, 0, 7); g.fill(); } }, [3, 6]);
+  // 문 한 장이 위로 스르륵 올라가며 열린다(홈페이지 IP 소개처럼)
+  halves.push(coverTex);
+  const doorMats = [new THREE.MeshStandardMaterial({ map: endTex, roughness: .9 }), new THREE.MeshBasicMaterial({ map: coverTex, toneMapped: false }), M.paper, M.paper, M.paper, M.paper];
+  const door = new THREE.Mesh(new THREE.BoxGeometry(.06, 3.3, 3.0), doorMats); door.position.set(IPR.x0 + .22, 1.65, -4.5); scene.add(door);
+  let open = 0;
+  animators.push((t, dt, me) => {
+    const want = (Math.hypot(me.x - IPR.x0, me.z + 4.5) < 5 || (me.x > IPR.x0 && me.z < 9.4)) ? 1 : 0;
+    open += (want - open) * Math.min(1, dt * (reduceMotion ? 30 : 2.4));
+    const e = open * open * (3 - 2 * open);
+    door.position.y = 1.65 + e * 3.4;
+  });
+  // 밤하늘 아래 떠다니는 종이 조개와 구름
+  const floaters = [];
+  for (let i = 0; i < 12; i++) {
+    const r = rng(300 + i), cloud = i % 3 === 0;
+    const o = cloud ? panel(1.2, .6, (g, W, H) => { g.fillStyle = '#fbf5e6'; for (const [cx, cy, rr] of [[.3, .62, .25], [.52, .45, .3], [.74, .6, .22]]) { g.beginPath(); g.arc(cx * W, cy * H, rr * H * 1.2, 0, 7); g.fill(); } }, { transparent: true, ppm: 200 }) : cutout('img/shell-stamp.webp', .32);
+    if (cloud) o.material.alphaTest = .5;
+    o.position.set(IPR.x0 + 1.2 + r() * 8, 3.9 + r() * 1.2, IPR.z0 + 1.5 + r() * 26); scene.add(o);
+    floaters.push({ o, ph: r() * 6, sp: .3 + r() * .4, y: o.position.y });
+  }
+  animators.push((t) => { for (const f of floaters) { f.o.position.y = f.y + Math.sin(t * f.sp + f.ph) * .18; f.o.rotation.y = Math.sin(t * .2 + f.ph) * .6; } });
+  const warm1 = new THREE.PointLight(0xffd7a0, 45, 20, 2); warm1.position.set(15.7, 4.6, -12); scene.add(warm1);
+  const warm2 = new THREE.PointLight(0xffd7a0, 40, 20, 2); warm2.position.set(15.7, 4.6, -1); scene.add(warm2);
+
+  // 1 · 해변: 저를 부르셨나요?
+  {
+    const back = cutout('ip/story-collect.webp', 2.1, { alpha: false });
+    const face = cutout('ip/hero_face.webp', 1.55);
+    const bubble = panel(1.25, .42, (g, W, H) => { g.fillStyle = '#fff'; g.beginPath(); g.roundRect(4, 4, W - 8, H * .78, H * .3); g.fill(); g.beginPath(); g.moveTo(W * .2, H * .78); g.lineTo(W * .14, H); g.lineTo(W * .32, H * .78); g.fill(); ink(g, H * .3, 700, FONT_B, '#20307a'); g.textAlign = 'center'; g.fillText('저를 부르셨나요?', W / 2, H * .5); }, { transparent: true, ppm: 420 });
+    bubble.position.set(.85, 1.75, .02); face.add(bubble);
+    const txt = paperCard(2.6, .62, (g, W, H) => { ink(g, H * .14, 500, FONT_M, '#8a6a3a'); g.fillText('AN ORIGINAL CHARACTER BY SHIN HAEDAL', W * .04, H * .25); ink(g, H * .17, 700, FONT_D); textBlock(g, wrapText(g, '얼빵해달은 현대사회에 살고 있는 조개배달부다. 그런데 해달이면서 수영을 못 한다.', W * .92), W * .04, H * .52, H * .22); });
+    txt.position.y = .31;
+    popPage({ x: 12.6, z: -8.6, nx: 1, nz: 0, layers: [{ obj: back, z: -.85, delay: 0 }, { obj: face, z: -.05, delay: .15, ox: -.55 }, { obj: txt, z: .85, delay: .35 }],
+      info: { kind: 'SPACED-OUT SEA OTTER', title: '얼빵해달', meta: '조개배달부 · DELIVERS 사랑, 응원 그리고 위로', body: 'SPECIES 해달\nSIGNATURE 조개\nCREATED 2020\n\n얼빵해달은 현대사회에 살고 있는 조개배달부다. 그런데 해달이면서 수영을 못 한다.', img: 'ip/hero_face.webp', links: [[SITE + '/ip/', '얼빵해달 이야기']], focus: { pos: [15.6, -8.6], look: [12.6, 1.1, -8.6] } } });
+  }
+  // 2 · 조개배달부 01–04
+  {
+    const steps = [['story-collect', '', '수영 대신, 두 발로.', '멍때리다 수영을 배우지 못한 얼빵해달은 해변을 걸어다니며 조개를 주워요.'], ['story-deliver', '', '직업은 조개배달부.', '이렇게 주워온 조개를 작가님에게 가져다줘요. 그래서 조개배달부예요.'], ['story-craft', '', '조개는 자개가 되고,', '작가님은 조개를 얇게 다듬어 옻칠 위에 한 조각씩 붙여요.'], ['story-artwork', '04', '자개는 작품이 돼요.', '얼빵해달이 배달한 조개가 반짝이는 나전칠기 작품이 됐어요.']];
+    const head = paperCard(3.0, .5, (g, W, H) => { ink(g, H * .16, 500, FONT_M, '#8a6a3a'); g.fillText('01 / THE SHELL DELIVERY WORKER', W * .03, H * .32); ink(g, H * .26, 700, FONT_D); g.fillText('조개를 줍고, 작가님에게 건네요.', W * .03, H * .75); });
+    head.position.y = 1.85;
+    const layers = [{ obj: head, z: -1.0, delay: 0 }];
+    steps.forEach(([img, no, h, p], i) => {
+      const card = new THREE.Group();
+      const pic = cutout(`ip/${img}.webp`, .74, { alpha: false }); pic.position.y = .5; card.add(pic);
+      const cap = paperCard(.78, .46, (g, W, H) => { ink(g, H * .12, 500, FONT_M, '#8a6a3a'); g.fillText(no, W * .07, H * .2); ink(g, H * .14, 700, FONT_D); g.fillText(h, W * .07, H * .4); ink(g, H * .095); textBlock(g, wrapText(g, p, W * .86).slice(0, 4), W * .07, H * .58, H * .12); });
+      cap.position.y = .24; card.add(cap);
+      card.position.x = -1.2 + i * .8;
+      layers.push({ obj: card, z: i % 2 ? .25 : -.2, delay: .12 + i * .1 });
+    });
+    const shell = cutout('img/shell-stamp.webp', .22); scene.add(shell);
+    const pg = popPage({ x: 12.6, z: -13.6, nx: 1, nz: 0, layers,
+      info: { kind: '01 / THE SHELL DELIVERY WORKER', title: '조개를 줍고, 작가님에게 건네요.', body: steps.map(s => `${s[1]} ${s[2]}\n${s[3]}`).join('\n\n') + '\n\n조개와 함께, 사랑·응원·위로를 배달해요.', img: 'ip/story-deliver.webp', links: [[SITE + '/ip/#story', '홈페이지에서 보기']], focus: { pos: [15.8, -13.6], look: [12.6, 1, -13.6] } } });
+    pg.update = (k) => {
+      shell.visible = k > .95;
+      if (!shell.visible) return;
+      const t = (performance.now() / 1000 * .35) % 1, seg = t * 3, i = Math.floor(seg), f = seg - i;
+      const a = -1.2 + i * .8, b = a + .8, lx = a + (b - a) * f, ly = 1.25 + Math.sin(f * Math.PI) * .35;
+      const v = new THREE.Vector3(lx, ly, .35); pg.grp.localToWorld(v); shell.position.copy(v); shell.rotation.y = pg.grp.rotation.y; shell.rotation.z = Math.sin(f * Math.PI * 2) * .3;
+    };
+  }
+  // 3 · 숲길: 해달이 길을 걸어 내려온다
+  {
+    const S = 2.7;
+    const path = cutout('ip/forest-path-1440.webp', S, { alpha: false });
+    const otterL = new THREE.Group();
+    const otter = cutout('ip/forest-otter.webp', .95); otterL.add(otter);
+    const fluffy = cutout('ip/forest-tag-fluffy.webp', .2), grubby = cutout('ip/forest-tag-grubby.webp', .2); otterL.add(fluffy, grubby);
+    const txt = paperCard(3.0, .5, (g, W, H) => { ink(g, H * .2, 600, FONT_B); textBlock(g, wrapText(g, '다른 해달들이 수영을 배울 때 멍하게 있다가 그만 수영을 배우지 못한 얼빵해달은 약속 장소까지 걸어가고 있어요.', W * .94), W * .03, H * .38, H * .27); });
+    txt.position.y = .25;
+    const pg = popPage({ x: 15.7, z: -18.3, nx: 0, nz: 1, layers: [{ obj: path, z: -.9, delay: 0 }, { obj: otterL, z: -.82, delay: .1 }, { obj: txt, z: .9, delay: .3 }],
+      info: { kind: 'FOREST', title: '약속 장소까지 걸어가는 얼빵해달', body: '다른 해달들이 수영을 배울 때 멍하게 있다가 그만 수영을 배우지 못한 얼빵해달은 약속 장소까지 걸어가고 있어요.', img: 'ip/forest-otter.webp', links: [[SITE + '/ip/#forest', '홈페이지에서 보기']], focus: { pos: [15.7, -14.6], look: [15.7, 1.3, -18.6] } } });
+    let walk = 0;
+    pg.update = (k, dt) => {
+      // 다가가면 길 위쪽(오른쪽 위)에서 아래쪽(왼쪽 아래)으로 걸어 내려오며 커진다
+      walk = k > .9 ? Math.min(1, walk + dt / 6) : Math.max(0, walk - dt / 2);
+      const u = .86 - .42 * walk, v = .58 - .5 * walk, sc = .55 + .55 * walk, step = Math.sin(performance.now() / 120) * (walk > 0 && walk < 1 ? 1 : 0);
+      otter.position.set((u - .5) * S, v * S + Math.abs(step) * .03, .01); otter.scale.setScalar(sc); otter.rotation.z = step * .05;
+      const show = walk > .55; fluffy.visible = grubby.visible = show;
+      fluffy.position.set(otter.position.x - .35 * sc, otter.position.y + .45 * sc, .02); grubby.position.set(otter.position.x + .4 * sc, otter.position.y + .12 * sc, .02);
+    };
+  }
+  // 4 · 아침 수영반
+  {
+    const back = cutout('ip/swimming-hq.webp', 2.2, { alpha: false });
+    const waveCard = (col, ph) => panel(3.0, .42, (g, W, H) => { g.fillStyle = col; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 4) g.lineTo(x, H * .35 + Math.sin(x / W * Math.PI * 6 + ph) * H * .18); g.lineTo(W, H); g.fill(); }, { transparent: true, ppm: 200 });
+    const w1 = waveCard('#7fb2f0', 0), w2 = waveCard('#4f86de', 1.4), w3 = waveCard('#2b4ec9', 2.6);
+    [w1, w2, w3].forEach(w => { w.material.alphaTest = .5; w.position.y = .21; });
+    const otter = cutout('ip/swim-otter.webp', .95);
+    const card = cutout('ip/membership.webp', .75); card.rotation.z = -.15;
+    const t1 = paperCard(1.6, .72, (g, W, H) => { ink(g, H * .1, 500, FONT_M, '#8a6a3a'); g.fillText('02 / MORNING SWIMMING', W * .05, H * .17); ink(g, H * .14, 700, FONT_D); g.fillText('더 빨리 조개를 배달할 수 있다면,', W * .05, H * .36); ink(g, H * .085); textBlock(g, wrapText(g, '두 발로 하는 배달은 너무 느렸어요. 조금이라도 더 빨리 조개를 전하고 싶었던 얼빵해달은 수영을 배우기로 결심했어요. 그렇게 현대사회스포츠센터 아침 수영반에 등록했어요.', W * .9), W * .05, H * .52, H * .11); });
+    const t2 = paperCard(1.5, .72, (g, W, H) => { ink(g, H * .15, 700, FONT_D, '#20307a'); g.fillText('해달도 배워야 수영을 한다.', W * .05, H * .24); ink(g, H * .085); textBlock(g, wrapText(g, '처음부터 능숙한 존재는 없습니다. 누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다. 누군가의 미숙함을 너그럽게 보길 바라는 마음을 담았습니다.', W * .9), W * .05, H * .42, H * .11); });
+    t1.position.set(-.82, .36, 0); t2.position.set(.82, .36, 0);
+    const texts = new THREE.Group(); texts.add(t1, t2);
+    const otterL = new THREE.Group(); otterL.add(otter);
+    const cardL = new THREE.Group(); cardL.add(card); card.position.x = 1.05;
+    const pg = popPage({ x: 18.8, z: -13.6, nx: -1, nz: 0, layers: [{ obj: back, z: -.95, delay: 0 }, { obj: w1, z: -.45, delay: .08 }, { obj: otterL, z: -.3, delay: .14 }, { obj: w2, z: -.2, delay: .18 }, { obj: cardL, z: .05, delay: .24 }, { obj: w3, z: .2, delay: .26 }, { obj: texts, z: .95, delay: .36 }],
+      info: { kind: '02 / MORNING SWIMMING', title: '더 빨리 조개를 배달할 수 있다면,', body: '두 발로 하는 배달은 너무 느렸어요. 조금이라도 더 빨리 조개를 전하고 싶었던 얼빵해달은 수영을 배우기로 결심했어요. 그렇게 현대사회스포츠센터 아침 수영반에 등록했어요.\n\n해달도 배워야 수영을 한다.\n처음부터 능숙한 존재는 없습니다. 누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다. 누군가의 미숙함을 너그럽게 보길 바라는 마음을 담았습니다.', img: 'ip/swimming-hq.webp', links: [[SITE + '/ip/#pool', '홈페이지에서 보기']], focus: { pos: [15.6, -13.6], look: [18.8, 1, -13.6] } } });
+    pg.update = (k) => {
+      const t = performance.now() / 1000;
+      otter.position.set(Math.sin(t * .7) * .5, .12 + Math.abs(Math.sin(t * 2.4)) * .1, 0); otter.rotation.z = Math.sin(t * 4.8) * .12;
+      w1.position.x = Math.sin(t * .9) * .08; w2.position.x = Math.sin(t * .9 + 1) * .1; w3.position.x = Math.sin(t * .9 + 2) * .08;
+    };
+  }
+  // 5 · 이름 이야기: 카드가 뒤집힌다
+  {
+    const flipCard = (front, backImg, backText) => {
+      const g = new THREE.Group(), w = 1.15, h = 1.2;
+      const f = panel(w, h, (c, W, H) => { c.fillStyle = '#fbf5e6'; c.fillRect(0, 0, W, H); c.strokeStyle = '#c9a86a'; c.lineWidth = 8; c.strokeRect(14, 14, W - 28, H - 28); ink(c, H * .3, 400, FONT_K, '#20307a'); c.textAlign = 'center'; c.fillText(front, W / 2, H * .6); ink(c, H * .06, 500, FONT_M, '#8a6a3a'); c.fillText('눌러 보면 뒤집혀요', W / 2, H * .85); });
+      const b = panel(w, h, (c, W, H) => { c.fillStyle = '#20307a'; c.fillRect(0, 0, W, H); ink(c, H * .11, 700, FONT_M, '#efe9df'); c.textAlign = 'center'; c.fillText(backText, W / 2, H * .88); });
+      const bi = cutout(backImg, .55); bi.position.set(0, .25 - h / 2 + .25, .01); b.add(bi);
+      b.rotation.y = Math.PI; b.position.z = -.005;
+      const spin = new THREE.Group(); spin.add(f, b); spin.position.y = h / 2 + .05; g.add(spin); g.userData.spin = spin; return g;
+    };
+    const c1 = flipCard('얼빵', 'img/hero_logo.webp', 'SPACED-OUT'), c2 = flipCard('해달', 'ip/name_haedal.webp', 'SUN + MOON');
+    c1.position.x = -.7; c2.position.x = .7;
+    const both = new THREE.Group(); both.add(c1, c2);
+    const txt = paperCard(3.0, .62, (g, W, H) => { ink(g, H * .12, 500, FONT_M, '#8a6a3a'); g.fillText('03 / A LITTLE MORE ABOUT ME', W * .03, H * .22); ink(g, H * .16); textBlock(g, wrapText(g, '\'얼빵\'은 조금 얼빠져 있고 어딘가 엇박자지만 그래서 사랑스러운 느낌을 Spaced-out으로 옮겼어요. \'해달\'은 동물 해달이면서, 해(☀︎)와 달(☾︎)로도 읽혀요.', W * .94), W * .03, H * .45, H * .2); });
+    txt.position.y = .31;
+    const pg = popPage({ x: 18.8, z: -7.8, nx: -1, nz: 0, layers: [{ obj: both, z: -.4, delay: 0 }, { obj: txt, z: .85, delay: .3 }],
+      info: { kind: '03 / A LITTLE MORE ABOUT ME', title: '이름에도 의미가 있어요.', body: '\'Spaced-out Sea Otter\'는 이름뿐 아니라, 캐릭터의 성격까지 담아낸 번역이에요.\n\n얼빵 → SPACED-OUT\n\'얼빵\'을 소리 그대로 Eolbbang이라 쓰는 대신, 조금 얼빠져 있고 어딘가 엇박자지만 그래서 사랑스러운 느낌을 \'Spaced-out\'으로 옮겼어요.\n\n해달 → SUN + MOON\n\'해달\'은 동물 해달이면서, 해(☀︎)와 달(☾︎)로도 읽혀요. 하나의 이름 안에 동물과 하늘, 두 겹의 의미가 함께 들어 있어요.', img: 'ip/name_haedal.webp', links: [[SITE + '/ip/#identity', '홈페이지에서 보기']], focus: { pos: [15.6, -7.8], look: [18.8, 1, -7.8] } } });
+    pg.update = (k) => { const f = smooth(.75, 1, k); c1.userData.spin.rotation.y = f * Math.PI; c2.userData.spin.rotation.y = smooth(.85, 1, k) * Math.PI; };
+  }
+  // 6 · 장난감 상자: 아트토이
+  {
+    const box = new THREE.Group(), bw = 1.3, bd = .9, bh = .55, kraft = new THREE.MeshStandardMaterial({ color: 0xc9a77c, roughness: .9, side: THREE.DoubleSide });
+    for (const [w, h, x, z, ry] of [[bw, bh, 0, -bd / 2, 0], [bw, bh, 0, bd / 2, 0], [bd, bh, -bw / 2, 0, Math.PI / 2], [bd, bh, bw / 2, 0, Math.PI / 2]]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), kraft); p.position.set(x, h / 2, z); p.rotation.y = ry; box.add(p); }
+    const lid = new THREE.Mesh(new THREE.PlaneGeometry(bw, .5), kraft); lid.position.set(0, bh + .22, -bd / 2 - .08); lid.rotation.x = -.35; box.add(lid);
+    const toys = [1, 2, 3, 4].map((n, i) => { const t = cutout(`img/arttoy_${n}.webp`, .5, { alpha: false }); t.position.set(-.45 + i * .3, .05, -.1 + (i % 2) * .15); t.rotation.y = (i - 1.5) * .18; box.add(t); return t; });
+    const toy = cutout('img/toy-cutout.webp', 1.0); toy.position.set(-1.05, 0, .05);
+    const holder = new THREE.Group(); holder.add(box, toy); box.position.z = -.2;
+    const txt = paperCard(3.0, .62, (g, W, H) => { ink(g, H * .12, 500, FONT_M, '#8a6a3a'); g.fillText('04 / FROM 2D TO 3D · NAJEONCHILGI ART TOY', W * .03, H * .22); ink(g, H * .2, 700, FONT_D); g.fillText('그림 밖에서 만난 얼빵해달.', W * .03, H * .5); ink(g, H * .12); g.fillText('2026 · 10 × 9 × 6 cm · 천연자개 · 옻칠 · 굴패각 친환경 수지 · 시그니처 조개는 자석으로 떼고 붙여요', W * .03, H * .78); });
+    txt.position.y = .31;
+    const D = DETAIL[TOY_ID];
+    const pg = popPage({ x: 17.4, z: 1.2, nx: -.7, nz: .7, layers: [{ obj: holder, z: -.4, delay: 0 }, { obj: txt, z: .85, delay: .3 }],
+      info: { kind: D.en, title: '조개배달부 얼빵해달 2026 Limited Edition', meta: D.medium, body: D.body.join('\n\n') + '\n\n시그니처 조개는 자석으로 떼고 붙일 수 있어요.', ex: D.ex, img: `img/${TOY_ID}.webp`, links: [[`${SITE}/works/w/${TOY_ID}/`, '작품 페이지'], [SITE + '/ip/#toy', '아트토이 이야기', true]], focus: { pos: [13.2, 4.4], look: [17.4, 1, 1.2] } } });
+    pg.update = (k) => { toys.forEach((t, i) => { t.position.y = .05 + smooth(.5 + i * .1, 1, k) * (.45 + (i % 2) * .12); }); };
+  }
+}
+stampMark('ip', 13.4, 3.4);
+
+/* ───────── 출구 라운지: 회원 발급 창구와 샵 배너 ───────── */
+const LG = ROOMS.lounge, deskSpot = { x: 17.6, z: 14.4 };
+{
+  boxMM(18.6, 19.6, 0, 1.05, 12.6, 16.2, M.lacquer); boxMM(18.5, 19.7, 1.05, 1.1, 12.5, 16.3, M.brass); solid(18.5, 19.7, 12.5, 16.3);
+  const sign = panel(3.4, 1.3, (g, W, H) => {
+    g.fillStyle = '#eaf1ff'; g.fillRect(0, 0, W, H); g.strokeStyle = '#2b4ec9'; g.lineWidth = H * .05; g.strokeRect(H * .03, H * .03, W - H * .06, H - H * .06);
+    g.fillStyle = '#2b4ec9'; g.font = `700 ${H * .1}px ${FONT_B}`; g.fillText('HYUNDAI SOCIAL SPORTS CENTER', W * .06, H * .24);
+    g.fillStyle = '#20307a'; g.font = `400 ${H * .25}px ${FONT_K}`; g.fillText('회원 발급 창구', W * .06, H * .56);
+    g.font = `500 ${H * .085}px ${FONT_B}`; g.fillText('조개 도장 다섯 개를 모은 해달에게 멤버십 카드를 드려요.', W * .06, H * .8);
+  }, { ppm: 300 });
+  place(sign, LG.x1 - .17, 2.35, 14.4, -1, 0);
+  const shop = panel(3.6, 1.6, (g, W, H) => {
+    g.fillStyle = '#1d2a5c'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#c9a86a'; g.font = `500 ${H * .08}px ${FONT_M}`; g.fillText('BEFORE YOU GO', W * .05, H * .17);
+    g.fillStyle = '#efe9df'; g.font = `400 ${H * .2}px ${FONT_K}`; g.fillText('해달자개 브랜드샵', W * .05, H * .42);
+    g.font = `500 ${H * .085}px ${FONT_B}`; g.fillText('한글자음·알파벳 자개키링과 나전칠기 굿즈', W * .05, H * .6);
+    g.fillStyle = '#efe9df'; g.beginPath(); g.roundRect(W * .05, H * .72, W * .42, H * .16, H * .08); g.fill();
+    g.fillStyle = '#1d2a5c'; g.font = `700 ${H * .085}px ${FONT_B}`; g.fillText('아이디어스에서 보기 ↗', W * .08, H * .83);
+  }, { ppm: 300 });
+  place(shop, 18.0, 1.9, LG.z1 - .17, 0, -1);
+  pickable(shop, { kind: 'Brand Shop', title: '해달자개 브랜드샵', body: '한글자음 자개키링과 알파벳 자개키링, 나전칠기 굿즈는 아이디어스 해달자개 브랜드샵에서 만날 수 있어요.', img: 'img/shell-stamp.webp', links: [[SHOP_URL, '브랜드샵 바로가기']] });
+  for (const x of [9.5, 11.5]) { boxMM(x - .7, x + .7, 0, .45, 16.4, 16.9, M.lacquer); solid(x - .7, x + .7, 16.4, 16.9); }
+}
+
+/* ───────── 바깥: 광장, 개인전 현수막, 대형 디스플레이, 이름 ───────── */
+const banner = { w: 2.8, h: 3.5 };   // 포스터 원본 비율 4:5
+{
+  const t = tex('ip/poster-EX-2026-01.webp');
+  const geo = new THREE.PlaneGeometry(banner.w, banner.h, 8, 14);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: .85, side: THREE.DoubleSide }));
+  mesh.position.set(-4.0, .85 + banner.h / 2, 19.68); scene.add(mesh);
+  boxMM(-4 - banner.w / 2 - .1, -4 + banner.w / 2 + .1, .85 + banner.h, .9 + banner.h, 19.6, 19.7, M.brass);
+  banner.mesh = mesh; banner.base = geo.attributes.position.array.slice();
+  const solo = EXHIBITIONS.find(e => e.id === 'EX-2026-01');
+  if (solo) pickable(mesh, { kind: solo.type + ' · ' + (solo.title_en || ''), title: solo.title, meta: `${solo.start_date.replace(/-/g, '.')} – ${solo.end_date.slice(5).replace('-', '.')} · ${solo.venue}`, img: 'ip/poster-EX-2026-01.webp',
+    exTitle: '출품작', ex: solo.work_nos.split(',').map(id => (WORKS_INDEX.find(w => w.id === id) || {}).title || id), links: [[SITE + '/', '홈페이지에서 보기']], focus: { pos: [-4, 25.5], look: [-4, 2.6, 19.6] } });
+  // 라운지 바깥벽: 메인 테마 영상
+  // 라운지 바깥벽: 홈페이지 첫 화면을 띄운 디스플레이(4:3, 테두리만 가늘게)
+  const dW = 4.8, dH = dW * HERO_H / HERO_W;
+  boxMM(13.5 - dW / 2 - .06, 13.5 + dW / 2 + .06, .3 - .06, .3 + dH + .06, 19.55, 19.72, M.steel);
+  const sc = new THREE.Mesh(new THREE.PlaneGeometry(dW, dH), new THREE.MeshBasicMaterial({ map: heroTex, toneMapped: false })); place(sc, 13.5, .3 + dH / 2, 19.74, 0, 1);
+  pickable(sc, { kind: 'SHIN HAEDAL', title: '쉽게 들어와서 오래 머무는 작업.', body: '순서가 다를 뿐, 깊이는 같습니다.', img: 'ip/hero-bg.webp', links: [[SITE + '/', '홈페이지']] });
+  // 이름: 작가소개 바깥벽에 놋쇠 글자
+  const name = panel(7, 1.4, (g, W, H) => { g.clearRect(0, 0, W, H); g.fillStyle = '#d8b878'; g.font = `500 ${H * .2}px ${FONT_M}`; g.fillText('SHIN HAEDAL GALLERY', W * .02, H * .3); g.font = `700 ${H * .46}px ${FONT_D}`; g.fillText('신해달 갤러리', W * .02, H * .85); }, { transparent: true, ppm: 200 });
+  name.material.alphaTest = .3; place(name, -13.6, 2.6, 19.57, 0, 1);
+  for (const x of [-12, -6.5, 9, 18]) { boxMM(x - .9, x + .9, 0, .42, 26.5, 27.0, M.blackStone); solid(x - .9, x + .9, 26.5, 27.0); }
+}
+
+/* ───────── 둘레: 키 큰 가문비나무가 빽빽한 숲 ───────── */
+{
+  scene.fog = new THREE.Fog(0xcfd9d3, 50, 210);
+  ground(-220, 220, -220, 220, -.04, new THREE.MeshStandardMaterial({ color: 0x4f6e3a, roughness: 1 }), 8, false);
+  // 건물과 숲 사이 밝은 풀밭
+  const meadow = new THREE.MeshStandardMaterial({ color: 0x7fa34f, roughness: 1 });
+  ground(-34, 34, -38, 46, -.03, meadow, 8, false);
+  const r = rng(2026), spots = [];
+  const inClear = (x, z) => x > -31 && x < 31 && z > -35 && z < 43;   // 건물 + 광장 + 풀밭
+  for (let x = -150; x <= 150; x += 3.1) for (let z = -150; z <= 160; z += 3.1) {
+    const px = x + (r() - .5) * 2.6, pz = z + (r() - .5) * 2.6;
+    if (inClear(px, pz) || (Math.abs(px) < 6.5 && pz > 40)) continue;   // 정문에서 곧게 뻗은 숲길
+    if (Math.hypot(px, pz) > 165 || r() < .12) continue;
+    spots.push([px, pz]);
+  }
+  const greens = [0x1f3a24, 0x24422a, 0x2b4a2c, 0x1b3320, 0x31532f].map(c => new THREE.Color(c));
+  const trunkGeo = new THREE.CylinderGeometry(.07, .16, 1, 6);
+  const coneGeo = new THREE.ConeGeometry(1, 1, 12);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8b847a, roughness: .9 }), leafMat = new THREE.MeshStandardMaterial({ roughness: .95 });
+  const LAYERS = 5;
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, spots.length), cones = new THREE.InstancedMesh(coneGeo, leafMat, spots.length * LAYERS);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+  let ki = 0;
+  spots.forEach(([x, z], i) => {
+    const edge = Math.min(Math.abs(Math.abs(x) - 31), Math.abs(z < 0 ? z + 35 : z - 43));
+    const h = 9 + r() * 7 + Math.min(3, edge * .04), bare = h * (.14 + r() * .08);   // 아래쪽 가지 없는 줄기
+    const lean = (r() - .5) * .03;
+    m4.compose(p.set(x, (bare + 1.2) / 2, z), q.setFromEuler(e.set(lean, 0, lean)), sc.set(1, bare + 1.2, 1)); trunks.setMatrixAt(i, m4);   // 줄기는 가지 아래만
+    const col = greens[(r() * greens.length) | 0], w0 = 1.5 + r() * .7;
+    for (let k = 0; k < LAYERS; k++) {
+      const t = k / LAYERS, y0 = bare + (h - bare) * t * .82, lh = (h - bare) * (.42 - t * .1), w = w0 * (1 - t * .7) * (.92 + r() * .16);
+      m4.compose(p.set(x, y0 + lh / 2, z), q.setFromEuler(e.set(0, r() * 6, 0)), sc.set(w, lh, w));
+      cones.setMatrixAt(ki, m4); cones.setColorAt(ki++, col.clone().offsetHSL(0, 0, (r() - .5) * .04 + t * .02));
+    }
+  });
+  cones.count = ki;
+  scene.add(trunks, cones);
+  // 정문 앞에서 숲 속으로 곧게 뻗은 길(눈으로만 본다)
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0xb3a58c, roughness: 1 });
+  ground(-3, 3, 36, 170, -.02, roadMat, 4, false);
+  for (const sx of [-3.15, 3.15]) boxMM(sx - .12, sx + .12, -.02, .06, 36, 170, M.blackStone);
+  // 숲 가장자리 덤불과 바위
+  const bushGeo = new THREE.IcosahedronGeometry(1, 1), bush = new THREE.InstancedMesh(bushGeo, leafMat, 160); let bi = 0;
+  for (let i = 0; i < 160; i++) {
+    const side = i % 4, t = r();
+    const x = side === 0 ? -31 - r() * 3 : side === 1 ? 31 + r() * 3 : -31 + t * 62, z = side === 2 ? -35 - r() * 3 : side === 3 ? 43 + r() * 3 : -35 + t * 78;
+    if (side === 3 && Math.abs(x) < 7) continue;
+    const w = .8 + r() * 1.3; m4.compose(p.set(x, w * .4, z), q.identity(), sc.set(w * 1.4, w * .8, w * 1.4)); bush.setMatrixAt(bi, m4); bush.setColorAt(bi++, new THREE.Color(0x3d5f30).offsetHSL(0, 0, (r() - .5) * .08));
+  }
+  bush.count = bi; scene.add(bush);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0x8a867d, roughness: .9, flatShading: true });
+  for (const [x, z, w] of [[-29, 30, 2.2], [30, -12, 1.6], [-30, -28, 1.8], [28, 40, 2.6]]) { const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(w, 0), rockMat); rk.position.set(x, w * .35, z); rk.scale.y = .6; rk.rotation.y = x; scene.add(rk); }
+}
+
+
+/* ───────── 중정 쪽 간유리 자동문: 밖에서는 방 안이 보이지 않고, 다가가면 양쪽으로 열린다 ───────── */
+{
+  const frost = new THREE.MeshStandardMaterial({ color: 0xeef1ee, roughness: .4, metalness: 0, transparent: true, opacity: .72, depthWrite: false, side: THREE.DoubleSide });
+  const autoDoors = [];
+  // axis 'x': z = fixed 위의 문(가로), 'z': x = fixed 위의 문(세로). a0..a1 문 폭, h 문 높이
+  function autoDoor(axis, fixed, a0, a1, h, mat = frost) {
+    const half = (a1 - a0) / 2, mid = (a0 + a1) / 2, leaves = [];
+    for (const s of [-1, 1]) {
+      const leaf = new THREE.Group();
+      const pane = new THREE.Mesh(new THREE.PlaneGeometry(half, h), mat); pane.position.y = h / 2; leaf.add(pane);
+      for (const [w, hh, x, y] of [[half, .05, 0, h - .025], [half, .05, 0, .025], [.05, h, -half / 2 + .025, h / 2], [.05, h, half / 2 - .025, h / 2]]) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w, hh, .05), M.brass); b.position.set(x, y, 0); leaf.add(b);
+      }
+      if (axis === 'z') leaf.rotation.y = Math.PI / 2;
+      scene.add(leaf); if (mat === frost) blockers.push(pane);
+      leaves.push({ leaf, s });
+    }
+    const d = { axis, fixed, mid, half, leaves, open: 0 };
+    autoDoors.push(d); return d;
+  }
+  autoDoor('x', -9.4, -3, 3, 6.4);            // 일월오봉단관
+  autoDoor('z', -10.4, -6.5, -2.5, 3.1);      // 작품관
+  autoDoor('z', 10.4, 4.2, 6.8, 3.1);         // IP관 나가는 곳 (들어가는 곳은 그림책 표지가 문)
+  autoDoor('x', 9.4, 7, 9.6, 3.0);            // 출구 라운지
+  animators.push((t, dt, me) => {
+    for (const d of autoDoors) {
+      const cx = d.axis === 'x' ? d.mid : d.fixed, cz = d.axis === 'x' ? d.fixed : d.mid;
+      const want = Math.hypot(me.x - cx, me.z - cz) < 3.2 ? 1 : 0;
+      d.open += (want - d.open) * Math.min(1, dt * (reduceMotion ? 30 : 5));
+      for (const { leaf, s } of d.leaves) {
+        const off = s * (d.half / 2 + d.open * d.half * .92);
+        if (d.axis === 'x') leaf.position.set(d.mid + off, 0, d.fixed + .2 * (d.fixed > 0 ? -1 : 1) * 0); else leaf.position.set(d.fixed, 0, d.mid + off);
+      }
+    }
+  });
+}
+
+/* ───────── 나: 솜털 얼빵해달 (털 인형 네 방향, 3인칭) ───────── */
+const AV_H = 1.35;
+const avTex = { front: tex('img/pl-front.webp'), three: tex('img/pl-three.webp'), side: tex('img/pl-side.webp'), back: tex('img/pl-back.webp') };
+const avAspect = { front: 450 / 580, three: 437 / 583, side: 408 / 581, back: 448 / 585 };
+const avMat = new THREE.MeshBasicMaterial({ map: avTex.back, alphaTest: .45, side: THREE.DoubleSide, toneMapped: false });
+const avatar = new THREE.Group(); scene.add(avatar);
+const avBody = new THREE.Group(); avatar.add(avBody);
+const avMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), avMat); avMesh.position.y = AV_H / 2; avBody.add(avMesh);
+{
+  const sh = canvasTex(128, 128, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(0,0,0,.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .7), new THREE.MeshBasicMaterial({ map: sh, transparent: true, depthWrite: false })); shadow.rotation.x = -Math.PI / 2; shadow.position.y = .06; avatar.add(shadow);
+}
+const me = { x: 0, z: 31, face: 0, moving: 0, walkT: 0 };
+let avView = '';
+// 그림은 모두 오른쪽을 본다. 왼쪽을 볼 때는 뒤집는다
+function setAvView(v, flip) { const key = v + (flip ? '-' : ''); if (key === avView) return; avView = key; avMat.map = avTex[v]; avMat.needsUpdate = true; avMesh.scale.set(AV_H * avAspect[v] * (flip ? -1 : 1), AV_H, 1); }
+setAvView('back');
+
+
+/* ───────── 나: 해달을 보러 온 선한백호의 발자국 ───────── */
+// 걸으면 발자국이 찍히고, 두세 걸음 뒤부터 흐려지며 사라진다
+avatar.visible = false;
+// 얼빵해달을 보러 온 선한백호의 발바닥 무늬: 검은 큰 발바닥과 발가락 넷만
+const pawTex = canvasTex(256, 256, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h * .53, R = w * .4;
+  g.fillStyle = '#111';
+  // 큰 발바닥: 아래가 세 갈래로 둥근 모양
+  g.beginPath(); g.moveTo(cx - w * .15, cy + h * .02);
+  g.bezierCurveTo(cx - w * .16, cy - h * .12, cx + w * .16, cy - h * .12, cx + w * .15, cy + h * .02);
+  g.bezierCurveTo(cx + w * .2, cy + h * .14, cx + w * .1, cy + h * .22, cx + w * .05, cy + h * .17);
+  g.bezierCurveTo(cx + w * .02, cy + h * .21, cx - w * .02, cy + h * .21, cx - w * .05, cy + h * .17);
+  g.bezierCurveTo(cx - w * .1, cy + h * .22, cx - w * .2, cy + h * .14, cx - w * .15, cy + h * .02); g.fill();
+  for (const [x, y, r] of [[-.2, -.08, .062], [-.08, -.2, .068], [.08, -.2, .068], [.2, -.08, .062]]) { g.beginPath(); g.ellipse(cx + w * x, cy + h * y, w * r, h * r * 1.15, x * 1.2, 0, 7); g.fill(); }
+});
+pawTex.wrapS = pawTex.wrapT = THREE.ClampToEdgeWrapping;
+const pawGeo = new THREE.PlaneGeometry(.34, .34);
+const paws = [];   // 새것이 앞
+const downRay = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0);
+const groundY = (x, z) => { downRay.set(new THREE.Vector3(x, 3, z), DOWN); const h = downRay.intersectObjects(floors, false)[0]; return h ? h.point.y : 0; };
+let strideLeft = 0, pawSide = 1;
+const PAW_ALPHA = [1, .7, .38, .12];
+function dropPaw() {
+  const m = new THREE.Mesh(pawGeo, new THREE.MeshBasicMaterial({ map: pawTex, transparent: true, depthWrite: false, toneMapped: false }));
+  const side = pawSide = -pawSide, sx = Math.cos(me.face) * .1 * side, sz = -Math.sin(me.face) * .1 * side;
+  const x = me.x + sx, z = me.z + sz;
+  m.rotation.x = -Math.PI / 2; m.rotation.z = me.face; m.position.set(x, groundY(x, z) + .012, z); m.renderOrder = 3;
+  scene.add(m); paws.unshift({ m, born: performance.now() });
+  while (paws.length > PAW_ALPHA.length) { const p = paws.pop(); scene.remove(p.m); p.m.material.dispose(); }
+}
+// 바닥을 누른 자리 표시: 동그라미가 퍼졌다 줄며 도착하면 사라진다
+const markTex = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = '#ffffff'; g.lineWidth = 14; g.beginPath(); g.arc(w / 2, h / 2, w * .4, 0, 7); g.stroke(); g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(w / 2, h / 2, w * .08, 0, 7); g.fill(); });
+markTex.wrapS = markTex.wrapT = THREE.ClampToEdgeWrapping;
+const marker = new THREE.Mesh(new THREE.PlaneGeometry(.7, .7), new THREE.MeshBasicMaterial({ map: markTex, transparent: true, depthWrite: false, toneMapped: false }));
+marker.rotation.x = -Math.PI / 2; marker.visible = false; marker.renderOrder = 4; scene.add(marker);
+let markT = 0;
+function showMarker(x, y, z) { marker.position.set(x, y + .015, z); marker.visible = true; markT = 0; }
+function stepPaws(dt, moving, speed) {
+  if (moving) { strideLeft -= speed; if (strideLeft <= 0) { dropPaw(); strideLeft = .42; } } else strideLeft = Math.min(strideLeft, .05);
+  const now = performance.now();
+  paws.forEach((p, i) => { const still = moving ? 1 : Math.max(0, 1 - (now - p.born - 1500) / 1500); p.m.material.opacity = PAW_ALPHA[i] * Math.min(1, still + (i === 0 && !moving ? .6 : 0)); });
+  if (marker.visible) {
+    markT += dt; const s = markT < .25 ? .6 + markT * 1.6 : 1 + Math.sin(markT * 5) * .06;
+    marker.scale.setScalar(s);
+    if (walkTo) marker.material.opacity = .9;
+    else { marker.material.opacity = Math.max(0, marker.material.opacity - dt * 3); if (marker.material.opacity <= 0) marker.visible = false; }
+  }
+}
+
+/* ───────── 걷기 ───────── */
+const RAD = .32, BOUND = { x0: -22.5, x1: 22.5, z0: -27, z1: 35 };
+function blocked(x, z) {
+  if (x < BOUND.x0 || x > BOUND.x1 || z < BOUND.z0 || z > BOUND.z1) return true;
+  for (const c of colliders) if (x > c[0] - RAD && x < c[1] + RAD && z > c[2] - RAD && z < c[3] + RAD) return true;
+  return false;
+}
+function tryMove(dx, dz) { let moved = false; if (!blocked(me.x + dx, me.z)) { me.x += dx; moved = true; } if (!blocked(me.x, me.z + dz)) { me.z += dz; moved = true; } return moved; }
+
+const view = { yaw: 0, pitch: -.24, dist: 3.4 };
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+const PLACES = {
+  outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [-15.7, 6.8], yaw: 0 },
+  court: { pos: [0, 6.6], yaw: 0 }, ip: { pos: [14.4, -4.5], yaw: 0 }, obong: { pos: [0, -13.5], yaw: 0 }, lounge: { pos: [12.6, 13.8], yaw: -Math.PI / 2 },
+};
+let walkTo = null, focus = null;   // focus: 작품을 보는 동안 카메라가 따로 선다
+const fadeEl = document.getElementById('fade');
+function jump(pos, yaw, then) {
+  walkTo = null; focus = null;
+  if (reduceMotion) { me.x = pos[0]; me.z = pos[1]; me.face = view.yaw = yaw; then && then(); return; }
+  fadeEl.classList.add('on');
+  setTimeout(() => { me.x = pos[0]; me.z = pos[1]; me.face = yaw; view.yaw = yaw; view.pitch = -.2; snapCam = true; then && then(); fadeEl.classList.remove('on'); }, 240);
+}
+function goFocus(f) {
+  // 작품 앞으로 가서 옆으로 비켜 서고, 카메라는 작품을 정면으로 본다
+  const [px, pz] = f.pos, [lx, ly, lz] = f.look, dx = lx - px, dz = lz - pz, d = Math.hypot(dx, dz) || 1;
+  const side = [dz / d, -dx / d];
+  const standX = px + side[0] * .75 + dx / d * .35, standZ = pz + side[1] * .75 + dz / d * .35;
+  const camPos = new THREE.Vector3(px - dx / d * .6, Math.max(1.5, ly + .1), pz - dz / d * .6);
+  const far = Math.hypot(me.x - standX, me.z - standZ) > 9;
+  const start = () => { walkTo = { x: standX, z: standZ, stuck: 0, faceTo: Math.atan2(-dx, -dz) }; focus = { pos: camPos, look: new THREE.Vector3(lx, ly, lz) }; };
+  if (far) jump([standX, standZ], Math.atan2(-dx, -dz), start); else start();
+}
+
+const keys = new Set();
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeCard(); closeList(); return; }
+  if (e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key.toLowerCase();
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift', 'q', 'e'].includes(k)) {
+    keys.add(k); walkTo = null; focus = null; hideHint();
+    if (k.startsWith('arrow')) e.preventDefault();
+  }
+});
+addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+addEventListener('blur', () => keys.clear());
+const pad = document.getElementById('pad'), knob = pad.querySelector('i');
+const padVec = { x: 0, y: 0 }; let padId = null;
+function padMove(e) {
+  const r = pad.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  let dx = e.clientX - cx, dy = e.clientY - cy; const m = Math.hypot(dx, dy), max = r.width / 2 - 10;
+  if (m > max) { dx *= max / m; dy *= max / m; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`; padVec.x = dx / max; padVec.y = dy / max;
+}
+pad.addEventListener('pointerdown', e => { padId = e.pointerId; pad.setPointerCapture(e.pointerId); padMove(e); walkTo = null; focus = null; hideHint(); });
+pad.addEventListener('pointermove', e => { if (e.pointerId === padId) padMove(e); });
+const padEnd = e => { if (e.pointerId !== padId) return; padId = null; padVec.x = padVec.y = 0; knob.style.transform = ''; };
+pad.addEventListener('pointerup', padEnd); pad.addEventListener('pointercancel', padEnd);
+
+/* ───────── 둘러보기와 누르기 ───────── */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let drag = null;
+function hitAt(x, y) {
+  ndc.set(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects([...pickables, ...floors, ...blockers], false);
+  return hits[0] || null;
+}
+canvas.addEventListener('pointerdown', e => { if (drag) return; drag = { id: e.pointerId, lx: e.clientX, ly: e.clientY, moved: 0, t: performance.now() }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => {
+  if (drag && e.pointerId === drag.id) {
+    const dx = e.clientX - drag.lx, dy = e.clientY - drag.ly; drag.lx = e.clientX; drag.ly = e.clientY; drag.moved += Math.abs(dx) + Math.abs(dy);
+    if (drag.moved > 4) {
+      canvas.classList.add('dragging'); focus = null;
+      const k = coarse ? .0055 : .0042;
+      view.yaw += dx * k; view.pitch = Math.max(-1.0, Math.min(1.05, view.pitch + dy * k));
+      tip.hidden = true; hideHint();
+    }
+    return;
+  }
+  if (e.pointerType !== 'mouse') return;
+  const h = hitAt(e.clientX, e.clientY), info = h && h.object.userData.info;
+  canvas.classList.toggle('pointing', !!info || (h && floors.includes(h.object)));
+  if (info) { tip.hidden = false; tip.textContent = info.title; tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; } else tip.hidden = true;
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const wasClick = drag.moved < 8 && performance.now() - drag.t < 500;
+  drag = null; canvas.classList.remove('dragging');
+  if (!wasClick || e.type === 'pointercancel') return;
+  const h = hitAt(e.clientX, e.clientY); if (!h) return;
+  const info = h.object.userData.info;
+  if (info) { openCard(info); return; }
+  if (floors.includes(h.object)) { walkTo = { x: h.point.x, z: h.point.z, stuck: 0 }; focus = null; hideHint(); showMarker(h.point.x, h.point.y, h.point.z); }
+}
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('pointerleave', () => { tip.hidden = true; });
+
+
+/* ───────── 확대·축소: 휠, 두 손가락, +/- 키 ───────── */
+const ZMIN = 1.2, ZMAX = 9;
+const zoomBy = f => { view.dist = Math.min(ZMAX, Math.max(ZMIN, view.dist * f)); focus = null; };
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(e.deltaY * .0012)); hideHint(); }, { passive: false });
+addEventListener('keydown', e => { if (e.target.closest && e.target.closest('input,textarea')) return; if (e.key === '+' || e.key === '=') zoomBy(.88); if (e.key === '-' || e.key === '_') zoomBy(1.14); });
+let pinch = 0;
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length !== 2) { pinch = 0; return; }
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  if (pinch) zoomBy(pinch / d); pinch = d; drag = null; canvas.classList.remove('dragging');
+}, { passive: true });
+canvas.addEventListener('touchend', () => { pinch = 0; });
+
+/* ───────── 자세히 보기: 오른쪽 카드 ───────── */
+const $ = id => document.getElementById(id);
+const card = $('card'); let cardOpen = false;
+function openCard(info, skipGo) {
+  $('cardKicker').textContent = info.kind || '';
+  $('cardTitle').textContent = info.title;
+  $('cardMeta').textContent = info.meta || ''; $('cardMeta').hidden = !info.meta;
+  $('cardBody').textContent = info.body || ''; $('cardBody').hidden = !info.body;
+  $('cardFig').hidden = !info.img; if (info.img) { $('cardImg').src = info.img; $('cardImg').alt = info.title; }
+  $('cardEx').hidden = !(info.ex && info.ex.length); $('cardExTitle').textContent = info.exTitle || '전시 이력';
+  $('cardExList').replaceChildren(...(info.ex || []).map(x => Object.assign(document.createElement('li'), { textContent: x })));
+  const links = $('cardLinks'); links.textContent = '';
+  for (const [href, label, ghost] of info.links || []) { const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label + ' ↗'; if (ghost) a.className = 'ghost'; links.append(a); }
+  card.scrollTop = 0; card.classList.remove('closed'); cardOpen = true; tip.hidden = true;
+  if (info.focus && !skipGo) goFocus(info.focus);
+  if (info.id && WORK_IDS.has(info.id)) { seenWorks.add(info.id); }
+}
+function closeCard() { if (!cardOpen) return; card.classList.add('closed'); cardOpen = false; focus = null; }
+$('cardClose').addEventListener('click', closeCard);
+const WORK_IDS = new Set(workPlaced.map(p => p.w.id)), seenWorks = new Set();
+
+// 작품 목록
+const list = $('list'), grid = $('grid');
+for (const { w, info } of workPlaced) {
+  const b = document.createElement('button');
+  b.innerHTML = `<img alt="" loading="lazy"><span class="where"></span><b></b><small></small>`;
+  b.querySelector('img').src = workImg(w); b.querySelector('.where').textContent = '작품 전시관 · ' + info.where;
+  b.querySelector('b').textContent = w.title; b.querySelector('small').textContent = `${w.year} · ${w.size} cm`;
+  b.addEventListener('click', () => { closeList(); openCard(info); });
+  grid.append(b);
+}
+function openList() { list.hidden = false; $('listClose').focus(); }
+function closeList() { list.hidden = true; }
+$('openList').addEventListener('click', openList); $('listClose').addEventListener('click', closeList);
+list.addEventListener('click', e => { if (e.target === list) closeList(); });
+
+// 위쪽 이동 단추
+const navBtns = [...document.querySelectorAll('[data-go]')];
+navBtns.forEach(b => b.addEventListener('click', () => { closeCard(); const p = PLACES[b.dataset.go]; jump(p.pos, p.yaw); hideHint(); }));
+function zoneOf(x, z) {
+  const inR = (R) => x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1;
+  for (const k of ['obong', 'works', 'ip', 'artist', 'lobby', 'lounge']) if (inR(ROOMS[k])) return k;
+  if (Math.abs(x) < 10.4 && Math.abs(z) < 9.4) return 'court';
+  return 'outside';
+}
+
+/* ───────── 조개 도장과 멤버십 카드 ───────── */
+const shellsEl = $('shells'), myCardBtn = $('myCard');
+const stamps = new Set(store.get('stamps', []).filter(k => STAMPS.some(s => s[0] === k)));
+const shellImgs = STAMPS.map(([k, label]) => { const im = document.createElement('img'); im.src = 'img/shell-stamp.webp'; im.alt = `${label} 도장`; im.title = label; im.classList.toggle('got', stamps.has(k)); shellsEl.insertBefore(im, myCardBtn); return im; });
+const toast = $('toast'); let toastTimer = 0;
+function showToast(t, s) { $('toastT').textContent = t; $('toastS').textContent = s; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 3200); }
+function award(k) {
+  if (stamps.has(k)) return;
+  stamps.add(k); store.set('stamps', [...stamps]);
+  const i = STAMPS.findIndex(s => s[0] === k), im = shellImgs[i];
+  im.classList.add('got', 'pop'); setTimeout(() => im.classList.remove('pop'), 600);
+  const left = STAMPS.filter(s => !stamps.has(s[0])).map(s => s[1]);
+  showToast(`조개 도장 ${stamps.size}/5 · ${STAMPS[i][1]}`, left.length ? `남은 곳: ${left.join(', ')}` : '다 모았어요! 출구 라운지 회원 발급 창구로 가 보세요.');
+}
+let member = store.get('member', null);
+myCardBtn.hidden = !member;
+const modal = $('memberModal'), flip = $('flip');
+function renderCard() {
+  $('cardName').textContent = member.name; $('cardNo').textContent = 'No.' + String(member.no).padStart(4, '0'); $('cardDate').textContent = member.date;
+  $('cardStamps').replaceChildren(...STAMPS.map(([k, label], i) => { const s = document.createElement('span'); const im = document.createElement('img'); im.src = 'img/shell-stamp.webp'; im.alt = label; im.style.setProperty('--r', `${[-8, 5, -3, 7, -6][i]}deg`); s.append(im); return s; }));
+}
+function openMember(issueNow) {
+  modal.hidden = false;
+  if (member) {
+    $('mmTitle').textContent = '현대사회스포츠센터 멤버십 카드'; $('mmLead').textContent = '사랑, 응원 그리고 위로를 담아 드려요. 카드를 누르면 뒤집혀요.';
+    $('issueForm').hidden = true; flip.hidden = false; $('mmFlip').hidden = false; renderCard();
+    if (issueNow) setTimeout(() => flip.classList.add('back'), 900);
+  } else {
+    $('mmTitle').textContent = '현대사회스포츠센터 회원이 되었어요'; $('mmLead').textContent = '다섯 곳을 모두 둘러본 해달에게 드리는 멤버십 카드예요. 카드에 새길 이름을 적어 주세요.';
+    $('issueForm').hidden = false; flip.hidden = true; $('mmFlip').hidden = true; setTimeout(() => $('nick').focus(), 50);
+  }
+}
+$('nick').setAttribute('aria-label', '카드에 새길 이름');
+$('issueForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('nick').value.trim() || 'SEA OTTER';
+  const d = TODAY.replace(/-/g, '.');
+  member = { name, no: 1 + Math.floor(Math.random() * 9999), date: d }; store.set('member', member);
+  myCardBtn.hidden = false; flip.classList.remove('back'); openMember(true);
+});
+flip.addEventListener('click', () => flip.classList.toggle('back'));
+$('mmFlip').addEventListener('click', () => flip.classList.toggle('back'));
+$('mmClose').addEventListener('click', () => { modal.hidden = true; });
+myCardBtn.addEventListener('click', () => openMember(false));
+let deskShown = false;
+function checkStamps() {
+  // 바닥 조개 표시를 밟으면 도장
+  for (const [k, m] of Object.entries(stampMarks)) if (Math.hypot(me.x - m.x, me.z - m.z) < .75) award(k);
+  const atDesk = zoneOf(me.x, me.z) === 'lounge' && Math.hypot(me.x - deskSpot.x, me.z - deskSpot.z) < 2.6;
+  if (atDesk && !deskShown) {
+    deskShown = true;
+    if (stamps.size === STAMPS.length && !member) openMember(false);
+    else if (!member) showToast(`조개 도장 ${stamps.size}/5`, '남은 곳: ' + STAMPS.filter(s => !stamps.has(s[0])).map(s => s[1]).join(', '));
+    else showToast('반가워요, ' + member.name, '위쪽 「내 카드」에서 멤버십 카드를 다시 볼 수 있어요.');
+  }
+  if (!atDesk) deskShown = false;
+}
+
+// 중정 등신대 앞: 기념 사진
+const act = $('act'); let actFn = null;
+function setAct(label, fn) { if (label) { act.textContent = label; act.hidden = false; actFn = fn; } else { act.hidden = true; actFn = null; } }
+act.addEventListener('click', () => actFn && actFn());
+function takePhoto() {
+  photoCam = true; renderFrame();
+  const url = canvas.toDataURL('image/jpeg', .92); photoCam = false;
+  $('photoImg').src = url; $('photoModal').hidden = false;
+}
+$('photoClose').addEventListener('click', () => { $('photoModal').hidden = true; });
+
+// 안내 문구
+const hint = $('hint'); let hintHidden = false;
+function hideHint() { if (hintHidden) return; hintHidden = true; setTimeout(() => hint.classList.add('gone'), 2500); }
+if (coarse) hint.textContent = '한 손가락으로 끌어 둘러보기 · 왼쪽 패드로 걷기 · 바닥을 누르면 그곳으로';
+walkTo = { x: 0, z: 26, stuck: 0 };
+
+/* ───────── 매 장면 ───────── */
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize);
+const clock = new THREE.Clock();
+let lastZone = '', snapCam = true, photoCam = false;
+const camTarget = new THREE.Vector3(), camWant = new THREE.Vector3(), camLook = new THREE.Vector3(), tmpV = new THREE.Vector3();
+const camRay = new THREE.Raycaster(), tmpO = new THREE.Vector3();
+function placeCamera(dt) {
+  if (photoCam) {   // 등신대와 내 해달을 함께 담는 자리
+    const mx = (me.x + standeeSpot.x) / 2, mz = (me.z + standeeSpot.z) / 2;
+    camera.position.set(mx - 1.2, 1.5, mz + 4.2); camera.lookAt(mx, .95, mz); return;
+  }
+  if (focus) {
+    camWant.copy(focus.pos); camLook.lerp(focus.look, Math.min(1, dt * 4));
+    camera.position.lerp(camWant, Math.min(1, dt * 3)); camera.lookAt(camLook); return;
+  }
+  camTarget.set(me.x, 1.3, me.z);
+  const cp = Math.cos(view.pitch), dir = tmpV.set(-Math.sin(view.yaw) * cp, Math.sin(view.pitch), -Math.cos(view.yaw) * cp);
+  // 카메라가 벽을 넘지 않게: 가운데와 둘레 네 방향으로 벽을 살펴 가장 가까운 벽 앞에서 멈춘다
+  let dist = view.dist;
+  const back = dir.clone().negate(), side = new THREE.Vector3(Math.cos(view.yaw), 0, -Math.sin(view.yaw)), up = new THREE.Vector3(0, 1, 0);
+  for (const [sx, sy] of [[0, 0], [.35, 0], [-.35, 0], [0, .3], [0, -.3]]) {
+    camRay.set(tmpO.copy(camTarget).addScaledVector(side, sx).addScaledVector(up, sy), back); camRay.far = view.dist + .5;
+    const hit = camRay.intersectObjects(blockers, false)[0];
+    if (hit) dist = Math.min(dist, hit.distance - .45);
+  }
+  dist = Math.max(.35, dist);
+  camWant.copy(camTarget).addScaledVector(dir, -dist); camWant.y = Math.max(.35, camWant.y);
+  // 벽 쪽으로 당겨질 때는 곧바로, 멀어질 때만 부드럽게 따라간다
+  const curD = camera.position.distanceTo(camTarget);
+  if (snapCam || dist < curD - .02) { camera.position.copy(camWant); snapCam = false; } else camera.position.lerp(camWant, Math.min(1, dt * 10));
+  camLook.copy(camTarget).addScaledVector(dir, 2);
+  camera.lookAt(camLook);
+}
+function renderFrame() {
+  // 내 해달은 늘 카메라를 본다(종이인형). 보이는 면은 해달이 향한 쪽과 카메라 방향으로 고른다
+  avatar.position.set(me.x, 0, me.z);
+  const camYaw = Math.atan2(camera.position.x - me.x, camera.position.z - me.z);
+  avBody.rotation.y = camYaw;
+  const rel = wrapA(me.face - (camYaw + Math.PI));
+  const ar = Math.abs(rel); setAvView(ar < .42 ? 'front' : ar < 1.15 ? 'three' : ar < 2.3 ? 'side' : 'back', rel < 0);
+  renderer.render(scene, camera);
+}
+function frame() {
+  const dt = Math.min(clock.getDelta(), .05), time = clock.elapsedTime;
+  let f = 0, s = 0, turn = 0;
+  if (keys.has('w') || keys.has('arrowup')) f += 1;
+  if (keys.has('s') || keys.has('arrowdown')) f -= 1;
+  if (keys.has('a')) s -= 1;
+  if (keys.has('d')) s += 1;
+  if (keys.has('arrowleft') || keys.has('q')) turn += 1;
+  if (keys.has('arrowright') || keys.has('e')) turn -= 1;
+  f -= padVec.y; s += padVec.x;
+  view.yaw += turn * 1.8 * dt;
+  const speed = (keys.has('shift') ? 4.6 : 2.6) * dt;
+  let moving = false;
+  if (f || s) {
+    const m = Math.max(1, Math.hypot(f, s)); f /= m; s /= m;
+    const sy = Math.sin(view.yaw), cy = Math.cos(view.yaw), dx = (-sy * f + cy * s), dz = (-cy * f - sy * s);
+    tryMove(dx * speed, dz * speed); me.face = Math.atan2(-dx, -dz); moving = true;
+  } else if (walkTo) {
+    const dx = walkTo.x - me.x, dz = walkTo.z - me.z, d = Math.hypot(dx, dz);
+    if (d < .1) { if (walkTo.faceTo != null) me.face = walkTo.faceTo; walkTo = null; }
+    else {
+      const st = Math.min(d, speed * 1.1); me.face = Math.atan2(-dx, -dz); moving = true;
+      if (!focus) { const dy = wrapA(me.face - view.yaw); if (d > 1.2) view.yaw += dy * Math.min(1, dt * 1.6); }
+      if (!tryMove(dx / d * st, dz / d * st)) { if (++walkTo.stuck > 8) walkTo = null; }
+    }
+  }
+  // 걸음: 통통 튀고 살짝 눌렸다 펴진다
+  me.moving += ((moving ? 1 : 0) - me.moving) * Math.min(1, dt * 8);
+  if (moving) me.walkT += dt * (keys.has('shift') ? 13 : 9);
+  const bob = reduceMotion ? 0 : Math.abs(Math.sin(me.walkT)) * .07 * me.moving;
+  avBody.position.y = bob;
+  avMesh.rotation.z = reduceMotion ? 0 : Math.sin(me.walkT) * .06 * me.moving;
+
+  placeCamera(dt);
+  stepPages(dt, me);
+  for (const a of animators) a(time, dt, me);
+  if (!reduceMotion && banner.mesh) {
+    const pos = banner.mesh.geometry.attributes.position, b0 = banner.base;
+    for (let i = 0; i < pos.count; i++) { const y = b0[i * 3 + 1], drop = (banner.h / 2 - y) / banner.h; pos.setZ(i, Math.sin(y * 1.6 + time * 1.4) * .05 * drop + Math.sin(time * .7) * .03 * drop); }
+    pos.needsUpdate = true;
+  }
+  for (const [k, m] of Object.entries(stampMarks)) { const got = stamps.has(k); m.ring.visible = !got; m.ring.scale.setScalar(1 + Math.sin(time * 2.4) * .08); m.shell.userData.mesh.material.color.setScalar(got ? .55 : 1); }
+  checkStamps();
+  const z = zoneOf(me.x, me.z);
+  if (z !== lastZone) { lastZone = z; navBtns.forEach(b => b.classList.toggle('on', b.dataset.go === z)); }
+  const nearStandee = Math.hypot(me.x - standeeSpot.x, me.z - standeeSpot.z) < 2.4;
+  if (nearStandee && !actFn) setAct('얼빵해달과 사진 찍기', takePhoto); else if (!nearStandee && actFn) setAct(null);
+  stepPaws(dt, moving, (keys.has('shift') ? 4.6 : 2.6) * dt);
+  renderFrame();
+  requestAnimationFrame(frame);
+}
+me.face = view.yaw = 0;
+requestAnimationFrame(frame);
+</script>

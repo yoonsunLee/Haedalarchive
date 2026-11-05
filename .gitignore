@@ -7,3 +7,8 @@ __pycache__/
 # 이관 SQL에는 소장자·거래가가 들어간다. 절대 커밋 금지.
 migration*.sql
 *.local.sql
+
+# 갤러리 작업용 큰 파일(로컬에만 둔다)
+gallery-plan/work/blender-data/
+gallery-plan/work/handoff/transcript/
+gallery-plan/work/renders/

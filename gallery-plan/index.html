@@ -1,0 +1,515 @@
+<meta charset="utf-8">
+<title>신해달 갤러리 설계안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 도면첩: 검은 옻칠 바탕에 진주빛 선. 왼쪽에 큰 도면, 오른쪽에 설명. 한 가지 모습으로만 간다 */
+:root {
+  --lacquer: #100e0d;
+  --panel: #191513;
+  --pearl: #ece6db;
+  --pearl-2: #b3aa9d;
+  --hair: #4a433d;
+  --nacre: #7fcdbf;
+  --sun: #d0503f;
+  --gold: #c9a86a;
+  --f-display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+html { background: var(--lacquer); }
+body { background: var(--lacquer); color: var(--pearl); font: 15px/1.7 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 48px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 72px; }
+header { display: grid; gap: 10px; border-bottom: 1px solid var(--hair); padding-bottom: 28px; }
+.eyebrow { font: 500 11.5px/1 var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--nacre); }
+h1 { font: 700 clamp(30px, 4.6vw, 48px)/1.2 var(--f-display); margin: 0; text-wrap: balance; }
+h2 { font: 700 clamp(22px, 2.8vw, 28px)/1.3 var(--f-display); margin: 0; text-wrap: balance; }
+h3 { font: 600 15px/1.4 var(--f-body); margin: 0; color: var(--pearl); }
+p { margin: 0; max-width: 64ch; }
+.lede { color: var(--pearl-2); max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; font: 12px/1.5 var(--f-mono); color: var(--pearl-2); }
+section { display: grid; gap: 22px; }
+.sheet { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.sheet > * { min-width: 0; }
+@media (max-width: 860px) { .sheet { grid-template-columns: minmax(0, 1fr); } }
+.dwg { background: var(--panel); border: 1px solid var(--hair); padding: 14px; overflow-x: auto; }
+.dwg svg { display: block; width: 100%; height: auto; min-width: 520px; }
+.dwg figcaption { font: 11.5px/1.5 var(--f-mono); color: var(--pearl-2); margin-top: 10px; letter-spacing: .02em; }
+figure { margin: 0; }
+ul.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+ul.notes li { display: grid; gap: 2px; padding-left: 14px; border-left: 1px solid var(--hair); }
+ul.notes li span { color: var(--pearl-2); font-size: 14px; }
+.tag { font: 500 11px/1 var(--f-mono); color: var(--lacquer); background: var(--nacre); padding: 4px 7px 3px; letter-spacing: .06em; display: inline-block; }
+.route { display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; font-size: 14px; }
+.route b { font-weight: 600; }
+.route i { font-style: normal; color: var(--sun); }
+.zones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); }
+.zone { background: var(--lacquer); padding: 18px 18px 20px; display: grid; gap: 8px; align-content: start; }
+.zone .no { font: 500 12px/1 var(--f-mono); color: var(--nacre); letter-spacing: .1em; }
+.zone p { color: var(--pearl-2); font-size: 14px; }
+.zone .mat { font: 11.5px/1.5 var(--f-mono); color: var(--gold); }
+.open { display: grid; gap: 10px; }
+.open li { color: var(--pearl-2); }
+.open li b { color: var(--pearl); font-weight: 600; }
+/* 도면 선 */
+svg text { font-family: var(--f-body); fill: var(--pearl); }
+.t-s { font-size: .78px; fill: var(--pearl-2); }
+.t-m { font-size: 1.05px; font-weight: 600; }
+.t-l { font-size: 1.5px; font-family: var(--f-display); font-weight: 700; }
+.t-mono { font-family: var(--f-mono); }
+.wall { fill: #221c19; stroke: var(--pearl); stroke-width: .16; }
+.ring { fill: #2a221c; stroke: var(--pearl-2); stroke-width: .08; stroke-dasharray: .4 .3; }
+.court { fill: #3a3631; stroke: var(--pearl-2); stroke-width: .08; }
+.garden { fill: #16201b; stroke: var(--hair); stroke-width: .08; }
+.eave { fill: none; stroke: var(--nacre); stroke-width: .12; stroke-dasharray: .6 .35; }
+.door { fill: var(--lacquer); stroke: var(--gold); stroke-width: .12; }
+.path { fill: none; stroke: var(--sun); stroke-width: .28; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: .9 .5; }
+.stone { fill: #8c857b; }
+.dim { stroke: var(--pearl-2); stroke-width: .06; fill: none; }
+.badge { fill: var(--nacre); }
+.badge-t { font-family: var(--f-mono); font-size: 1.1px; font-weight: 500; fill: var(--lacquer); }
+@media (prefers-reduced-motion: no-preference) { .path { animation: march 6s linear infinite; } }
+@keyframes march { to { stroke-dashoffset: -14; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Shin Haedal Virtual Gallery · 설계안 v1 · 2026.11.02</span>
+    <h1>마당을 둘러싼 다섯 채</h1>
+    <p class="lede">존 하나가 건물 한 채예요. 다섯 채가 가운데 중정을 ㅁ자로 둘러싸고, 관람객은 얼빵해달이 되어 3인칭으로 걸어 다녀요. 중정에서는 모든 존으로 들어갈 수 있어요.</p>
+    <div class="meta"><span>축척 표시: m</span><span>북쪽이 위</span><span>대지 약 42 × 46 m</span><span>바탕: 도면은 지어질 크기 그대로</span></div>
+  </header>
+
+  <!-- 평면도 -->
+  <section>
+    <span class="eyebrow">01 · 평면도</span>
+    <div class="sheet">
+      <figure class="dwg">
+        <svg viewBox="-24.5 -30.5 49 58.5" role="img" aria-label="갤러리 평면도">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#d0503f"/></marker>
+            <pattern id="gravel" width="1.2" height="1.2" patternUnits="userSpaceOnUse"><rect width="1.2" height="1.2" fill="#4a453f"/><circle cx=".3" cy=".4" r=".07" fill="#6d665c"/><circle cx=".9" cy=".9" r=".06" fill="#5f594f"/><circle cx=".8" cy=".2" r=".05" fill="#746c61"/></pattern>
+          </defs>
+          <!-- 뒤뜰 -->
+          <rect class="garden" x="-21" y="-27" width="10.6" height="7"/>
+          <rect class="garden" x="10.4" y="-27" width="10.6" height="7"/>
+          <text class="t-s" x="-15.7" y="-23.2" text-anchor="middle">대숲 뒤뜰</text>
+          <text class="t-s" x="15.7" y="-23.2" text-anchor="middle">대숲 뒤뜰</text>
+          <!-- 채 -->
+          <rect class="wall" x="-10.4" y="-27" width="20.8" height="17.6"/>
+          <rect class="wall" x="-21" y="-20" width="10.6" height="29.4"/>
+          <rect class="wall" x="10.4" y="-20" width="10.6" height="29.4"/>
+          <rect class="wall" x="-21" y="9.4" width="15" height="10"/>
+          <rect class="wall" x="-6" y="9.4" width="12" height="10"/>
+          <rect class="wall" x="6" y="9.4" width="15" height="10"/>
+          <!-- 툇마루와 중정 -->
+          <rect class="ring" x="-10.4" y="-9.4" width="20.8" height="18.8"/>
+          <rect class="court" x="-8" y="-7" width="16" height="14" fill="url(#gravel)"/>
+          <rect x="-8" y="-7" width="16" height="14" fill="none" stroke="#8c857b" stroke-width=".9" opacity=".55"/>
+          <!-- 처마선: 하늘을 여덟모로 오린다 -->
+          <polygon class="eave" points="-4.5,-6 4.5,-6 7,-3.5 7,3.5 4.5,6 -4.5,6 -7,3.5 -7,-3.5"/>
+          <!-- 디딤돌: 로비→오봉단 축, 작품관↔IP관 가로길 -->
+          <g class="stone">
+            <rect x="-.7" y="5.2" width="1.4" height=".9" rx=".2"/><rect x="-.6" y="3.4" width="1.2" height=".9" rx=".2"/><rect x="-.7" y="1.6" width="1.4" height=".9" rx=".2"/><rect x="-.6" y="-.2" width="1.2" height=".9" rx=".2"/><rect x="-.7" y="-2" width="1.4" height=".9" rx=".2"/><rect x="-.6" y="-3.8" width="1.2" height=".9" rx=".2"/><rect x="-.7" y="-5.6" width="1.4" height=".9" rx=".2"/>
+            <rect x="-6.6" y="-4.9" width=".9" height="1.1" rx=".2"/><rect x="-4.8" y="-5" width=".9" height="1.2" rx=".2"/><rect x="-3" y="-4.9" width=".9" height="1.1" rx=".2"/><rect x="2.1" y="-4.9" width=".9" height="1.1" rx=".2"/><rect x="3.9" y="-5" width=".9" height="1.2" rx=".2"/><rect x="5.7" y="-4.9" width=".9" height="1.1" rx=".2"/>
+          </g>
+          <line x1="0" y1="6.6" x2="0" y2="-6.6" stroke="#ece6db" stroke-width=".05" opacity=".7"/>
+          <!-- 소나무, 배롱나무, 수반, 이정표 -->
+          <ellipse cx="-4.6" cy="2.6" rx="2" ry="1.5" fill="#24302a" stroke="#7fcdbf" stroke-width=".07"/>
+          <text class="t-s" x="-4.6" y="2.85" text-anchor="middle">소나무</text>
+          <ellipse cx="4.8" cy="2.4" rx="1.5" ry="1.2" fill="#2e2626" stroke="#c9a86a" stroke-width=".07"/>
+          <text class="t-s" x="4.8" y="2.65" text-anchor="middle">배롱</text>
+          <rect x="2.4" y="-2.6" width="3.2" height="1.6" fill="#0b0b0b" stroke="#7fcdbf" stroke-width=".07"/>
+          <text class="t-s" x="4" y="-1.55" text-anchor="middle">검은 수반</text>
+          <rect x="1.2" y="4.2" width=".5" height=".5" fill="#c9a86a"/>
+          <text class="t-s" x="1.95" y="4.62">이정표</text>
+          <!-- 문 -->
+          <g class="door">
+            <rect x="-1.6" y="19.1" width="3.2" height=".6"/><rect x="-2" y="9.1" width="4" height=".6"/><rect x="-6.3" y="13" width=".6" height="2.4"/><rect x="-18.2" y="9.1" width="3" height=".6"/><rect x="-10.7" y="-6" width=".6" height="3"/><rect x="10.1" y="-6" width=".6" height="3"/><rect x="10.1" y="4.2" width=".6" height="2.6"/><rect x="-3" y="-9.7" width="6" height=".6"/><rect x="7" y="9.1" width="2.6" height=".6"/><rect x="5.7" y="13" width=".6" height="2.4"/><rect x="12" y="19.1" width="3" height=".6"/>
+          </g>
+          <!-- 동선 -->
+          <path class="path" marker-end="url(#arr)" d="M0 26.5 L0 15.5 L-4 14.2 L-12.5 14.2 L-16.7 10.8 L-16.5 2 L-16.5 -16 L-13.2 -8 L-10.4 -4.5"/>
+          <path class="path" marker-end="url(#arr)" d="M-9.6 -4.4 L9.6 -4.4"/>
+          <path class="path" marker-end="url(#arr)" d="M10.8 -4.5 L13 -17.5 L18.3 -17.5 L18.3 6 L11 5.5"/>
+          <path class="path" marker-end="url(#arr)" d="M9.8 5.5 L2 6.6 L1 -9.6"/>
+          <path class="path" marker-end="url(#arr)" d="M0 -10.6 L0 -16.5"/>
+          <path class="path" marker-end="url(#arr)" d="M-1.3 -10.2 L-1.6 4.5 L8.2 8.7 L13.5 14 L13.5 26"/>
+          <!-- 이름 -->
+          <text class="t-l" x="0" y="-21.6" text-anchor="middle">③ 일월오봉단관</text>
+          <text class="t-s" x="0" y="-20.2" text-anchor="middle">천장 11 m · 가장 높은 채 · 입구 정면 축</text>
+          <text class="t-l" x="-15.7" y="-11" text-anchor="middle">① 작품</text>
+          <text class="t-l" x="-15.7" y="-9.2" text-anchor="middle">전시관</text>
+          <text class="t-s" x="-15.7" y="-7.8" text-anchor="middle">10.6 × 29.4 m</text>
+          <text class="t-l" x="15.7" y="-11" text-anchor="middle">② IP관</text>
+          <text class="t-s" x="15.7" y="-9.6" text-anchor="middle">팝업북 속 세계</text>
+          <text class="t-l" x="-13.5" y="16.6" text-anchor="middle">⓪ 작가소개</text>
+          <text class="t-l" x="0" y="13.4" text-anchor="middle">로비</text>
+          <text class="t-s" x="0" y="17.6" text-anchor="middle">전시 안내 · 테마 영상 · 샵 배너</text>
+          <text class="t-l" x="13.5" y="12.6" text-anchor="middle">출구 라운지</text>
+          <text class="t-s" x="16.5" y="17.6" text-anchor="middle">샵 배너</text>
+          <text class="t-m" x="0" y="-7.6" text-anchor="middle" fill="#7fcdbf">중정</text>
+          <text class="t-s" x="-9.2" y="8.6" text-anchor="middle" transform="rotate(-90 -9.2 8.6)" dx="9">툇마루 회랑</text>
+          <text class="t-s" x="0" y="27.6" text-anchor="middle">입구</text>
+          <!-- 치수 -->
+          <path class="dim" d="M-8 -8.2 L8 -8.2 M-8 -8.5 L-8 -7.9 M8 -8.5 L8 -7.9"/>
+          <text class="t-s t-mono" x="6.4" y="-8.4" text-anchor="end">16 m</text>
+        </svg>
+        <figcaption>빨간 점선 = 권장 동선 · 금색 = 문 · 청록 점선 = 처마 끝(중정에서 올려다보면 하늘이 이 모양으로 오려져요)</figcaption>
+      </figure>
+      <div style="display:grid; gap:22px">
+        <div class="route" aria-label="권장 동선">
+          <b>입구</b><i>→</i><b>로비</b><i>→</i><b>⓪ 작가소개</b><i>→</i><b>① 작품</b><i>→</i><b>중정</b><i>→</i><b>② IP관</b><i>→</i><b>중정 축선</b><i>→</i><b>③ 일월오봉단</b><i>→</i><b>출구 라운지</b>
+        </div>
+        <ul class="notes">
+          <li><h3>중정이 허브예요</h3><span>모든 채가 중정 쪽으로 문을 열어요. 권장 동선이 있지만, 중정에서 아무 존으로나 바로 들어갈 수 있어요.</span></li>
+          <li><h3>클라이맥스로 가는 축</h3><span>로비 문 → 디딤돌 축선 → 일월오봉단관 대문이 일직선이에요. 로비에 들어서면 마당 건너 정면에 오봉단관이 보이지만, 권장 동선은 한 바퀴 돌고 나서야 그 축을 걷게 해요.</span></li>
+          <li><h3>대숲 뒤뜰</h3><span>오봉단관 양옆 모서리는 비워서 대숲으로 채워요. 밖에서 보면 가운데 채가 더 높고 깊어 보여요.</span></li>
+          <li><h3>영상관은 뺐어요</h3><span>홈페이지 메인 테마 영상만 로비 벽에서 소리 없이 반복 재생해요. 추가 저장 용량이 들지 않아요.</span></li>
+          <li><h3>샵 배너 두 곳</h3><span>로비와 출구 라운지에 걸고, 누르면 아이디어스 해달자개 브랜드샵으로 넘어가요.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 입면 -->
+  <section>
+    <span class="eyebrow">02 · 남쪽 입면</span>
+    <div class="sheet">
+      <figure class="dwg"><svg id="elev" viewBox="-25 -1 50 16" role="img" aria-label="남쪽에서 본 입면"></svg>
+        <figcaption>남쪽 광장에서 본 모습. 지붕 높이가 낮음 · 중간 · 높음 · 중간 · 낮음으로 이어져 다섯 봉우리로 읽혀요.</figcaption></figure>
+      <ul class="notes">
+        <li><h3>가짜 날개 없음</h3><span>지붕 다섯 장이 모두 실제 방의 지붕이에요. 바깥 두 장은 작가소개와 출구 라운지, 그 안쪽 두 장은 작품관과 IP관, 가장 높은 가운데가 일월오봉단관이에요.</span></li>
+        <li><h3>재료는 그대로</h3><span>몸체는 검은 옻칠 판, 지붕은 진주빛 얇은 곡면이에요. 지붕 처마 끝은 한옥처럼 살짝 들려요.</span></li>
+        <li><h3>로비는 대문 역할</h3><span>가운데 앞의 낮은 채가 로비예요. 개인전 현수막은 로비 앞면에 걸려요.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 중정 -->
+  <section>
+    <span class="eyebrow">03 · 중정</span>
+    <div class="sheet">
+      <figure class="dwg">
+        <svg viewBox="0 0 40 24" role="img" aria-label="중정에서 올려다본 하늘">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9cbd6"/><stop offset="1" stop-color="#e7edf0"/></linearGradient>
+            <clipPath id="oct"><polygon points="11,4 29,4 34,9 34,15 29,20 11,20 6,15 6,9"/></clipPath>
+          </defs>
+          <rect width="40" height="24" fill="#2a1d16"/>
+          <!-- 서까래 끝이 여덟모 구멍 쪽으로 모인다 -->
+          <g stroke="#3d2a20" stroke-width=".35" id="raft"></g>
+          <rect x="0" y="0" width="40" height="24" fill="none"/>
+          <polygon points="11,4 29,4 34,9 34,15 29,20 11,20 6,15 6,9" fill="url(#sky)"/>
+          <g clip-path="url(#oct)" opacity=".85">
+            <path d="M5 21 Q20 17.6 35 21 L35 24 L5 24Z" fill="#5d6166"/>
+            <g id="tiles" fill="#7a7f84"></g>
+          </g>
+          <polygon points="11,4 29,4 34,9 34,15 29,20 11,20 6,15 6,9" fill="none" stroke="#c9a86a" stroke-width=".22"/>
+          <polygon points="10.2,3.2 29.8,3.2 34.8,8.2 34.8,15.8 29.8,20.8 10.2,20.8 5.2,15.8 5.2,8.2" fill="none" stroke="#5a3e2e" stroke-width=".8"/>
+          <text x="20" y="12.6" text-anchor="middle" style="font-size:1.1px; fill:#33414a; font-family:var(--f-mono)">하늘</text>
+          <text x="20" y="23.3" text-anchor="middle" style="font-size:.8px; fill:#b3aa9d">처마 안쪽 반자: 짙은 나무 + 가는 놋쇠 선 · 모서리를 깎아 여덟모로</text>
+        </svg>
+        <figcaption>중정 한가운데에서 올려다본 모습. 네 채의 처마가 모서리에서 비스듬히 깎여 하늘을 여덟모로 오려 내요.</figcaption>
+      </figure>
+      <ul class="notes">
+        <li><h3>바닥: 한옥 마당</h3><span>가장자리는 박석, 가운데는 밝은 마사토에 디딤돌을 놓아요. 축선 디딤돌 사이에는 가는 매입 조명이 깔려 밤에도 길이 보여요.</span></li>
+        <li><h3>하늘: 여덟모 틀</h3><span>보내 주신 팔각 천창 사진처럼, 처마 끝 기와선과 짙은 나무 반자가 하늘을 액자처럼 둘러요. 카메라를 위로 올리면 이 장면이 보여요. (말씀하신 「4번째 이미지」의 하늘은 세 번째 팔각 천창 사진으로 이해했어요.)</span></li>
+        <li><h3>현대적 해석</h3><span>아모레퍼시픽 사옥처럼 곡선 화단 안에 나무를 두고, 검은 돌 수반에 하늘이 비치게 해요. 툇마루 기둥은 검은 금속, 난간 대신 유리예요.</span></li>
+        <li><h3>문과 안내판</h3><span>각 채의 중정 쪽 문 위에 놋쇠 글자 현판(존 번호와 이름)을 달아요. 축선 앞 이정표 기둥에는 다섯 방향 화살표가 있어요.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 존별 -->
+  <section>
+    <span class="eyebrow">04 · 존별 구성</span>
+    <h2>방마다 재료를 달리해요</h2>
+    <div class="zones">
+      <div class="zone"><span class="no">로비</span><h3>전시 안내와 샵 배너</h3><p>정면 벽은 Now on view / Upcoming 안내판이에요. 개인전과 예정 전시가 홈페이지 어드민에서 정한 순서대로 걸려요. 옆 벽에서는 메인 테마 영상이 돌고, 샵 배너가 있어요.</p><span class="mat">한지 광천장 · 놋쇠 창호 · 석재 바닥</span></div>
+      <div class="zone"><span class="no">⓪ 작가소개</span><h3>About · CV · Press</h3><p>작가 사진과 About 문장을 벽면 타이포로 써요. 긴 벽 하나는 연도별 CV 타임라인이고, 언론 보도는 액자로 걸어요. 자료는 홈페이지, 아카이브, 로컬 폴더에서 가져와요.</p><span class="mat">한지 광천장 · 놋쇠 창호</span></div>
+      <div class="zone"><span class="no">① 작품 전시관</span><h3>신작이 저절로 걸리는 벽</h3><p>홈페이지 발행 스크립트가 만드는 gallery.json으로 작품을 받아요. 신작 → 연작 묶음 → 단독작 연도순으로 채우고, 벽이 모자라면 가벽이 늘어나요.</p><span class="mat">흰 벽 · 한지 광천장 · 밝은 나무 보 · 회색 석재</span></div>
+      <div class="zone"><span class="no">② IP관</span><h3>팝업북 속 얼빵해달 세계</h3><p>거대한 그림책 표지가 열리며 들어가요. 다가가면 종이 장면이 일어서고, 홈페이지 IP 페이지의 글과 그림이 그대로 나와요.</p><span class="mat">종이 층 · 밤하늘 천장 · 따뜻한 조명</span></div>
+      <div class="zone"><span class="no">③ 일월오봉단관</span><h3>그림 앞 두 단 단상</h3><p>정면 벽 전체가 일월오봉도예요. 다섯 캐릭터는 두 단에 엇갈려 서고, 차단봉 줄 뒤에서 봐요.</p><span class="mat">흙벽 · 낮은 조명 · 높은 어두운 천장</span></div>
+    </div>
+  </section>
+
+  <!-- 작품 전시관 -->
+  <section>
+    <span class="eyebrow">05 · ① 작품 전시관 · 거는 규칙</span>
+    <div class="sheet">
+      <figure class="dwg">
+        <svg viewBox="0 0 60 15" role="img" aria-label="작품 거는 순서">
+          <rect x="0" y="0" width="60" height="15" fill="#e9e5de"/>
+          <line x1="0" y1="7" x2="60" y2="7" stroke="#b9b2a6" stroke-width=".05" stroke-dasharray=".4 .3"/>
+          <text x="59.5" y="6.7" text-anchor="end" style="font-size:.7px; fill:#7d766b; font-family:var(--f-mono)">작품 중심 1.5 m</text>
+          <g fill="#1d1916">
+            <rect x="2" y="3.2" width="5" height="7.6"/><rect x="9" y="4" width="4.6" height="6"/>
+            <rect x="17" y="4.2" width="4" height="5.6"/><rect x="21" y="4.2" width="4" height="5.6"/>
+            <rect x="28.5" y="4.6" width="3.4" height="4.8"/><rect x="33" y="4.6" width="3.4" height="4.8"/><rect x="37.5" y="4.6" width="3.4" height="4.8"/>
+            <rect x="44" y="4.4" width="3.6" height="5.2"/><rect x="49.5" y="4" width="4" height="6"/>
+          </g>
+          <rect x="55.4" y="4" width="3.6" height="6" fill="none" stroke="#7d766b" stroke-width=".08" stroke-dasharray=".35 .25"/>
+          <g style="font-size:.85px; fill:#3a342e">
+            <text x="7.3" y="12.3" text-anchor="middle">신작</text>
+            <text x="21" y="12.3" text-anchor="middle">무주의 바다 · 두 폭 붙이기(ㅁㅁ)</text>
+            <text x="34.7" y="12.3" text-anchor="middle">우주조약 · 연작 순서대로</text>
+            <text x="48.7" y="12.3" text-anchor="middle">단독작 · 연도순</text>
+            <text x="57.2" y="12.3" text-anchor="middle">다음 자리</text>
+          </g>
+          <g stroke="#d0503f" stroke-width=".1"><line x1="8" y1="1.6" x2="8" y2="2.6"/><line x1="15.3" y1="1.6" x2="15.3" y2="2.6"/><line x1="26.8" y1="1.6" x2="26.8" y2="2.6"/><line x1="42.5" y1="1.6" x2="42.5" y2="2.6"/></g>
+          <text x="1" y="1.6" style="font-size:.75px; fill:#7d766b; font-family:var(--f-mono)">입구 쪽 →</text>
+        </svg>
+        <figcaption>펼친 벽면도(예시). 빨간 눈금 = 묶음 사이 넓은 간격. 두 폭 붙이기 연작은 간격 없이 붙어요.</figcaption>
+      </figure>
+      <ul class="notes">
+        <li><h3>데이터</h3><span>홈페이지 발행(GitHub Actions) 때 gallery.json을 함께 만들어요. 작품, 연작(series, series_order, 두 폭 붙이기), 전시 일정이 들어가요. "홈페이지에 반영"을 누르면 갤러리도 따라 바뀌어요.</span></li>
+        <li><h3>걸 자리 목록</h3><span>벽마다 걸 수 있는 길이를 정해 두고, 앞에서부터 채워요. 한 묶음이 벽 하나를 넘치면 묶음째 다음 벽으로 넘겨서 연작이 벽 모서리에서 갈라지지 않게 해요.</span></li>
+        <li><h3>가벽</h3><span>작품이 늘어 벽이 모자라면 방 가운데에 가벽이 하나씩 생겨요. 지금 15점 기준으로 바깥 벽만 써도 절반쯤 비어 있어요.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- IP관 -->
+  <section>
+    <span class="eyebrow">06 · ② IP관 · 팝업북</span>
+    <div class="sheet">
+      <figure class="dwg">
+        <svg viewBox="0 0 44 22" role="img" aria-label="IP관 페이지 배치와 팝업 장치">
+          <rect width="44" height="22" fill="#141a2a"/>
+          <g id="stars" fill="#ece6db"></g>
+          <!-- 평면: 6페이지 -->
+          <g transform="translate(1.5 1.5)">
+            <rect width="10.6" height="19" fill="#1d2335" stroke="#ece6db" stroke-width=".1"/>
+            <g fill="#f2e7cf" stroke="#c9a86a" stroke-width=".06">
+              <rect x="1" y="12.5" width="3.6" height="2.4"/><rect x="1" y="8.3" width="3.6" height="2.4"/><rect x="1" y="4.1" width="3.6" height="2.4"/>
+              <rect x="6" y="1.4" width="3.6" height="2.4"/><rect x="6" y="6.6" width="3.6" height="2.4"/><rect x="6" y="11.8" width="3.6" height="2.4"/>
+            </g>
+            <g style="font-size:.9px; font-family:var(--f-mono)" fill="#1d1916" text-anchor="middle">
+              <text x="2.8" y="14">1</text><text x="2.8" y="9.8">2</text><text x="2.8" y="5.6">3</text><text x="7.8" y="2.9">4</text><text x="7.8" y="8.1">5</text><text x="7.8" y="13.3">6</text>
+            </g>
+            <rect x="-.4" y="15.4" width="1.6" height="2.8" fill="#d0503f"/>
+            <text x="1.6" y="17.6" style="font-size:.7px" fill="#ece6db">책 표지 문</text>
+            <rect x="9.9" y="15.6" width="1.2" height="2.4" fill="#c9a86a"/>
+            <text x="5.3" y="-.3" text-anchor="middle" style="font-size:.7px" fill="#b3aa9d">평면 (위가 북쪽)</text>
+          </g>
+          <!-- 단면: 다가가면 일어선다 -->
+          <g transform="translate(15 4)">
+            <line x1="0" y1="12" x2="27" y2="12" stroke="#ece6db" stroke-width=".08"/>
+            <rect x="0" y="11.7" width="6" height=".3" fill="#f2e7cf"/>
+            <g transform="translate(9 12) rotate(-45)"><rect x="0" y="-.15" width="6" height=".3" fill="#f2e7cf"/></g>
+            <rect x="17" y="6" width=".3" height="6" fill="#f2e7cf"/>
+            <rect x="15" y="9" width=".25" height="3" fill="#e5d6b4"/><rect x="19.5" y="8" width=".25" height="4" fill="#e5d6b4"/>
+            <circle cx="25" cy="10.4" r="1.1" fill="#dff1fb" stroke="#6aaee6" stroke-width=".08"/>
+            <text x="25" y="13.3" text-anchor="middle" style="font-size:.75px" fill="#b3aa9d">나</text>
+            <g style="font-size:.75px; font-family:var(--f-mono)" fill="#b3aa9d" text-anchor="middle">
+              <text x="3" y="13.4">6 m 밖: 접힘</text><text x="11.5" y="13.4">4 m: 반쯤</text><text x="17.3" y="13.4">2 m: 활짝</text>
+            </g>
+            <text x="0" y="1.2" style="font-size:.8px" fill="#ece6db">단면: 종이 장면이 경첩처럼 일어서요</text>
+            <path d="M14.5 4.2 q2 -1.4 4 0 q2 -1.4 4 0" fill="none" stroke="#f2e7cf" stroke-width=".08"/>
+            <text x="18.6" y="3" text-anchor="middle" style="font-size:.7px" fill="#b3aa9d">떠다니는 종이 조개·구름</text>
+          </g>
+        </svg>
+        <figcaption>왼쪽: 페이지 여섯 장의 배치. 오른쪽: 관람객 해달이 다가갈수록 장면이 일어서요.</figcaption>
+      </figure>
+      <ul class="notes">
+        <li><h3>1 · 해변</h3><span>조개 줍는 얼빵해달. 다가가면 얼굴이 쏙 올라오며 「저를 부르셨나요?」</span></li>
+        <li><h3>2 · 조개배달부 01–04</h3><span>줍기 → 배달 → 자개 → 작품. 조개 하나가 페이지 사이를 건너 날아가요.</span></li>
+        <li><h3>3 · 숲길</h3><span>종이 숲이 겹겹이 일어서고, 해달이 길을 걸어 내려오며 커져요. fluffy, grubby 태그가 톡 붙어요.</span></li>
+        <li><h3>4 · 아침 수영반</h3><span>종이 물결 속에서 허우적. 멤버십 카드와 「해달도 배워야 수영을 한다」.</span></li>
+        <li><h3>5 · 이름 이야기</h3><span>얼빵 → SPACED-OUT, 해달 → SUN + MOON 카드가 뒤집혀요.</span></li>
+        <li><h3>6 · 장난감 상자</h3><span>아트토이 진열장 네 개가 상자에서 솟아요. 마지막 페이지를 지나면 중정 축선으로 나가 오봉단관으로 가요.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 오봉단 -->
+  <section>
+    <span class="eyebrow">07 · ③ 일월오봉단관</span>
+    <div class="sheet">
+      <figure class="dwg">
+        <svg viewBox="-11.5 -11 23 12.6" role="img" aria-label="일월오봉단관 정면">
+          <defs>
+            <clipPath id="wallclip"><rect x="-10.4" y="-10" width="20.8" height="10"/></clipPath>
+          </defs>
+          <rect x="-11.5" y="-11" width="23" height="12.6" fill="#120f0e"/>
+          <g clip-path="url(#wallclip)">
+            <image href="img/ilwol.webp" x="-11.57" y="-9.6" width="7.71" height="9" preserveAspectRatio="none" transform="scale(-1 1)" opacity=".55"/>
+            <image href="img/ilwol.webp" x="3.86" y="-9.6" width="7.71" height="9" preserveAspectRatio="none" opacity=".55" transform="translate(15.43 0) scale(-1 1) translate(-15.43 0)"/>
+            <image href="img/ilwol.webp" x="-3.86" y="-9.6" width="7.71" height="9" preserveAspectRatio="none"/>
+          </g>
+          <rect x="-10.4" y="-10" width="20.8" height="10" fill="none" stroke="#4a433d" stroke-width=".06"/>
+          <text x="-7.1" y="-9.95" text-anchor="middle" style="font-size:.5px" fill="#b3aa9d" dy=".7">좌우 연장(파도·소나무 이어 그림)</text>
+          <!-- 단상 -->
+          <rect x="-6.4" y="-1.3" width="12.8" height=".8" fill="#2b221d" stroke="#c9a86a" stroke-width=".04"/>
+          <rect x="-7.4" y="-.5" width="14.8" height=".5" fill="#3a2e27" stroke="#c9a86a" stroke-width=".04"/>
+          <!-- 뒷줄: 달 아래 토끼, 해 아래 학 -->
+          <image href="img/rabbit-cutout.webp" x="-3.03" y="-3.5" width="1.12" height="2.2"/>
+          <image href="img/crane-cutout.webp" x="1.13" y="-3.5" width="1.6" height="2.2"/>
+          <!-- 앞줄 -->
+          <image href="img/deer-cutout.webp" x="-4.85" y="-2.7" width="1.3" height="2.2"/>
+          <image href="img/tiger-cutout.webp" x="-.7" y="-2.7" width="1.41" height="2.2"/>
+          <image href="img/otter-cutout.webp" x="3.46" y="-2.7" width="1.49" height="2.2"/>
+          <!-- 명판 -->
+          <g fill="#c9a86a" style="font-size:.22px; font-family:var(--f-mono)" text-anchor="middle">
+            <text x="-2.47" y="-.95">MOON 정월토끼</text><text x="1.93" y="-.95">SUN 학두루미</text>
+            <text x="-4.2" y="-.17">PINE 솔직사슴</text><text x="0" y="-.17">MOUNTAIN 선한백호</text><text x="4.2" y="-.17">SEA 얼빵해달</text>
+          </g>
+          <line x1="-10.4" y1="0" x2="10.4" y2="0" stroke="#ece6db" stroke-width=".05"/>
+          <text x="0" y="1.05" text-anchor="middle" style="font-size:.45px" fill="#b3aa9d">정면도 · 벽 20.8 × 10 m · 그림 원본은 가운데 7.7 × 9 m</text>
+        </svg>
+        <figcaption>정면에서 보면 앞줄 셋, 뒷줄 둘이 엇갈려요. 뒷줄 토끼와 학은 그림 속 달과 해 바로 아래, 선한백호는 가운데 봉우리 앞이에요.</figcaption>
+      </figure>
+      <figure class="dwg">
+        <svg style="min-width:0" viewBox="-0.6 -10.8 11.4 12" role="img" aria-label="일월오봉단관 측단면">
+          <rect x="-.6" y="-10.8" width="11.4" height="12" fill="#120f0e"/>
+          <rect x="-.4" y="-10" width=".4" height="10" fill="#2b221d"/>
+          <rect x="0" y="-9.6" width=".05" height="9" fill="#7fcdbf"/>
+          <rect x=".7" y="-1.3" width="1.4" height="1.3" fill="#2b221d" stroke="#c9a86a" stroke-width=".04"/>
+          <rect x="2.1" y="-.5" width="1.4" height=".5" fill="#3a2e27" stroke="#c9a86a" stroke-width=".04"/>
+          <image href="img/crane-cutout.webp" x=".8" y="-3.5" width="1.6" height="2.2" opacity=".9"/>
+          <image href="img/tiger-cutout.webp" x="2.1" y="-2.7" width="1.41" height="2.2"/>
+          <g stroke="#c9a86a" stroke-width=".07"><line x1="5.5" y1="0" x2="5.5" y2="-.95"/><line x1="5.5" y1="-.88" x2="6.5" y2="-.8"/></g>
+          <circle cx="5.5" cy="-.95" r=".08" fill="#c9a86a"/>
+          <circle cx="7.4" cy="-1.05" r=".55" fill="#dff1fb" stroke="#6aaee6" stroke-width=".05"/>
+          <line x1="-.6" y1="0" x2="10.8" y2="0" stroke="#ece6db" stroke-width=".05"/>
+          <path class="dim" d="M0 .45 L5.5 .45 M0 .3 L0 .6 M5.5 .3 L5.5 .6"/>
+          <text x="2.75" y=".95" text-anchor="middle" style="font-size:.38px; font-family:var(--f-mono)" fill="#b3aa9d">그림 벽 ↔ 줄 5.5 m</text>
+          <path class="dim" d="M3.5 -.25 L5.5 -.25"/>
+          <text x="4.5" y="-.4" text-anchor="middle" style="font-size:.3px; font-family:var(--f-mono)" fill="#b3aa9d">2 m</text>
+          <text x="5.5" y="-1.25" text-anchor="middle" style="font-size:.32px" fill="#c9a86a">차단봉 줄</text>
+          <text x="7.4" y="-1.85" text-anchor="middle" style="font-size:.32px" fill="#b3aa9d">관람객</text>
+          <text x="1.4" y="-.45" style="font-size:.26px; font-family:var(--f-mono)" fill="#b3aa9d" text-anchor="middle">뒷단 1.3 m</text>
+          <text x="2.8" y="-.13" style="font-size:.24px; font-family:var(--f-mono)" fill="#b3aa9d" text-anchor="middle">앞단 0.5 m</text>
+          <text x="5.4" y="-10" text-anchor="middle" style="font-size:.36px" fill="#b3aa9d">측단면 · 천장 11 m · 조명은 그림과 단상에만</text>
+        </svg>
+        <figcaption>옆에서 보면 계단 두 단에 위아래로 서 있어요. 줄에서 그림까지 5.5 m라 해상도는 티 나지 않고, 명판은 읽혀요.</figcaption>
+      </figure>
+    </div>
+    <ul class="notes">
+      <li><h3>명판</h3><span>각자 선 단의 앞면에 붙여요. 내용은 홈페이지와 같아요: SUN / 학두루미 / 경비원 / 아이템: ㅎ</span></li>
+      <li><h3>배치의 뜻</h3><span>해와 달은 하늘에(뒷줄 높은 단), 산·소나무·바다는 땅에(앞줄). 그림의 구도를 캐릭터가 그대로 따라요.</span></li>
+    </ul>
+  </section>
+
+  <!-- 멤버십 카드 -->
+  <section>
+    <span class="eyebrow">08 · 완주 보상</span>
+    <h2>다 돌아본 해달에게 멤버십 카드를</h2>
+    <div class="sheet">
+      <figure class="dwg" style="background:#eef3fb">
+        <svg viewBox="0 0 40 22" role="img" aria-label="조개 도장과 멤버십 카드 발급">
+          <rect width="40" height="22" fill="#eef3fb"/>
+          <g id="shells"></g>
+          <text x="10.5" y="13.4" text-anchor="middle" style="font-size:.85px; fill:#2b4ea2">조개 도장 다섯 개</text>
+          <g style="font-size:.6px; font-family:var(--f-mono); fill:#5a6b8c" text-anchor="middle">
+            <text x="2.7" y="11.2">중정</text><text x="6.6" y="11.2">⓪</text><text x="10.5" y="11.2">①</text><text x="14.4" y="11.2">②</text><text x="18.3" y="11.2">③</text>
+          </g>
+          <path d="M20.5 8.8 L23.2 8.8" stroke="#2b4ea2" stroke-width=".18" marker-end="url(#arr2)"/>
+          <defs><marker id="arr2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2b4ea2"/></marker></defs>
+          <image href="img/membership.webp" x="23" y="-.5" width="17" height="17"/>
+          <rect x="27.3" y="12.1" width="10" height="1.9" fill="#eef3fb" opacity=".0"/>
+          <text x="31.5" y="18.4" text-anchor="middle" style="font-size:.75px; fill:#2b4ea2">아래 줄이 관람객 것으로 바뀌어요</text>
+          <text x="31.5" y="19.5" text-anchor="middle" style="font-size:.7px; font-family:var(--f-mono); fill:#5a6b8c">MORNING SWIMMING / SEA OTTER</text>
+          <text x="31.5" y="20.4" text-anchor="middle" style="font-size:.7px; font-family:var(--f-mono); fill:#5a6b8c">→ 닉네임 · No.0128 · 2026.11.02</text>
+        </svg>
+        <figcaption style="color:#5a6b8c">존을 하나 볼 때마다 화면 위 조개 칸이 하나씩 자개로 차요. 다섯 칸이 다 차면 카드가 발급돼요.</figcaption>
+      </figure>
+      <ul class="notes">
+        <li><h3>조개 도장</h3><span>얼빵해달이 조개를 모으는 이야기 그대로예요. 중정, 작가소개, 작품관, IP관, 일월오봉단관에서 하나씩, 모두 다섯 개예요. 그 방의 핵심 지점에 가면 받아요(예: 오봉단관 차단봉 줄 앞).</span></li>
+        <li><h3>발급</h3><span>다섯 개를 다 모으고 출구 라운지에 들어서면 카드가 화면 앞으로 날아와요. 현대사회스포츠센터 아침 수영반 카드 그대로이고, 아래 줄만 내 닉네임, 회원 번호, 발급일로 바뀌어요.</span></li>
+        <li><h3>뒷면: 사랑 · 응원 · 위로</h3><span>카드를 뒤집으면 셋 중 하나의 짧은 글이 적혀 있어요. 「해달도 배워야 수영을 한다」처럼, 이 글은 작가님 문장으로 받고 싶어요.</span></li>
+        <li><h3>간직하기</h3><span>1단계(아티팩트)에서는 같은 브라우저에서 다시 들어오면 카드를 다시 볼 수 있어요. 아티팩트는 파일 저장이 막혀 있어서, 「카드 이미지로 저장」은 2단계에 shinhaedal.com 에 올린 뒤 붙여요. 이때 회원 번호를 Supabase로 매겨 「몇 번째 회원」이 진짜 순번이 돼요.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 아바타 -->
+  <section>
+    <span class="eyebrow">09 · 관람객</span>
+    <div class="sheet">
+      <ul class="notes">
+        <li><h3>모두가 솜털 얼빵해달</h3><span>턴어라운드 그림(앞·옆·뒤)으로 만든 종이인형이에요. 카메라는 뒤에서 따라오는 3인칭이에요. 가장자리 솜털이 뭉게뭉게 일렁이고, 걸을 때 통통 튀며 살짝 눌렸다 펴져요.</span></li>
+        <li><h3>IP관에서 특히 잘 어울려요</h3><span>팝업북 속 종이 세계에 종이 해달이 들어가는 셈이라, 그림체가 한 세계로 이어져요.</span></li>
+        <li><h3>다른 관람객 (2단계)</h3><span>Supabase Realtime으로 서로의 위치만 주고받아요. 대화 기능은 없어요. 이때부터 shinhaedal.com/gallery 에 올려요.</span></li>
+      </ul>
+      <div class="open">
+        <span class="tag">만들기 전에 확인할 것</span>
+        <ul class="notes">
+          <li><b>메인 테마 영상</b><span>홈페이지 홈 영상 중 어느 것을 로비에 틀지 알려 주세요. 영상 주소를 갤러리에서 쓸 수 있는지는 만들 때 확인해요.</span></li>
+          <li><b>gallery.json</b><span>발행 스크립트가 yoonsunLee/shinhaedal 저장소에 있어요. 그 저장소 작업은 이 갤러리와 따로 진행할 수 있어요.</span></li>
+          <li><b>1단계 범위</b><span>공간 전체와 아바타까지예요. 작품은 우선 지금 넣어 둔 15점으로 걸고, gallery.json이 생기면 갈아 끼워요.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// 남쪽 입면: 몸체와 처마가 들린 지붕
+(function () {
+  const svg = document.getElementById('elev'), NS = 'http://www.w3.org/2000/svg';
+  const Y = h => 14 - h;
+  const add = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; svg.appendChild(e); return e; };
+  const roof = (x0, x1, he, hr) => {
+    const L = x0 - 1.3, R = x1 + 1.3, mid = (x0 + x1) / 2, rw = (x1 - x0) * .16;
+    return `M${L} ${Y(he + .6)} Q${L + (mid - L) * .4} ${Y(he)} ${mid - rw} ${Y(hr)} L${mid + rw} ${Y(hr)} Q${R - (R - mid) * .4} ${Y(he)} ${R} ${Y(he + .6)} L${R - .3} ${Y(he + .32)} Q${R - (R - mid) * .4} ${Y(he - .32)} ${mid + rw} ${Y(hr - .32)} L${mid - rw} ${Y(hr - .32)} Q${L + (mid - L) * .4} ${Y(he - .32)} ${L + .3} ${Y(he + .32)}Z`;
+  };
+  add('rect', { x: -25, y: -1, width: 50, height: 16, fill: '#151a20' });
+  // 뒤에서 앞으로: 오봉단관, 작품관·IP관, 작가소개·라운지, 로비
+  const masses = [
+    [-10.4, 10.4, 9, 12.6, '③ 일월오봉단관'],
+    [-21, -10.4, 6.2, 8.6, '① 작품'], [10.4, 21, 6.2, 8.6, '② IP관'],
+    [-21, -6, 4.2, 5.9, '⓪ 작가소개'], [6, 21, 4.2, 5.9, '출구 라운지'],
+    [-6, 6, 4.8, 7, '로비'],
+  ];
+  for (const [x0, x1, he, hr, name] of masses) {
+    add('rect', { x: x0, y: Y(he), width: x1 - x0, height: he, fill: '#1c1714', stroke: '#3a322c', 'stroke-width': .06 });
+    add('rect', { x: x0 + .2, y: Y(he + .38), width: x1 - x0 - .4, height: .38, fill: '#2a3238' });
+    add('path', { d: roof(x0, x1, he + .38, hr), fill: '#ece6db', stroke: '#b3aa9d', 'stroke-width': .04 });
+    add('text', { x: (x0 + x1) / 2, y: Y(hr) - .5, 'text-anchor': 'middle', style: 'font-size:.8px;fill:#b3aa9d' }, name);
+  }
+  // 로비 문과 현수막
+  add('rect', { x: -1.6, y: Y(2.8), width: 3.2, height: 2.8, fill: '#c9a86a', opacity: .55 });
+  add('rect', { x: -5, y: Y(4.4), width: 2, height: 3.6, fill: '#0b0b0b', stroke: '#7fcdbf', 'stroke-width': .06 });
+  add('text', { x: -4, y: Y(2.4), 'text-anchor': 'middle', style: 'font-size:.42px;fill:#7fcdbf' }, '개인전');
+  add('line', { x1: -25, y1: 14, x2: 25, y2: 14, stroke: '#ece6db', 'stroke-width': .06 });
+  add('text', { x: 24.5, y: 14.8, 'text-anchor': 'end', style: 'font-size:.6px;fill:#b3aa9d;font-family:var(--f-mono)' }, '지붕 꼭대기: 5.9 · 8.6 · 12.6 · 8.6 · 5.9 m');
+})();
+// 중정 반자 서까래와 기와 끝
+(function () {
+  const g = document.getElementById('raft'), NS = 'http://www.w3.org/2000/svg';
+  for (let i = 0; i <= 40; i++) {
+    const l = document.createElementNS(NS, 'line');
+    const x = i, y = i % 2 ? 0 : 24;
+    l.setAttribute('x1', i); l.setAttribute('y1', i < 21 ? 0 : 0); l.setAttribute('x2', 20 + (i - 20) * .45); l.setAttribute('y2', 9);
+    g.appendChild(l);
+    const m = document.createElementNS(NS, 'line');
+    m.setAttribute('x1', i); m.setAttribute('y1', 24); m.setAttribute('x2', 20 + (i - 20) * .45); m.setAttribute('y2', 15);
+    g.appendChild(m);
+  }
+  const t = document.getElementById('tiles');
+  for (let x = 5.5; x < 35; x += .9) {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 20.6 - Math.sin((x - 5) / 30 * Math.PI) * 3.2); c.setAttribute('r', .42);
+    t.appendChild(c);
+  }
+  // 조개 도장 다섯 칸: 넷은 찼고 하나는 빈 칸
+  const sh = document.getElementById('shells');
+  for (let i = 0; i < 5; i++) {
+    const cx = 2.7 + i * 3.9, cy = 8.6, full = i < 4, gg = document.createElementNS(NS, 'g');
+    gg.setAttribute('transform', `translate(${cx} ${cy})`);
+    let d = 'M-1.5 .6 Q-1.7 -1.3 0 -1.5 Q1.7 -1.3 1.5 .6 Q0 1.1 -1.5 .6Z';
+    const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d);
+    p.setAttribute('fill', full ? '#f1786a' : 'none'); p.setAttribute('stroke', full ? '#e45b4c' : '#9fb0cf'); p.setAttribute('stroke-width', '.12');
+    if (!full) p.setAttribute('stroke-dasharray', '.3 .2');
+    gg.appendChild(p);
+    if (full) for (let k = -2; k <= 2; k++) { const l = document.createElementNS(NS, 'line'); l.setAttribute('x1', 0); l.setAttribute('y1', .7); l.setAttribute('x2', k * .55); l.setAttribute('y2', -1.1 + Math.abs(k) * .2); l.setAttribute('stroke', '#fff'); l.setAttribute('stroke-width', '.1'); gg.appendChild(l); }
+    sh.appendChild(gg);
+  }
+  const s = document.getElementById('stars');
+  let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 60; i++) { const c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', 13 + r() * 31); c.setAttribute('cy', r() * 22); c.setAttribute('r', .04 + r() * .08); c.setAttribute('opacity', .3 + r() * .6); s.appendChild(c); }
+})();
+</script>

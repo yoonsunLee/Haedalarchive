@@ -1,0 +1,789 @@
+11:15:12 | INFO: Data are loaded, start creating Blender stuff
+11:15:12 | INFO: Blender create Mesh node 0
+11:15:12 | INFO: Blender create Mesh node 1
+11:15:12 | INFO: Blender create Mesh node 2
+11:15:12 | INFO: Blender create Mesh node 3
+11:15:12 | INFO: Blender create Mesh node 4
+11:15:12 | INFO: Blender create Mesh node 5
+11:15:12 | INFO: Blender create Mesh node 6
+11:15:12 | INFO: Blender create Mesh node 7
+11:15:12 | INFO: Blender create Mesh node 8
+11:15:12 | INFO: Blender create Mesh node 9
+11:15:12 | INFO: Blender create Mesh node 10
+11:15:12 | INFO: Blender create Mesh node 11
+11:15:12 | INFO: Blender create Mesh node 12
+11:15:12 | INFO: Blender create Mesh node 13
+11:15:12 | INFO: Blender create Mesh node 14
+11:15:12 | INFO: Blender create Mesh node 15
+11:15:12 | INFO: Blender create Mesh node 16
+11:15:12 | INFO: Blender create Mesh node 17
+11:15:12 | INFO: Blender create Mesh node 18
+11:15:12 | INFO: Blender create Mesh node 19
+11:15:12 | INFO: Blender create Mesh node 20
+11:15:12 | INFO: Blender create Mesh node 21
+11:15:12 | INFO: Blender create Mesh node 22
+11:15:12 | INFO: Blender create Mesh node 23
+11:15:12 | INFO: Blender create Mesh node 24
+11:15:12 | INFO: Blender create Mesh node 25
+11:15:12 | INFO: Blender create Mesh node 26
+11:15:12 | INFO: Blender create Mesh node 27
+11:15:12 | INFO: Blender create Mesh node 28
+11:15:12 | INFO: Blender create Mesh node 29
+11:15:12 | INFO: Blender create Mesh node 30
+11:15:12 | INFO: Blender create Mesh node 31
+11:15:12 | INFO: Blender create Mesh node 32
+11:15:12 | INFO: Blender create Mesh node 33
+11:15:12 | INFO: Blender create Mesh node 34
+11:15:12 | INFO: Blender create Mesh node 35
+11:15:12 | INFO: Blender create Mesh node 36
+11:15:12 | INFO: Blender create Mesh node 37
+11:15:12 | INFO: Blender create Mesh node 38
+11:15:12 | INFO: Blender create Mesh node 39
+11:15:12 | INFO: Blender create Mesh node 40
+11:15:12 | INFO: Blender create Mesh node 41
+11:15:12 | INFO: Blender create Mesh node 42
+11:15:12 | INFO: Blender create Mesh node 43
+11:15:12 | INFO: Blender create Mesh node 44
+11:15:12 | INFO: Blender create Mesh node 45
+11:15:12 | INFO: Blender create Mesh node 46
+11:15:12 | INFO: Blender create Mesh node 47
+11:15:12 | INFO: Blender create Mesh node 48
+11:15:12 | INFO: Blender create Mesh node 49
+11:15:12 | INFO: Blender create Mesh node 50
+11:15:12 | INFO: Blender create Mesh node 51
+11:15:12 | INFO: Blender create Mesh node 52
+11:15:12 | INFO: Blender create Mesh node 53
+11:15:12 | INFO: Blender create Mesh node 54
+11:15:12 | INFO: Blender create Mesh node 55
+11:15:12 | INFO: Blender create Mesh node 56
+11:15:12 | INFO: Blender create Mesh node 57
+11:15:12 | INFO: Blender create Mesh node 58
+11:15:12 | INFO: Blender create Mesh node 59
+11:15:12 | INFO: Blender create Mesh node 60
+11:15:12 | INFO: Blender create Mesh node 61
+11:15:12 | INFO: Blender create Mesh node 62
+11:15:12 | INFO: Blender create Mesh node 63
+11:15:12 | INFO: Blender create Mesh node 64
+11:15:12 | INFO: Blender create Mesh node 65
+11:15:12 | INFO: Blender create Mesh node 66
+11:15:12 | INFO: Blender create Mesh node 67
+11:15:12 | INFO: Blender create Mesh node 68
+11:15:12 | INFO: Blender create Mesh node 69
+11:15:12 | INFO: Blender create Mesh node 70
+11:15:12 | INFO: Blender create Mesh node 71
+11:15:12 | INFO: Blender create Mesh node 72
+11:15:12 | INFO: Blender create Mesh node 73
+11:15:12 | INFO: Blender create Mesh node 74
+11:15:12 | INFO: Blender create Mesh node 75
+11:15:12 | INFO: Blender create Mesh node 76
+11:15:12 | INFO: Blender create Mesh node 77
+11:15:12 | INFO: Blender create Mesh node 78
+11:15:12 | INFO: Blender create Mesh node 79
+11:15:12 | INFO: Blender create Mesh node 80
+11:15:12 | INFO: Blender create Mesh node 81
+11:15:12 | INFO: Blender create Mesh node 82
+11:15:12 | INFO: Blender create Mesh node 83
+11:15:12 | INFO: Blender create Mesh node 84
+11:15:12 | INFO: Blender create Mesh node 85
+11:15:12 | INFO: Blender create Mesh node 86
+11:15:12 | INFO: Blender create Mesh node 87
+11:15:12 | INFO: Blender create Mesh node 88
+11:15:12 | INFO: Blender create Mesh node 89
+11:15:12 | INFO: Blender create Mesh node 90
+11:15:12 | INFO: Blender create Mesh node 91
+11:15:12 | INFO: Blender create Mesh node 92
+11:15:12 | INFO: Blender create Mesh node 93
+11:15:12 | INFO: Blender create Mesh node 94
+11:15:12 | INFO: Blender create Mesh node 95
+11:15:12 | INFO: Blender create Mesh node 96
+11:15:12 | INFO: Blender create Mesh node 97
+11:15:12 | INFO: Blender create Mesh node 98
+11:15:12 | INFO: Blender create Mesh node 99
+11:15:12 | INFO: Blender create Mesh node 100
+11:15:12 | INFO: Blender create Mesh node 101
+11:15:12 | INFO: Blender create Mesh node 102
+11:15:12 | INFO: Blender create Mesh node 103
+11:15:12 | INFO: Blender create Mesh node 104
+11:15:12 | INFO: Blender create Mesh node 105
+11:15:12 | INFO: Blender create Mesh node 106
+11:15:12 | INFO: Blender create Mesh node 107
+11:15:12 | INFO: Blender create Mesh node 108
+11:15:12 | INFO: Blender create Mesh node 109
+11:15:12 | INFO: Blender create Mesh node 110
+11:15:12 | INFO: Blender create Mesh node 111
+11:15:12 | INFO: Blender create Mesh node 112
+11:15:12 | INFO: Blender create Mesh node 113
+11:15:12 | INFO: Blender create Mesh node 114
+11:15:12 | INFO: Blender create Mesh node 115
+11:15:12 | INFO: Blender create Mesh node 116
+11:15:12 | INFO: Blender create Mesh node 117
+11:15:12 | INFO: Blender create Mesh node 118
+11:15:12 | INFO: Blender create Mesh node 119
+11:15:12 | INFO: Blender create Mesh node 120
+11:15:12 | INFO: Blender create Mesh node 121
+11:15:12 | INFO: Blender create Mesh node 122
+11:15:12 | INFO: Blender create Mesh node 123
+11:15:12 | INFO: Blender create Mesh node 124
+11:15:12 | INFO: Blender create Mesh node 125
+11:15:12 | INFO: Blender create Mesh node 126
+11:15:12 | INFO: Blender create Mesh node 127
+11:15:12 | INFO: Blender create Mesh node 128
+11:15:12 | INFO: Blender create Mesh node 129
+11:15:12 | INFO: Blender create Mesh node 130
+11:15:12 | INFO: Blender create Mesh node 131
+11:15:12 | INFO: Blender create Mesh node 132
+11:15:12 | INFO: Blender create Mesh node 133
+11:15:12 | INFO: Blender create Mesh node 134
+11:15:12 | INFO: Blender create Mesh node 135
+11:15:12 | INFO: Blender create Mesh node 136
+11:15:12 | INFO: Blender create Mesh node 137
+11:15:12 | INFO: Blender create Mesh node 138
+11:15:12 | INFO: Blender create Mesh node 139
+11:15:12 | INFO: Blender create Mesh node 140
+11:15:12 | INFO: Blender create Mesh node 141
+11:15:12 | INFO: Blender create Mesh node 142
+11:15:12 | INFO: Blender create Mesh node 143
+11:15:12 | INFO: Blender create Mesh node 144
+11:15:12 | INFO: Blender create Mesh node 145
+11:15:12 | INFO: Blender create Mesh node 146
+11:15:12 | INFO: Blender create Mesh node 147
+11:15:12 | INFO: Blender create Mesh node 148
+11:15:12 | INFO: Blender create Mesh node 149
+11:15:12 | INFO: Blender create Mesh node 150
+11:15:12 | INFO: Blender create Mesh node 151
+11:15:12 | INFO: Blender create Mesh node 152
+11:15:12 | INFO: Blender create Mesh node 153
+11:15:12 | INFO: Blender create Mesh node 154
+11:15:12 | INFO: Blender create Mesh node 155
+11:15:12 | INFO: Blender create Mesh node 156
+11:15:12 | INFO: Blender create Mesh node 157
+11:15:12 | INFO: Blender create Mesh node 158
+11:15:12 | INFO: Blender create Mesh node 159
+11:15:12 | INFO: Blender create Mesh node 160
+11:15:12 | INFO: Blender create Mesh node 161
+11:15:12 | INFO: Blender create Mesh node 162
+11:15:12 | INFO: Blender create Mesh node 163
+11:15:12 | INFO: Blender create Mesh node 164
+11:15:12 | INFO: Blender create Mesh node 165
+11:15:12 | INFO: Blender create Mesh node 166
+11:15:12 | INFO: Blender create Mesh node 167
+11:15:12 | INFO: Blender create Mesh node 168
+11:15:12 | INFO: Blender create Mesh node 169
+11:15:12 | INFO: Blender create Mesh node 170
+11:15:12 | INFO: Blender create Mesh node 171
+11:15:12 | INFO: Blender create Mesh node 172
+11:15:12 | INFO: Blender create Mesh node 173
+11:15:12 | INFO: Blender create Mesh node 174
+11:15:12 | INFO: Blender create Mesh node 175
+11:15:12 | INFO: Blender create Mesh node 176
+11:15:12 | INFO: Blender create Mesh node 177
+11:15:12 | INFO: Blender create Mesh node 178
+11:15:12 | INFO: Blender create Mesh node 179
+11:15:12 | INFO: Blender create Mesh node 180
+11:15:12 | INFO: Blender create Mesh node 181
+11:15:12 | INFO: Blender create Mesh node 182
+11:15:12 | INFO: Blender create Mesh node 183
+11:15:12 | INFO: Blender create Mesh node 184
+11:15:12 | INFO: Blender create Mesh node 185
+11:15:12 | INFO: Blender create Mesh node 186
+11:15:12 | INFO: Blender create Mesh node 187
+11:15:12 | INFO: Blender create Mesh node 188
+11:15:12 | INFO: Blender create Mesh node 189
+11:15:12 | INFO: Blender create Mesh node 190
+11:15:12 | INFO: Blender create Mesh node 191
+11:15:12 | INFO: Blender create Mesh node 192
+11:15:12 | INFO: Blender create Mesh node 193
+11:15:12 | INFO: Blender create Mesh node 194
+11:15:12 | INFO: Blender create Mesh node 195
+11:15:12 | INFO: Blender create Mesh node 196
+11:15:12 | INFO: Blender create Mesh node 197
+11:15:12 | INFO: Blender create Mesh node 198
+11:15:12 | INFO: Blender create Mesh node 199
+11:15:12 | INFO: Blender create Mesh node 200
+11:15:12 | INFO: Blender create Mesh node 201
+11:15:12 | INFO: Blender create Mesh node 202
+11:15:12 | INFO: Blender create Mesh node 203
+11:15:12 | INFO: Blender create Mesh node 204
+11:15:12 | INFO: Blender create Mesh node 205
+11:15:12 | INFO: Blender create Mesh node 206
+11:15:12 | INFO: Blender create Mesh node 207
+11:15:12 | INFO: Blender create Mesh node 208
+11:15:12 | INFO: Blender create Mesh node 209
+11:15:12 | INFO: Blender create Mesh node 210
+11:15:12 | INFO: Blender create Mesh node 211
+11:15:12 | INFO: Blender create Mesh node 212
+11:15:12 | INFO: Blender create Mesh node 213
+11:15:12 | INFO: Blender create Mesh node 214
+11:15:12 | INFO: Blender create Mesh node 215
+11:15:12 | INFO: Blender create Mesh node 216
+11:15:12 | INFO: Blender create Mesh node 217
+11:15:12 | INFO: Blender create Mesh node 218
+11:15:12 | INFO: Blender create Mesh node 219
+11:15:12 | INFO: Blender create Mesh node 220
+11:15:12 | INFO: Blender create Mesh node 221
+11:15:12 | INFO: Blender create Mesh node 222
+11:15:12 | INFO: Blender create Mesh node 223
+11:15:12 | INFO: Blender create Mesh node 224
+11:15:12 | INFO: Blender create Mesh node 225
+11:15:12 | INFO: Blender create Mesh node 226
+11:15:12 | INFO: Blender create Mesh node 227
+11:15:12 | INFO: Blender create Mesh node 228
+11:15:12 | INFO: Blender create Mesh node 229
+11:15:12 | INFO: Blender create Mesh node 230
+11:15:12 | INFO: Blender create Mesh node 231
+11:15:12 | INFO: Blender create Mesh node 232
+11:15:12 | INFO: Blender create Mesh node 233
+11:15:12 | INFO: Blender create Mesh node 234
+11:15:12 | INFO: Blender create Mesh node 235
+11:15:12 | INFO: Blender create Mesh node 236
+11:15:12 | INFO: Blender create Mesh node 237
+11:15:12 | INFO: Blender create Mesh node 238
+11:15:12 | INFO: Blender create Mesh node 239
+11:15:12 | INFO: Blender create Mesh node 240
+11:15:12 | INFO: Blender create Mesh node 241
+11:15:12 | INFO: Blender create Mesh node 242
+11:15:12 | INFO: Blender create Mesh node 243
+11:15:12 | INFO: Blender create Mesh node 244
+11:15:12 | INFO: Blender create Mesh node 245
+11:15:12 | INFO: Blender create Mesh node 246
+11:15:12 | INFO: Blender create Mesh node 247
+11:15:12 | INFO: Blender create Mesh node 248
+11:15:12 | INFO: Blender create Mesh node 249
+11:15:12 | INFO: Blender create Mesh node 250
+11:15:12 | INFO: Blender create Mesh node 251
+11:15:12 | INFO: Blender create Mesh node 252
+11:15:12 | INFO: Blender create Mesh node 253
+11:15:12 | INFO: Blender create Mesh node 254
+11:15:12 | INFO: Blender create Mesh node 255
+11:15:12 | INFO: Blender create Mesh node 256
+11:15:12 | INFO: Blender create Mesh node 257
+11:15:12 | INFO: Blender create Mesh node 258
+11:15:12 | INFO: Blender create Mesh node 259
+11:15:12 | INFO: Blender create Mesh node 260
+11:15:12 | INFO: Blender create Mesh node 261
+11:15:12 | INFO: Blender create Mesh node 262
+11:15:12 | INFO: Blender create Mesh node 263
+11:15:12 | INFO: Blender create Mesh node 264
+11:15:12 | INFO: Blender create Mesh node 265
+11:15:12 | INFO: Blender create Mesh node 266
+11:15:12 | INFO: Blender create Mesh node 267
+11:15:12 | INFO: Blender create Mesh node 268
+11:15:12 | INFO: Blender create Mesh node 269
+11:15:12 | INFO: Blender create Mesh node 270
+11:15:12 | INFO: Blender create Mesh node 271
+11:15:12 | INFO: Blender create Mesh node 272
+11:15:12 | INFO: Blender create Mesh node 273
+11:15:12 | INFO: Blender create Mesh node 274
+11:15:12 | INFO: Blender create Mesh node 275
+11:15:12 | INFO: Blender create Mesh node 276
+11:15:12 | INFO: Blender create Mesh node 277
+11:15:12 | INFO: Blender create Mesh node 278
+11:15:12 | INFO: Blender create Mesh node 279
+11:15:12 | INFO: Blender create Mesh node 280
+11:15:12 | INFO: Blender create Mesh node 281
+11:15:12 | INFO: Blender create Mesh node 282
+11:15:12 | INFO: Blender create Mesh node 283
+11:15:12 | INFO: Blender create Mesh node 284
+11:15:12 | INFO: Blender create Mesh node 285
+11:15:12 | INFO: Blender create Mesh node 286
+11:15:12 | INFO: Blender create Mesh node 287
+11:15:12 | INFO: Blender create Mesh node 288
+11:15:12 | INFO: Blender create Mesh node 289
+11:15:12 | INFO: Blender create Mesh node 290
+11:15:12 | INFO: Blender create Mesh node 291
+11:15:12 | INFO: Blender create Mesh node 292
+11:15:12 | INFO: Blender create Mesh node 293
+11:15:12 | INFO: Blender create Mesh node 294
+11:15:12 | INFO: Blender create Mesh node 295
+11:15:12 | INFO: Blender create Mesh node 296
+11:15:12 | INFO: Blender create Mesh node 297
+11:15:12 | INFO: Blender create Mesh node 298
+11:15:12 | INFO: Blender create Mesh node 299
+11:15:12 | INFO: Blender create Mesh node 300
+11:15:12 | INFO: Blender create Mesh node 301
+11:15:12 | INFO: Blender create Mesh node 302
+11:15:12 | INFO: Blender create Mesh node 303
+11:15:12 | INFO: Blender create Mesh node 304
+11:15:12 | INFO: Blender create Mesh node 305
+11:15:12 | INFO: Blender create Mesh node 306
+11:15:12 | INFO: Blender create Mesh node 307
+11:15:12 | INFO: Blender create Mesh node 308
+11:15:12 | INFO: Blender create Mesh node 309
+11:15:12 | INFO: Blender create Mesh node 310
+11:15:12 | INFO: Blender create Mesh node 311
+11:15:12 | INFO: Blender create Mesh node 312
+11:15:12 | INFO: Blender create Mesh node 313
+11:15:12 | INFO: Blender create Mesh node 314
+11:15:12 | INFO: Blender create Mesh node 315
+11:15:12 | INFO: Blender create Mesh node 316
+11:15:12 | INFO: Blender create Mesh node 317
+11:15:12 | INFO: Blender create Mesh node 318
+11:15:12 | INFO: Blender create Mesh node 319
+11:15:12 | INFO: Blender create Mesh node 320
+11:15:12 | INFO: Blender create Mesh node 321
+11:15:12 | INFO: Blender create Mesh node 322
+11:15:12 | INFO: Blender create Mesh node 323
+11:15:12 | INFO: Blender create Mesh node 324
+11:15:12 | INFO: Blender create Mesh node 325
+11:15:12 | INFO: Blender create Mesh node 326
+11:15:12 | INFO: Blender create Mesh node 327
+11:15:12 | INFO: Blender create Mesh node 328
+11:15:12 | INFO: Blender create Mesh node 329
+11:15:12 | INFO: Blender create Mesh node 330
+11:15:12 | INFO: Blender create Mesh node 331
+11:15:12 | INFO: Blender create Mesh node 332
+11:15:12 | INFO: Blender create Mesh node 333
+11:15:12 | INFO: Blender create Mesh node 334
+11:15:12 | INFO: Blender create Mesh node 335
+11:15:12 | INFO: Blender create Mesh node 336
+11:15:12 | INFO: Blender create Mesh node 337
+11:15:12 | INFO: Blender create Mesh node 338
+11:15:12 | INFO: Blender create Mesh node 339
+11:15:12 | INFO: Blender create Mesh node 340
+11:15:12 | INFO: Blender create Mesh node 341
+11:15:12 | INFO: Blender create Mesh node 342
+11:15:12 | INFO: Blender create Mesh node 343
+11:15:12 | INFO: Blender create Mesh node 344
+11:15:12 | INFO: Blender create Mesh node 345
+11:15:12 | INFO: Blender create Mesh node 346
+11:15:12 | INFO: Blender create Mesh node 347
+11:15:12 | INFO: Blender create Mesh node 348
+11:15:12 | INFO: Blender create Mesh node 349
+11:15:12 | INFO: Blender create Mesh node 350
+11:15:12 | INFO: Blender create Mesh node 351
+11:15:12 | INFO: Blender create Mesh node 352
+11:15:12 | INFO: Blender create Mesh node 353
+11:15:12 | INFO: Blender create Mesh node 354
+11:15:12 | INFO: Blender create Mesh node 355
+11:15:12 | INFO: Blender create Mesh node 356
+11:15:12 | INFO: Blender create Mesh node 357
+11:15:12 | INFO: Blender create Mesh node 358
+11:15:12 | INFO: Blender create Mesh node 359
+11:15:12 | INFO: Blender create Mesh node 360
+11:15:12 | INFO: Blender create Mesh node 361
+11:15:12 | INFO: Blender create Mesh node 362
+11:15:12 | INFO: Blender create Mesh node 363
+11:15:12 | INFO: Blender create Mesh node 364
+11:15:12 | INFO: Blender create Mesh node 365
+11:15:12 | INFO: Blender create Mesh node 366
+11:15:12 | INFO: Blender create Mesh node 367
+11:15:12 | INFO: Blender create Mesh node 368
+11:15:12 | INFO: Blender create Mesh node 369
+11:15:12 | INFO: Blender create Mesh node 370
+11:15:12 | INFO: Blender create Mesh node 371
+11:15:12 | INFO: Blender create Mesh node 372
+11:15:12 | INFO: Blender create Mesh node 373
+11:15:12 | INFO: Blender create Mesh node 374
+11:15:12 | INFO: Blender create Mesh node 375
+11:15:12 | INFO: Blender create Mesh node 376
+11:15:12 | INFO: Blender create Mesh node 377
+11:15:12 | INFO: Blender create Mesh node 378
+11:15:12 | INFO: Blender create Mesh node 379
+11:15:12 | INFO: Blender create Mesh node 380
+11:15:12 | INFO: Blender create Mesh node 381
+11:15:12 | INFO: Blender create Mesh node 382
+11:15:12 | INFO: Blender create Mesh node 383
+11:15:12 | INFO: Blender create Mesh node 384
+11:15:12 | INFO: Blender create Mesh node 385
+11:15:12 | INFO: Blender create Mesh node 386
+11:15:13 | INFO: Blender create Mesh node 387
+11:15:13 | INFO: Blender create Mesh node 388
+11:15:13 | INFO: Blender create Mesh node 389
+11:15:13 | INFO: Blender create Mesh node 390
+11:15:13 | INFO: Blender create Mesh node 391
+11:15:13 | INFO: Blender create Mesh node 392
+11:15:13 | INFO: Blender create Mesh node 393
+11:15:13 | INFO: Blender create Mesh node 394
+11:15:13 | INFO: Blender create Mesh node 395
+11:15:13 | INFO: Blender create Mesh node 396
+11:15:13 | INFO: Blender create Mesh node 397
+11:15:13 | INFO: Blender create Mesh node 398
+11:15:13 | INFO: Blender create Mesh node 399
+11:15:13 | INFO: Blender create Mesh node 400
+11:15:13 | INFO: Blender create Mesh node 401
+11:15:13 | INFO: Blender create Mesh node 402
+11:15:13 | INFO: Blender create Mesh node 403
+11:15:13 | INFO: Blender create Mesh node 404
+11:15:13 | INFO: Blender create Mesh node 405
+11:15:13 | INFO: Blender create Mesh node 406
+11:15:13 | INFO: Blender create Mesh node 407
+11:15:13 | INFO: Blender create Mesh node 408
+11:15:13 | INFO: Blender create Mesh node 409
+11:15:13 | INFO: Blender create Mesh node 410
+11:15:13 | INFO: Blender create Mesh node 411
+11:15:13 | INFO: Blender create Mesh node 412
+11:15:13 | INFO: Blender create Mesh node 413
+11:15:13 | INFO: Blender create Mesh node 414
+11:15:13 | INFO: Blender create Mesh node 415
+11:15:13 | INFO: Blender create Mesh node 416
+11:15:13 | INFO: Blender create Mesh node 417
+11:15:13 | INFO: Blender create Mesh node 418
+11:15:13 | INFO: Blender create Mesh node 419
+11:15:13 | INFO: Blender create Mesh node 420
+11:15:13 | INFO: Blender create Mesh node 421
+11:15:13 | INFO: Blender create Mesh node 422
+11:15:13 | INFO: Blender create Mesh node 423
+11:15:13 | INFO: Blender create Mesh node 424
+11:15:13 | INFO: Blender create Mesh node 425
+11:15:13 | INFO: Blender create Mesh node 426
+11:15:13 | INFO: Blender create Mesh node 427
+11:15:13 | INFO: Blender create Mesh node 428
+11:15:13 | INFO: Blender create Mesh node 429
+11:15:13 | INFO: Blender create Mesh node 430
+11:15:13 | INFO: Blender create Mesh node 431
+11:15:13 | INFO: Blender create Mesh node 432
+11:15:13 | INFO: Blender create Mesh node 433
+11:15:13 | INFO: Blender create Mesh node 434
+11:15:13 | INFO: Blender create Mesh node 435
+11:15:13 | INFO: Blender create Mesh node 436
+11:15:13 | INFO: Blender create Mesh node 437
+11:15:13 | INFO: Blender create Mesh node 438
+11:15:13 | INFO: Blender create Mesh node 439
+11:15:13 | INFO: Blender create Mesh node 440
+11:15:13 | INFO: Blender create Mesh node 441
+11:15:13 | INFO: Blender create Mesh node 442
+11:15:13 | INFO: Blender create Mesh node 443
+11:15:13 | INFO: Blender create Mesh node 444
+11:15:13 | INFO: Blender create Mesh node 445
+11:15:13 | INFO: Blender create Mesh node 446
+11:15:13 | INFO: Blender create Mesh node 447
+11:15:13 | INFO: Blender create Mesh node 448
+11:15:13 | INFO: Blender create Mesh node 449
+11:15:13 | INFO: Blender create Mesh node 450
+11:15:13 | INFO: Blender create Mesh node 451
+11:15:13 | INFO: Blender create Mesh node 452
+11:15:13 | INFO: Blender create Mesh node 453
+11:15:13 | INFO: Blender create Mesh node 454
+11:15:13 | INFO: Blender create Mesh node 455
+11:15:13 | INFO: Blender create Mesh node 456
+11:15:13 | INFO: Blender create Mesh node 457
+11:15:13 | INFO: Blender create Mesh node 458
+11:15:13 | INFO: Blender create Mesh node 459
+11:15:13 | INFO: Blender create Mesh node 460
+11:15:13 | INFO: Blender create Mesh node 461
+11:15:13 | INFO: Blender create Mesh node 462
+11:15:13 | INFO: Blender create Mesh node 463
+11:15:13 | INFO: Blender create Mesh node 464
+11:15:13 | INFO: Blender create Mesh node 465
+11:15:13 | INFO: Blender create Mesh node 466
+11:15:13 | INFO: Blender create Mesh node 467
+11:15:13 | INFO: Blender create Mesh node 468
+11:15:13 | INFO: Blender create Mesh node 469
+11:15:13 | INFO: Blender create Mesh node 470
+11:15:13 | INFO: Blender create Mesh node 471
+11:15:13 | INFO: Blender create Mesh node 472
+11:15:13 | INFO: Blender create Mesh node 473
+11:15:13 | INFO: Blender create Mesh node 474
+11:15:13 | INFO: Blender create Mesh node 475
+11:15:13 | INFO: Blender create Mesh node 476
+11:15:13 | INFO: Blender create Mesh node 477
+11:15:13 | INFO: Blender create Mesh node 478
+11:15:13 | INFO: Blender create Mesh node 479
+11:15:13 | INFO: Blender create Mesh node 480
+11:15:13 | INFO: Blender create Mesh node 481
+11:15:13 | INFO: Blender create Mesh node 482
+11:15:13 | INFO: Blender create Mesh node 483
+11:15:13 | INFO: Blender create Mesh node 484
+11:15:13 | INFO: Blender create Mesh node 485
+11:15:13 | INFO: Blender create Mesh node 486
+11:15:13 | INFO: Blender create Mesh node 487
+11:15:13 | INFO: Blender create Mesh node 488
+11:15:13 | INFO: Blender create Mesh node 489
+11:15:13 | INFO: Blender create Mesh node 490
+11:15:13 | INFO: Blender create Mesh node 491
+11:15:13 | INFO: Blender create Mesh node 492
+11:15:13 | INFO: Blender create Mesh node 493
+11:15:13 | INFO: Blender create Mesh node 494
+11:15:13 | INFO: glTF import finished in 0.69s
+C:\Users\yoons\Desktop\Claude code\haedal-archive\gallery-plan\blender\bake_gallery.py:43: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  if not (m.use_nodes and m.use_backface_culling):
+STEP     1.2s imported
+C:\Users\yoons\Desktop\Claude code\haedal-archive\gallery-plan\blender\bake_gallery.py:68: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  world.use_nodes = True
+TARGETS 139 FOUND 139 COUNT_MISMATCH 0 []
+BAKING 136
+STEP     1.2s lights set
+STEP     1.2s dups made
+Info: Removed 2 vertices
+Info: Removed 2 vertices
+Info: Removed 2 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 120 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+Info: Removed 28 vertices
+STEP     3.6s smart project done
+PACKED scale 0.0174
+STEP     3.6s packed
+STEP     3.7s uv mapped
+00:05.125  cycles           | WARNING HIPEW initialization failed: Error opening HIP dynamic library
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+STEP   148.9s baked
+Info: Saved as "bake.blend"
+DONE 136
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:37:16)
+
+Blender quit

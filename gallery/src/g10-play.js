@@ -28,6 +28,7 @@ function blocked(x, z) {
 function tryMove(dx, dz) { let moved = false; if (!blocked(me.x + dx, me.z)) { me.x += dx; moved = true; } if (!blocked(me.x, me.z + dz)) { me.z += dz; moved = true; } return moved; }
 
 const view = { yaw: 0, pitch: -.2, dist: 3.6 };
+const WALK_K = 2;   // 시험용으로 걸음 2배(작가님). 완성되면 1로 되돌린다
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const PLACES = {
   outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [DOORX, R1_GABLE + 3.8], yaw: 0 },   // 법과 권리: 첫 작품 정면
@@ -94,7 +95,7 @@ canvas.addEventListener('pointermove', e => {
     if (drag.moved > 4) {
       canvas.classList.add('dragging'); focus = null;
       const k = coarse ? .0055 : .0042;
-      view.yaw += dx * k; view.pitch = Math.max(-1.0, Math.min(1.05, view.pitch + dy * k));
+      view.yaw += dx * k; view.pitch = Math.max(-.75, Math.min(.6, view.pitch + dy * k));
       tip.hidden = true; hideHint();
     }
     return;
@@ -132,7 +133,7 @@ function openCard(info, skipGo) {
   const links = $('cardLinks'); links.textContent = '';
   for (const [href, label, ghost] of info.links || []) { const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = label + ' ↗'; if (ghost) a.className = 'ghost'; links.append(a); }
   card.scrollTop = 0; card.classList.remove('closed'); cardOpen = true; tip.hidden = true;
-  if (info.focus && !skipGo) goFocus(info.focus);
+  // 누르면 시선은 그대로 두고 창만 띄운다(작가님: 누른 것 정면으로 데려가지 않기)
   if (info.id && WORK_IDS.has(info.id)) { seenWorks.add(info.id); }
 }
 function closeCard() { if (!cardOpen) return; card.classList.add('closed'); cardOpen = false; focus = null; }
@@ -157,6 +158,21 @@ list.addEventListener('click', e => { if (e.target === list) closeList(); });
 // 위쪽 이동 단추
 const navBtns = [...document.querySelectorAll('[data-go]')];
 navBtns.forEach(b => b.addEventListener('click', () => { closeCard(); const p = PLACES[b.dataset.go]; jump(p.pos, p.yaw); hideHint(); }));
+// 섹션 바로 가기(공식 오픈 전까지 임시, 작가님 요청): 작품관·IP관 안에 있으면 메뉴 아래에 그 관의 섹션 단추가 뜬다
+const SUBNAV = {
+  works: [['법과 권리', PLACES.works.pos, 0], ['POV', [-29.2, -4.6], 0], ['우주조약', [-38.8, -20.8], 0], ['N차적 저작물', [-20.5, -19.6], 0]],
+  ip: [['물빛 통로', PLACES.ip.pos, -Math.PI / 2], ['해변', [17, -4.5], -1.3], ['그늘길', [23, 5.8], Math.PI], ['숲길', [23.5, 14.5], Math.PI]],
+};
+const subNav = document.createElement('nav'); subNav.className = 'nav glass'; subNav.setAttribute('aria-label', '섹션 바로 가기');
+subNav.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:20;font-size:12px;display:none';
+document.body.appendChild(subNav);
+let subKey = '';
+function showSubNav(zone) {
+  const k = SUBNAV[zone] ? zone : ''; if (k === subKey) return; subKey = k;
+  subNav.innerHTML = ''; subNav.style.display = k ? 'flex' : 'none'; if (!k) return;
+  const nb = document.querySelector('.bar .nav').getBoundingClientRect(); subNav.style.left = nb.left + 'px';
+  for (const [label, pos, yaw] of SUBNAV[k]) { const b = document.createElement('button'); b.textContent = label; b.addEventListener('click', () => { closeCard(); jump(pos, yaw); hideHint(); }); subNav.appendChild(b); }
+}
 function zoneOf(x, z) {
   const inR = (R) => x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1;
   const In = inInterior(x, z); if (In) return In.zone || 'works';
@@ -337,22 +353,15 @@ function placeCamera(dt) {
     camWant.copy(focus.pos); camLook.lerp(focus.look, Math.min(1, dt * 4));
     camera.position.lerp(camWant, Math.min(1, dt * 3)); camera.lookAt(camLook); return;
   }
-  camTarget.set(me.x, 1.15 - seatDrop, me.z);
+  // 1인칭 눈높이(작가님 결정, 비슷한 걷기 게임·가상 미술관처럼): 관람객은 몸이 보이지 않으니 그 눈으로 본다. 발밑을 내려다보면 발자국이 보인다
+  // 휠·두 손가락은 화각만 조금 좁혀 확대한다(멀어지지는 않는다). 앉으면 앉은 눈높이로
+  const EYE = 1.55 - seatDrop * 1.1;
   const cp = Math.cos(view.pitch), dir = tmpV.set(-Math.sin(view.yaw) * cp, Math.sin(view.pitch), -Math.cos(view.yaw) * cp);
-  // 카메라가 벽을 넘지 않게: 가운데와 둘레 네 방향으로 벽을 살펴 가장 가까운 벽 앞에서 멈춘다
-  let dist = view.dist * (1 - Math.min(1, seatDrop / .45) * .94);   // 앉으면 그 자리 눈높이로 당겨 앉은 사람의 눈으로 본다
-  const back = dir.clone().negate(), side = new THREE.Vector3(Math.cos(view.yaw), 0, -Math.sin(view.yaw)), up = new THREE.Vector3(0, 1, 0);
-  for (const [sx, sy] of [[0, 0], [.35, 0], [-.35, 0], [0, .3], [0, -.3]]) {
-    camRay.set(tmpO.copy(camTarget).addScaledVector(side, sx).addScaledVector(up, sy), back); camRay.far = view.dist + .5;
-    const hit = camRay.intersectObjects(blockers, false)[0];
-    if (hit) dist = Math.min(dist, hit.distance - .45);
-  }
-  dist = Math.max(.35, dist);
-  camWant.copy(camTarget).addScaledVector(dir, -dist); camWant.y = Math.max(.35, camWant.y);
-  // 벽 쪽으로 당겨질 때는 곧바로, 멀어질 때만 부드럽게 따라간다
-  const curD = camera.position.distanceTo(camTarget);
-  if (snapCam || dist < curD - .02) { camera.position.copy(camWant); snapCam = false; } else camera.position.lerp(camWant, Math.min(1, dt * 10));
-  camLook.copy(camTarget).addScaledVector(dir, 2);
+  camWant.set(me.x, EYE, me.z);
+  if (snapCam) { camera.position.copy(camWant); snapCam = false; } else camera.position.lerp(camWant, Math.min(1, dt * 14));
+  const fov = BASE_FOV * Math.max(.68, Math.min(1, view.dist / 3.4));
+  if (Math.abs(camera.fov - fov) > .05) { camera.fov += (fov - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix(); }
+  camLook.copy(camera.position).addScaledVector(dir, 2);
   camera.lookAt(camLook);
 }
 function renderFrame() {
@@ -375,7 +384,7 @@ function frame() {
   if (keys.has('arrowright') || keys.has('e')) turn -= 1;
   f -= padVec.y; s += padVec.x;
   view.yaw += turn * 1.8 * dt;
-  const speed = (keys.has('shift') ? 4.6 : 2.6) * dt;
+  const speed = (keys.has('shift') ? 4.6 : 2.6) * WALK_K * dt;
   let moving = false;
   if (f || s) {
     const m = Math.max(1, Math.hypot(f, s)); f /= m; s /= m;
@@ -411,11 +420,11 @@ function frame() {
   const z = zoneOf(me.x, me.z);
   showInteriors(inInterior(me.x, me.z), z, me.x, me.z);
   if (z !== lastZone) {
-    lastZone = z; navBtns.forEach(b => b.classList.toggle('on', b.dataset.go === z));
+    lastZone = z; navBtns.forEach(b => b.classList.toggle('on', b.dataset.go === z)); showSubNav(z);
     if (!VISITED.has(z)) { VISITED.add(z); store.set('visited', [...VISITED]); }
   }
   // 앉기: 도착하면 앉고, 스스로 움직이면 일어선다
-  if (seatGo && !walkTo) { if (Math.hypot(me.x - seatGo.x, me.z - seatGo.z) < .3) { seated = seatGo; view.yaw = seated.yaw; view.pitch = -.04; } seatGo = null; }
+  if (seatGo && !walkTo) { if (Math.hypot(me.x - seatGo.x, me.z - seatGo.z) < .3) { seated = seatGo; view.yaw = seated.yaw; view.pitch = -.08; } seatGo = null; }
   if (seated && moving && !walkTo) standUp();
   seatDrop += ((seated ? .45 : 0) - seatDrop) * Math.min(1, dt * 3);
   // 누를 거리: 등신대 앞 사진 > 쉬는 자리
@@ -429,5 +438,9 @@ function frame() {
 me.face = view.yaw = 0;
 // 화면 확인용: 주소에 ?at=x,z,방향(라디안, 0 = 북쪽, + = 왼쪽으로 돈다)을 붙이면 그 자리에서 시작한다
 { const at = new URLSearchParams(location.search).get('at'); if (at) { const [x, z, yaw = 0] = at.split(',').map(Number); me.x = x; me.z = z; me.face = view.yaw = yaw; walkTo = null; snapCam = true; } }
+// 버벅임 막기: 처음 보이는 순간 그 재질의 셰이더를 만드느라 멈추지 않게, 시작할 때 모든 안쪽 공간을 한 번 보이게 하고 미리 만들어 둔다(작가님: 문 지날 때 버벅임)
+{ for (const I of INTERIORS) for (const o of I.objs) if (!o.isLight) setShown(o, true);
+  try { renderer.compile(scene, camera); } catch (e) { console.warn(e); }
+  interiorKey = ''; }
 requestAnimationFrame(frame);
 </script>

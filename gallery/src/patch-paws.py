@@ -55,7 +55,7 @@ s = s.replace(marker_, paws_js + "\n" + marker_, 1)
 for a, b in [
   ("if (floors.includes(h.object)) { walkTo = { x: h.point.x, z: h.point.z, stuck: 0 }; focus = null; hideHint(); }",
    "if (floors.includes(h.object)) { walkTo = { x: h.point.x, z: h.point.z, stuck: 0 }; focus = null; hideHint(); showMarker(h.point.x, h.point.y, h.point.z); }"),
-  ("  renderFrame();\n  requestAnimationFrame(frame);", "  stepPaws(dt, moving, (keys.has('shift') ? 4.6 : 2.6) * dt);\n  renderFrame();\n  requestAnimationFrame(frame);"),
+  ("  renderFrame();\n  requestAnimationFrame(frame);", "  stepPaws(dt, moving, (keys.has('shift') ? 4.6 : 2.6) * WALK_K * dt);\n  renderFrame();\n  requestAnimationFrame(frame);"),
   ("const view = { yaw: 0, pitch: -.16, dist: 4.6 };", "const view = { yaw: 0, pitch: -.12, dist: 3.4 };"),
 ]:
     assert a in s, a[:60]; s = s.replace(a, b)

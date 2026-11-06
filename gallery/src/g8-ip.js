@@ -539,7 +539,7 @@ function stepPages(dt, me) {
       return m;
     };
     // 둘레 하늘: 해변 쪽은 한낮 하늘색, 숲 쪽으로 갈수록 노을(주황 → 분홍 → 보라). 라운지 건물(x 21)에 닿지 않게
-    const PS = { x0: 21.15, x1: 31, z0: 4.7, z1: 21, h: 16 };
+    const PS = { x0: 21.15, x1: 49, z0: 4.7, z1: 35, h: 16 };   // 숲길 위까지 덮는 노을 하늘
     const p2Sky = new THREE.ShaderMaterial({ side: THREE.BackSide,
       vertexShader: 'varying vec3 vWP; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
       fragmentShader: `varying vec3 vWP;
@@ -564,8 +564,7 @@ function stepPages(dt, me) {
         g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeBoundingSphere();
         const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tx, transparent: true, alphaTest: .45, vertexColors: true, toneMapped: false, side: THREE.DoubleSide })); m.frustumCulled = false; scene.add(m); blockers.push(m); return m;
       };
-      duskBand(T.midD, 21.35, 5.6, 21.35, 15.5, 4.6, 16); duskBand(T.midD, 25.6, 5.6, 25.6, 15.5, 4.6, 16);
-      duskBand(T.farD, 21.3, 15.8, 30.8, 15.8, 6.2, 24); duskBand(T.midD, 21.3, 14.3, 26.6, 14.3, 4.2, 16);
+      duskBand(T.midD, 21.35, 5.6, 21.35, 11.5, 4.6, 16); duskBand(T.midD, 25.6, 5.6, 25.6, 11.5, 4.6, 16);   // 길 끝부터는 숲길 덤불
       duskBand(T.farD, 26.0, 6.5, 30.8, 9.5, 5.6, 24);
         // 나무 사이 그늘길: 양옆에 줄기가 촘촘히 서고 위는 잎 지붕
         const barkM = p2Mat('wood', 0xa99d90, { map: T.barkT }), leafM2 = p2Mat('nolight', 0xc8d8b4, { map: T.leafT });
@@ -581,7 +580,6 @@ function stepPages(dt, me) {
           } }
         { let k = 9; const rr = () => (k = k * 16807 % 2147483647) / 2147483647; for (let z = ZA + .4; z < ZB + 1.5; z += 1.1) for (const x of [P2.x0 - .5, (P2.x0 + P2.x1) / 2, P2.x1 + .5]) { const rad = 1.0 + rr() * .5, g = new THREE.SphereGeometry(rad, 18, 12); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * rad * 3.2, uv.getY(i) * rad * 1.6); const m = new THREE.Mesh(g, leafM2); m.position.set(x + (rr() - .5) * .5, CAN + .5 + rr() * .5, z + (rr() - .5) * .4); m.scale.y = .55; scene.add(m); } }
         solid(P2.x0 - .6, P2.x0 - .4, ZA, ZB); solid(P2.x1 + .35, P2.x1 + .55, ZA, ZB);
-      solid(P2.x0 - .6, P2.x1 + .6, ZB - .05, ZB + .15);   // 숲길을 만들기 전까지는 여기서 멈춘다
     }, null, 'ip');
     // 소리: 해변 파도는 통로로 들어서며 멀어지고, 숲 쪽 끝으로 갈수록 풀벌레
     const inP2 = (x, z) => x > P2.x0 - .2 && x < P2.x1 + .2 && z > BE.z1 && z < P2.z1 + .2;
@@ -602,21 +600,121 @@ function stepPages(dt, me) {
       });
       const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
       const gain = ctx.createGain(); gain.gain.value = 0; src.connect(gain).connect(ctx.destination); src.start();
-      return { gain, level: (x, z) => inP2(x, z) ? .08 + .55 * Math.min(1, (z - P2.z0) / LEN2) : 0 };
+      return { gain, level: (x, z) => inP2(x, z) ? .08 + .55 * Math.min(1, (z - P2.z0) / LEN2) : (x > P2.x0 - .6 && x < 47 && z > P2.z1 && z < 30.2) ? .62 : 0 };   // 숲길에서는 풀벌레
     });
   }
   linkInteriors('ipEntry', 'ipBeach'); linkInteriors('ipBeach', 'ipPath2');   // 실제로 걸어 이어지는 곳
-  // 화면 확인용: ?portaltest=1 이면 ② 길 끝에서 멀리 떨어진 시험 섬으로 이어 붙인다(숲길을 만들면 지움)
-  if (new URLSearchParams(location.search).get('portaltest')) {
-    const TI = { x0: 60, x1: 72, z0: 40, z1: 54 }, bx = 66, bz = 41.0;
-    interior('ipTest', [[TI.x0, TI.x1, TI.z0, TI.z1]], [TI.x0 - 1, TI.x1 + 1, TI.z0 - 1, TI.z1 + 1, 12], () => {
-      const g = new THREE.Mesh(new THREE.PlaneGeometry(TI.x1 - TI.x0, TI.z1 - TI.z0), new THREE.MeshBasicMaterial({ color: 0x8fa77a, toneMapped: false })); g.rotation.x = -Math.PI / 2; g.position.set((TI.x0 + TI.x1) / 2, .03, (TI.z0 + TI.z1) / 2); scene.add(g); floors.push(g);
-      const sky = new THREE.Mesh(new THREE.BoxGeometry(TI.x1 - TI.x0 + 2, 12, TI.z1 - TI.z0 + 2), new THREE.MeshBasicMaterial({ color: 0xe7a8a0, side: THREE.BackSide, toneMapped: false })); sky.position.set((TI.x0 + TI.x1) / 2, 6, (TI.z0 + TI.z1) / 2); scene.add(sky);
-      for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.25, .3, 3, 10), new THREE.MeshBasicMaterial({ color: 0x6d5040, toneMapped: false })); m.position.set(TI.x0 + 2 + (i % 3) * 4, 1.5, TI.z0 + 5 + Math.floor(i / 3) * 5); scene.add(m); }
+  // ── ③ 숲길: 해 질 녘, 가볍게 헤매는 덤불 미로 ──
+  // 작가님 결정: 막다른 곳 셋에 일월오봉단 친구들 물건(솔방울·달맞이꽃·곶감), 오래 헤매면 반딧불이가 출구 쪽으로, 망치 소리 없음, 출구 모양은 샘플로 고름.
+  // ② 그늘길 끝에서 그대로 이어진다(바로 남쪽). 칸은 3.6 m(길 3.0 + 덤불 0.6), 6 × 5칸. 그림은 GPT 숲길 1차(흙길 결, 덤불 벽). 친구들 물건은 빼고 막다른 곳은 비워 둠(작가님 결정)
+  {
+    const FC = 6, FR = 5, CW = 3.0, WW = .6,   // 길 폭 3 m(작가님: 좁다)
+      U = CW + WW, FX0 = P2.x0 - WW, FZ0 = P2.z1 - WW;
+    const NX = 2 * FC + 1, NZ = 2 * FR + 1, FX1 = FX0 + FC * U + WW, FZ1 = FZ0 + FR * U + WW, HH = 2.9;
+    const fill = Array.from({ length: NX }, () => new Array(NZ).fill(1));
+    const cell = (c, r) => [FX0 + c * U + WW + CW / 2, FZ0 + r * U + WW + CW / 2];
+    const ROUTE = [[0, 0], [0, 1], [0, 2], [1, 2], [2, 2], [2, 1], [3, 1], [4, 1], [4, 2], [4, 3], [5, 3]];   // 출구 길
+    const DEAD = [[[0, 2], [0, 3], [0, 4]], [[2, 1], [2, 0], [3, 0]], [[4, 3], [4, 4], [5, 4]]];             // 막다른 길 셋
+    for (const path of [ROUTE, ...DEAD]) path.forEach(([c, r], i) => {
+      fill[2 * c + 1][2 * r + 1] = 0;
+      if (i) { const [pc, pr] = path[i - 1]; fill[c + pc + 1][r + pr + 1] = 0; }
+    });
+    fill[1][0] = 0;                 // 들어오는 곳(② 길 끝)
+    fill[NX - 1][2 * 3 + 1] = 0;    // 나가는 곳(동쪽)
+    const ux = (i) => [FX0 + Math.floor(i / 2) * U + (i % 2 ? WW : 0), FX0 + Math.floor(i / 2) * U + (i % 2 ? U : WW)];
+    const uz = (j) => [FZ0 + Math.floor(j / 2) * U + (j % 2 ? WW : 0), FZ0 + Math.floor(j / 2) * U + (j % 2 ? U : WW)];
+    const isFill = (i, j) => i < 0 || j < 0 || i >= NX || j >= NZ ? (j < 0 && i === 1 ? 0 : i >= NX && j === 7 ? 0 : 1) : fill[i][j];
+    // 그림자 계산용 칸 지도
+    const gd = new Uint8Array(NX * NZ * 4); for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) { const k = (j * NX + i) * 4; gd[k] = fill[i][j] * 255; gd[k + 3] = 255; }
+    const gridT = new THREE.DataTexture(gd, NX, NZ); gridT.needsUpdate = true;
+    const NF = 'ip/new/forest/web/', fT = (f) => { const t = tex(NF + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+    const pathT = fT('tile-path.webp'), hedgeT = fT('hedge-dusk.webp');
+    const SUN = new THREE.Vector3(-1, 1.3, -.45).normalize();   // 해 쪽(서쪽). 덤불 윗부분은 성겨서 그림자는 1.9 m 높이까지만
+    const FSH = `
+      varying vec3 vWP; uniform sampler2D gridM;
+      float fillAt(vec2 p) {
+        vec2 u = (p - vec2(${FX0.toFixed(2)}, ${FZ0.toFixed(2)})) / ${U.toFixed(2)}; vec2 k = floor(u), f = fract(u) * ${U.toFixed(2)};
+        vec2 ij = 2.0 * k + step(${WW.toFixed(2)}, f);
+        if (ij.x < 0.0 || ij.y < 0.0 || ij.x > ${(NX - 1).toFixed(1)} || ij.y > ${(NZ - 1).toFixed(1)}) return 0.0;
+        return texture2D(gridM, (ij + .5) / vec2(${NX.toFixed(1)}, ${NZ.toFixed(1)})).r;
+      }
+      float sunLit(vec3 P) { float sh = 0.0; for (int i = 1; i < 60; i++) { vec3 q = P + vec3(${SUN.x.toFixed(3)}, ${SUN.y.toFixed(3)}, ${SUN.z.toFixed(3)}) * (float(i) * .08); if (q.y > 1.9) break; sh = max(sh, fillAt(q.xz)); } return 1.0 - sh; }
+      float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }`;
+    const amb = 'vec3(.5, .46, .6)', warm = 'vec3(1.16, .78, .52)';
+    const fMat = (kind, extra) => {
+      const m = new THREE.MeshBasicMaterial(Object.assign({ toneMapped: false, side: THREE.DoubleSide }, extra));
+      m.customProgramCacheKey = () => 'forest|' + kind;
+      m.onBeforeCompile = (sh) => {
+        sh.uniforms.gridM = { value: gridT };
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP;').replace('#include <project_vertex>', '#include <project_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + FSH).replace('#include <map_fragment>', kind === 'floor' ? `
+          vec4 st = texture2D(map, vWP.xz / 2.0); diffuseColor.rgb *= st.rgb * .86;
+          float lit = sunLit(vec3(vWP.x, .02, vWP.z)); float dap = smoothstep(.6, .78, vn(vWP.xz * 1.7) * .7 + vn(vWP.xz * 4.1) * .3); lit = max(lit, dap * .55);   // 그늘 속 잎 사이로 드는 볕
+          diffuseColor.rgb *= mix(${amb}, ${warm}, lit * .9);` : `#include <map_fragment>`);
+      };
+      return m;
+    };
+    interior('ipForest', [[FX0 - .1, FX1 + 2.6, FZ0, FZ1]], [FX0 - .3, FX1 + 2.8, FZ0 - .1, FZ1 + 3.2, 14], () => {
+      // 바닥: 흙길 결 위에 덤불 그림자(해가 서쪽에 낮게 있어 그림자가 동쪽으로 길게 눕는다)
+      const fl = new THREE.Mesh(new THREE.PlaneGeometry(FX1 - FX0 + 3, FZ1 - P2.z1), fMat('floor', { map: pathT, color: 0xffffff })); fl.rotation.x = -Math.PI / 2; fl.position.set((FX0 + FX1 + 3) / 2, .034, (P2.z1 + FZ1) / 2); scene.add(fl); floors.push(fl);
+      // 덤불 벽: 걷는 칸과 덤불 칸이 맞닿는 면마다 덤불 그림판(높이 2.9 m, 위쪽은 둥근 덤불 머리). 해를 보는 서향 면은 따뜻하게, 나머지는 보랏빛 그늘
+      const pos = [], uv = [], col = [], idx = [];
+      const face = (x0, z0, x1, z1, lit) => {
+        const n = pos.length / 3, L = Math.hypot(x1 - x0, z1 - z0), u0 = (Math.abs(x1 - x0) > .01 ? x0 : z0) / 4, u1 = u0 + L / 4 * (Math.abs(x1 - x0) > .01 ? Math.sign(x1 - x0) : Math.sign(z1 - z0));
+        const cTop = lit ? [1.12, .9, .78] : [.82, .78, .9], cBot = lit ? [.78, .7, .7] : [.55, .52, .64];
+        pos.push(x0, 0, z0, x1, 0, z1, x1, HH, z1, x0, HH, z0); uv.push(u0, 0, u1, 0, u1, HH / 3, u0, HH / 3); col.push(...cBot, ...cBot, ...cTop, ...cTop); idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
+      };
+      for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) {
+        if (fill[i][j]) continue;
+        const [x0, x1] = ux(i), [z0, z1] = uz(j);
+        if (isFill(i - 1, j)) face(x0, z0, x0, z1, false);   // 서쪽 덤불의 동향 면(그늘)
+        if (isFill(i + 1, j)) face(x1, z0, x1, z1, true);    // 동쪽 덤불의 서향 면(해를 받음)
+        if (isFill(i, j - 1)) face(x0, z0, x1, z0, false);
+        if (isFill(i, j + 1)) face(x0, z1, x1, z1, false);
+      }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+      const hedge = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: hedgeT, vertexColors: true, alphaTest: .45, toneMapped: false, side: THREE.DoubleSide })); scene.add(hedge); blockers.push(hedge);
+      for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) if (fill[i][j]) { const [x0, x1] = ux(i), [z0, z1] = uz(j); solid(x0, x1, z0, z1); }
+      // 덤불 너머 먼 숲 띠(해 질 녘 그림)와 노을 하늘
+      const T = BEACH.T, ring = (ax, az, bx, bz, H, tx, tileW) => { const L = Math.hypot(bx - ax, bz - az), gg = new THREE.PlaneGeometry(L, H); gg.translate(0, H / 2, 0); const u = gg.attributes.uv; for (let i = 0; i < u.count; i++) u.setX(i, u.getX(i) * L / tileW); const m = new THREE.Mesh(gg, new THREE.MeshBasicMaterial({ map: tx, transparent: true, alphaTest: .45, toneMapped: false, side: THREE.DoubleSide, color: 0xe6dcea })); m.position.set((ax + bx) / 2, 0, (az + bz) / 2); m.rotation.y = -Math.atan2(bz - az, bx - ax); scene.add(m); };
+      ring(FX0 - 1.5, FZ1 + 2.5, FX1 + 3.5, FZ1 + 2.5, 6.4, T.farD, 24); ring(FX1 + 3.5, FZ0 + 1, FX1 + 3.5, FZ1 + 2.5, 6.4, T.farD, 24); ring(FX0 - 1.2, FZ0 + 1, FX0 - 1.2, FZ1 + 2.5, 6.0, T.farD, 24);
+      // 나가는 곳(임시): 동쪽 틈 너머 짧은 길 끝에서 등불 빛이 샌다. 모양은 샘플로 고른다
+      const [ex, ez] = cell(5, 3), ox = FX1;
+      const glowT = canvasTex(128, 256, (gq, W, H) => { const gr = gq.createRadialGradient(W / 2, H * .6, 0, W / 2, H * .6, W * .8); gr.addColorStop(0, 'rgba(255,196,120,.95)'); gr.addColorStop(1, 'rgba(255,180,100,0)'); gq.fillStyle = gr; gq.fillRect(0, 0, W, H); });
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6), new THREE.MeshBasicMaterial({ map: glowT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); place(glow, ox + 2.3, 1.3, ez, -1, 0);
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(CW + .4, HH), new THREE.MeshBasicMaterial({ color: 0x2c2638, toneMapped: false })); place(back, ox + 2.45, HH / 2, ez, -1, 0);
+      for (const s of [-1, 1]) { const w = new THREE.Mesh(new THREE.PlaneGeometry(2.5, HH), new THREE.MeshBasicMaterial({ map: hedgeT, alphaTest: .45, toneMapped: false, color: 0x8a84a0, side: THREE.DoubleSide })); place(w, ox + 1.25, 0, ez + s * CW / 2, 0, -s); w.position.y = 0; w.geometry.translate(0, HH / 2, 0); blockers.push(w); }
+      solid(ox, ox + 2.6, ez - CW / 2 - .3, ez - CW / 2); solid(ox, ox + 2.6, ez + CW / 2, ez + CW / 2 + .3); solid(ox + 2.1, ox + 2.6, ez - CW / 2, ez + CW / 2);   // 작업실을 만들기 전까지는 여기서 멈춘다
     }, null, 'ip');
-    const ZB = P2.z1, cx = (P2.x0 + P2.x1) / 2;
-    portal([cx, ZB - .5, Math.PI], [bx, bz, Math.PI], 2.2, 'ipPath2', 'ipTest');
-    const i = colliders.findIndex(c => Math.abs(c[2] - (ZB - .05)) < .01); if (i >= 0) colliders.splice(i, 1);
+    linkInteriors('ipPath2', 'ipForest'); linkInteriors('ipBeach', 'ipForest');
+    // 반딧불이: 숲에 들어와 45초가 지나도록 출구에 못 가면, 빛 점 넷이 앞서 출구 길을 따라 날아가며 기다린다
+    {
+      const inForest = (x, z) => x > FX0 && x < FX1 + 2.6 && z > P2.z1 && z < FZ1;
+      const flyT = canvasTex(64, 64, (gq, W, H) => { const gr = gq.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2); gr.addColorStop(0, 'rgba(255,246,180,1)'); gr.addColorStop(.35, 'rgba(230,255,150,.6)'); gr.addColorStop(1, 'rgba(200,255,120,0)'); gq.fillStyle = gr; gq.fillRect(0, 0, W, H); });
+      const flies = [0, 1, 2, 3].map(() => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: flyT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 })); s.scale.setScalar(.22); scene.add(s); return s; });
+      const RP = [...ROUTE.map(([c, r]) => cell(c, r)), [FX1 + 1.4, cell(5, 3)[1]]];
+      let tIn = 0, k = 0, lead = null, done = false;
+      const FTEST = new URLSearchParams(location.search).get('fireflies');
+      animators.push((t, dt, me) => {
+        const here = inForest(me.x, me.z);
+        if (here) tIn += dt; else if (!done) tIn = 0;
+        if (me.x > FX1 - .2) done = true;
+        const want = here && !done && (tIn > 45 || FTEST) ? 1 : 0;
+        k += (want - k) * Math.min(1, dt * 1.5);
+        let ni = 0, nd = 1e9; RP.forEach(([x, z], i) => { const d = Math.hypot(me.x - x, me.z - z); if (d < nd) { nd = d; ni = i; } });
+        const tgt = RP[Math.min(RP.length - 1, ni + 1)];
+        if (!lead) lead = new THREE.Vector3(tgt[0], 1.3, tgt[1]);
+        const far = Math.hypot(lead.x - me.x, lead.z - me.z) > 4.2;
+        if (!far) { lead.x += (tgt[0] - lead.x) * Math.min(1, dt * 1.2); lead.z += (tgt[1] - lead.z) * Math.min(1, dt * 1.2); }
+        flies.forEach((s, i) => {
+          const ph = t * (1.3 + i * .21) + i * 1.7, r = reduceMotion ? 0 : .35;
+          s.position.set(lead.x + Math.cos(ph) * r, 1.2 + Math.sin(ph * 1.3) * .25 + i * .06, lead.z + Math.sin(ph) * r);
+          s.material.opacity = k * (.65 + .35 * Math.sin(t * 5 + i * 2));
+          s.visible = k > .01;
+        });
+      });
+    }
   }
   // 새소리: 숲길 틈 너머에서 작게 먼저 들리고(다음 장면 예고), 다 주우면 조금 커진다
   let birdNext = 2;

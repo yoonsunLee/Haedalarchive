@@ -23,11 +23,12 @@ const units = (() => {
 const SERIES_NAME = { 'n-th-derivative': 'N차적 저작물', territory: '우주조약', pov: 'POV' };
 for (const s of SERIES) if (s.name) SERIES_NAME[s.key] = s.name;
 // 윗면 맞춤: 모든 작품의 윗면을 POV : 업무 중(53 cm)의 윗면 높이에 건다. 그 작품의 가운데가 눈높이 1.65 m
-const TOP = 1.65 + .53 * SCALE / 2;
-const GAP_IN = 1.45, GAP_UNIT = 2.6, CAP_W = 1.0;   // 작품 사이에 오른쪽 아래 캡션이 들어갈 자리
+const TOP = 1.65 + .53 * SCALE / 2;   // (예전 규칙: 윗면 한 줄. 지금은 쓰지 않음)
+const HANG_CY = 1.5;   // 작품 가운데 높이(작가님 결정: 키 165 cm 관람객 눈높이에 맞춰 가운데 1.5 m 한 줄, 미술관 표준)
+const GAP_IN = 1.45, GAP_UNIT = 2.6, CAP_W = 1.0, CAP_SPACE = 0;   // 캡션은 작품 아래로 옮겨서(작가님) 작품 옆에 자리를 두지 않는다. 작품이 자리 한가운데에 온다
 for (const u of units) {
   u.sizes = u.works.map(w => parseSize(w.size).map(v => v / 100 * SCALE));
-  u.width = u.sizes.reduce((s, [w]) => s + w, 0) + (u.works.length - 1) * GAP_IN + CAP_W;
+  u.width = u.sizes.reduce((s, [w]) => s + w, 0) + (u.works.length - 1) * GAP_IN + CAP_SPACE;
 }
 const WR = ROOMS.works, IN = .17;
 // 방 나누기: 연작은 연작 방으로, 연작이 아닌 작품은 룸1 법과 권리로(gallery.json에 섹션이 생기면 그것을 따른다)
@@ -37,6 +38,11 @@ const lawUnits = units.filter(u => ROOM_OF(u.works[0]) === 'law'), restUnits = u
 /* 안쪽 공간은 바깥 건물 크기에 매이지 않는다(작가님 결정). 방마다 INTERIORS에 넣어 두면,
    그 안에 있을 때는 방을 파고드는 바깥 건물을 숨기고, 밖(중정·바깥 등)에 있을 때는 안쪽 공간을 숨긴다 */
 const INTERIORS = [];
+// 바닥 화살표 하나: [x, z, yaw](yaw 0 = 북쪽을 가리킴, +π/2 = 서쪽). 길이 약 0.6 m, 남색 반투명
+const arrowT = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(w * .5, h * .04); g.lineTo(w * .96, h * .5); g.lineTo(w * .7, h * .5); g.lineTo(w * .7, h * .9); g.lineTo(w * .3, h * .9); g.lineTo(w * .3, h * .5); g.lineTo(w * .04, h * .5); g.closePath(); g.fill(); /* 머리가 크고 몸통이 짧은 굵은 화살표(작가님 예시) */ });
+const arrowM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0x3c3c3c, transparent: true, opacity: .94, depthWrite: false, toneMapped: false });   // 짙은 먹색(작가님 예시)
+const arrowLightM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0xe8e2d6, transparent: true, opacity: .7, depthWrite: false, toneMapped: false });   // 어두운 방(룸3·룸4)은 옅은 상아색
+function floorArrows(list, y = .046, mat = arrowM) { for (const [x, z, yaw] of list) { const grp = new THREE.Group(), m = new THREE.Mesh(new THREE.PlaneGeometry(.85, .85), mat); m.rotation.x = -Math.PI / 2; m.renderOrder = 2; grp.add(m); grp.position.set(x, y, z); grp.rotation.y = yaw; scene.add(grp); } }
 // 이어 붙이기(작가님 결정: 가상공간이라 장면을 실제 길로 다 잇지 않는다). 장면은 떨어진 섬이고, 통로 끝 문과 다음 장면의 첫 문을 똑같이 만들어 두면
 // 문을 지나는 순간 관람객(과 카메라·발자국)을 다음 섬의 같은 자리로 옮긴다. a·b: [x, z, yaw] = 문 가운데와 앞으로 지나가는 방향(yaw 0 = 북쪽), w: 문 폭
 const LINKS = {}, PORTALS = [];
@@ -53,7 +59,7 @@ function interior(name, rects, box, build, near = null, zone = 'works') {   // z
 // 걸기: 묶음을 벽면에 차례로 담고, 벽면마다 남는 길이를 묶음 사이에 고르게 나눈다
 const workFocus = new Map(), workPlaced = [];
 const CAP_H = .62;
-const caption = (w, light) => letters(CAP_W - .08, CAP_H, (g, W, H) => {   // light: 어두운 벽용 밝은 글자   // 작품 오른쪽, 마지막 줄이 작품 아랫면에 닿도록 아래에서부터 쌓는다
+const caption = (w, light, right = false) => letters(CAP_W - .08, CAP_H, (g, W, H) => {   /* right: 오른쪽 맞춤 */   // light: 어두운 벽용 밝은 글자   // 작품 오른쪽, 마지막 줄이 작품 아랫면에 닿도록 아래에서부터 쌓는다
   const D = DETAIL[w.id] || {}, rows = [];
   const add = (text, size, weight, fam, color, max = 2) => { font(g, H * size, weight, fam, color); for (const l of wrapText(g, text, W).slice(0, max)) rows.push([l, size, weight, fam, color]); };
   const c1 = light ? '#ece6dc' : INK, c2 = light ? '#b9b2a6' : INK2, c3 = light ? '#cfc8bc' : '#3b342d';
@@ -62,7 +68,7 @@ const caption = (w, light) => letters(CAP_W - .08, CAP_H, (g, W, H) => {   // li
   add((D.medium || '').split(' · ')[0], .078, 400, FONT_B, c3);
   add(`${w.size} cm · ${w.year}`, .078, 400, FONT_B, c3, 1);
   let y = H - H * .03;
-  for (let i = rows.length - 1; i >= 0; i--) { const [l, size, weight, fam, color] = rows[i]; font(g, H * size, weight, fam, color); g.fillText(l, 0, y); y -= H * size * 1.32; if (i === 2 || i === 1) y -= H * .01; }
+  for (let i = rows.length - 1; i >= 0; i--) { const [l, size, weight, fam, color] = rows[i]; font(g, H * size, weight, fam, color); g.textAlign = right ? 'right' : 'left'; g.fillText(l, right ? W : 0, y); y -= H * size * 1.32; if (i === 2 || i === 1) y -= H * .01; }
 }, 520);
 const edgeMat = new THREE.MeshStandardMaterial({ color: 0x0f0c0b, roughness: .4 });
 // 작품 한 점: (x, cy, z)에 n 쪽을 보게 걸고, 캡션은 d(보는 사람의 오른쪽) 쪽 아래. capAt: 캡션 자리를 따로 줄 때 [x, z]
@@ -71,13 +77,14 @@ function putWork(w, ww, hh, x, cy, z, [nx, nz], [dx, dz], light, where, capAt) {
   const body = new THREE.Mesh(new THREE.BoxGeometry(ww, hh, .045), edgeMat); body.position.z = .0225; g.add(body);
   const t = tex(workImg(w)); const face = new THREE.Mesh(new THREE.PlaneGeometry(ww, hh), new THREE.MeshBasicMaterial({ map: t, color: 0xf2f2f2 })); face.position.z = .046; g.add(face);
   place(g, x, cy, z, nx, nz);
-  const lb = caption(w, light), cc = ww / 2 + .12 + (CAP_W - .08) / 2, [lx, lz] = capAt || [x + dx * cc + nx * .01, z + dz * cc + nz * .01];
-  place(lb, lx, cy - hh / 2 + CAP_H / 2, lz, nx, nz);
+  const CS = .72;   // 캡션 크기(작가님: 글씨를 더 작게, 작품 오른쪽 아래)
+  const cw = (CAP_W - .08) * CS, lb = caption(w, light, !!(capAt && capAt[3])), cc = ww / 2 - cw * .45 + cw / 2, [lx, lz] = capAt || [x + dx * cc + nx * .01, z + dz * cc + nz * .01];   // 캡션: 작품 바로 아래, 오른쪽으로 치우쳐(작가님 예시)
+  lb.scale.setScalar(CS); place(lb, lx, capAt && capAt[2] != null ? capAt[2] : cy - hh / 2 + .04 - CAP_H * CS / 2, lz, nx, nz);   // capAt[2]: 캡션 아랫줄 높이를 따로 줄 때
   const D = DETAIL[w.id] || {};
   const info = { kind: D.en || w.title_en || w.id, title: w.title, meta: D.medium || `${w.year} · ${w.size} cm`, body: (D.body || []).join('\n\n'), ex: D.ex, img: workImg(w), id: w.id,
     links: [[`${SITE}/works/w/${w.id}/`, '작품 페이지'], [`${SITE}/contact/`, '작품 문의', true]], where, focus: focusFrom(x, cy, z, nx, nz, Math.max(2.4, hh * 1.6)) };
   pickable(g, info); pickable(lb, info);
-  workFocus.set(w.id, info); workPlaced.push({ w, info });
+  workFocus.set(w.id, info); workPlaced.push({ w, info, at: [x, cy, z, nx, nz] });
 }
 function hang(list, slots, extra = []) {
   const fill = slots.map(s => ({ s, items: [], used: 0 }));
@@ -103,12 +110,12 @@ function hang(list, slots, extra = []) {
       }
       u.works.forEach((w, k) => {
         if (k) a += GAP_IN;
-        const [ww, hh] = u.sizes[k], c = a + ww / 2, cy = Math.max(TOP - hh / 2, .9 + hh / 2);   // 윗면을 한 줄(TOP)에 맞춘다(작가님 규칙). 아주 큰 작품만 아랫면이 0.9 m 아래로 내려가지 않게 올린다
+        const [ww, hh] = u.sizes[k], c = a + ww / 2, cy = Math.max(HANG_CY, .9 + hh / 2);   // 가운데를 한 줄(1.5 m)에 맞춘다(작가님 결정). 아주 큰 작품만 아랫면이 0.9 m 아래로 내려가지 않게 올린다
         const x = f.s.o[0] + f.s.d[0] * c, z = f.s.o[1] + f.s.d[1] * c;
         putWork(w, ww, hh, x, cy, z, f.s.n, f.s.d, f.s.light, f.s.name);
         a += ww;
       });
-      a += CAP_W;
+      a += CAP_SPACE;
     }
   }
 }
@@ -128,7 +135,7 @@ const oakT = canvasTex(512, 512, (g, w, h) => {   // 밝은 참나무 마루(폭
 interior('law', [[C1.x0, C1.x1, C1.z0 - .2, C1.z1 + .3], [R1.x0, R1.x1, R1.z0, R1.z1]], [R1.x0 - .25, R1.x1 + .25, R1.z0 - .25, C1.z1 - .05, R1.h + .3], () => {
   const W = M.white, T2 = [2.4, 2.4], floorM = std({ map: oakT, roughness: .45 });
   // 바닥과 천장
-  ground(R1.x0, R1.x1, R1.z0, R1.z1, .04, floorM, 1.44); ground(C1.x0, C1.x1, C1.z0, C1.z1 + .15, .04, floorM, 1.44);
+  ground(R1.x0, R1.x1, R1.z0, R1.z1, .04, M.stone, 2.4); ground(C1.x0, C1.x1, C1.z0, C1.z1 + .15, .04, M.stone, 2.4);   // 바닥은 작가소개 방과 같은 돌 타일(작가님)
   ceiling(R1.x0, R1.x1, R1.z0, R1.z1, R1.h, M.hanjiCeil, 1.8);
   // 벽(두께 .2, 바깥쪽으로)
   const wd0 = 1.7, wd1 = 4.1;   // 서쪽 벽 남쪽 끝: 룸2로 가는 문(문턱②)
@@ -141,8 +148,7 @@ interior('law', [[C1.x0, C1.x1, C1.z0 - .2, C1.z1 + .3], [R1.x0, R1.x1, R1.z0, R
   boxMM(R1.x0, o0, 0, R1.h, R1.z1, R1.z1 + .2, W, T2); solid(R1.x0, o0, R1.z1, R1.z1 + .2);
   boxMM(o1, R1.x1, 0, R1.h, R1.z1, R1.z1 + .2, W, T2); solid(o1, R1.x1, R1.z1, R1.z1 + .2);
   boxMM(o0, o1, 2.4, R1.h, R1.z1, R1.z1 + .2, W, T2);
-  for (const [a, b] of [[o0 - .06, o0], [o1, o1 + .06]]) boxMM(a, b, 0, 2.46, R1.z1 - .03, R1.z1 + .23, M.brass);
-  boxMM(o0 - .06, o1 + .06, 2.4, 2.46, R1.z1 - .03, R1.z1 + .23, M.brass);
+  // 놋쇠 문틀은 뺌(작가님)
   // 통로: 흰 벽, 흰 천장 가운데 한지 광천장 60 cm 띠
   boxMM(C1.x0 - .15, C1.x0, 0, C1.h, C1.z0 + .2, C1.z1, W, T2); solid(C1.x0 - .15, C1.x0, C1.z0, C1.z1);
   boxMM(C1.x1, C1.x1 + .15, 0, C1.h, C1.z0 + .2, C1.z1, W, T2); solid(C1.x1, C1.x1 + .15, C1.z0, C1.z1);
@@ -155,6 +161,8 @@ interior('law', [[C1.x0, C1.x1, C1.z0 - .2, C1.z1 + .3], [R1.x0, R1.x1, R1.z0, R
   // 빛: 방은 고르게 밝게, 통로는 한지 띠 아래
   for (const x of [DOORX - 3, DOORX + 3]) { const l = new THREE.PointLight(0xfff6ea, 7, 10, 1.2); l.position.set(x, R1.h - .4, R1.z0 + 5); scene.add(l); }
   const lc = new THREE.PointLight(0xfff3df, 2.2, 6, 1.4); lc.position.set(DOORX, C1.h - .3, (C1.z0 + C1.z1) / 2); scene.add(lc);
+  // 바닥 화살표: 보는 차례(작가님: 이케아처럼, 크기는 그 절반쯤, 빼곡하지 않게). 들어와 첫 작품 → 오른쪽(동쪽) 벽 → 가벽 뒤 → 왼쪽(서쪽) 벽 → 룸2 문
+  floorArrows([[-15.4, 1.4, -Math.PI / 4], [-15.2, -3.4, Math.PI / 2], [-21.4, -0.6, Math.PI * .75]]);
   // 걸기: 가벽 → 오른쪽(동쪽) 벽 → 왼쪽(서쪽) 벽 → 가벽 뒤 북쪽 벽
   hang(lawUnits, [
     { name: '룸1 법과 권리 · 정면 가벽', o: [DOORX - 1.6, R1_GABLE + .02], d: [1, 0], n: [0, 1], len: 3.2 },
@@ -171,7 +179,7 @@ interior('law', [[C1.x0, C1.x1, C1.z0 - .2, C1.z1 + .3], [R1.x0, R1.x1, R1.z0, R
 // 룸2 POV: 10 × 8 m, 천장 4.5 m. 워홀 노랑 바탕에 분홍 조개만 반복한 벽지, 밝은 테라초 바닥, 공중에 떠다니는 은박 말풍선(「Silver Clouds」처럼).
 //          네 점은 연작이지만 한 줄로 늘어놓지 않고 벽마다 한 점씩, 출근 → 업무 중 → 퇴근 → 유급휴일 차례로 방을 한 바퀴 돈다
 const POV_ORDER = { 'HD-2026-006': 1, 'HD-2026-003': 2, 'HD-2026-007': 3, 'HD-2026-010': 4 };
-const povUnits = units.filter(u => ROOM_OF(u.works[0]) === 'pov').flatMap(u => u.works.map((w, k) => ({ key: '#' + w.id, series: false, works: [w], sizes: [u.sizes[k]], width: u.sizes[k][0] + CAP_W })))
+const povUnits = units.filter(u => ROOM_OF(u.works[0]) === 'pov').flatMap(u => u.works.map((w, k) => ({ key: '#' + w.id, series: false, works: [w], sizes: [u.sizes[k]], width: u.sizes[k][0] + CAP_SPACE })))
   .sort((a, b) => (POV_ORDER[a.works[0].id] ?? 9) - (POV_ORDER[b.works[0].id] ?? 9));
 const OUTDOOR = [];   // 숲처럼 안쪽 공간에 있을 때 숨길 바깥 것(g9에서 넣는다)
 const C2 = { x0: -30, x1: R1.x0 - .2, z0: 1.6, z1: 4.2, bx1: -27.4, h: 3.0 }, R2 = { x0: -34.2, x1: -24.2, z0: -11.5, z1: -3.5, h: 4.5 };
@@ -240,15 +248,16 @@ interior('pov', [[C2.x0, R1.x0 + .3, C2.z0, C2.z1], [C2.x0, C2.bx1, R2.z1 - .3, 
   dotWall(C2.bx1, R2.z1 + .2, C2.bx1, C2.z0, -1, 0);   // 꺾인 뒤 동쪽 벽
   // 꺾이는 벽: 서쪽 벽 전체. 걸어오는 정면(꺾이는 자리)에 굵은 윤곽선 「POV」
   dotWall(C2.x0, C2.z1, C2.x0, R2.z1 + .2, 1, 0, (g, Wc, Hc, ppm) => {
-    const L = C2.z1 - (R2.z1 + .2), mid = (C2.z1 - (C2.z0 + C2.z1) / 2) / L * Wc;
-    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 ${1.15 * ppm}px "Black Han Sans", "Noto Sans KR", sans-serif`;
-    g.lineJoin = 'round'; g.lineWidth = .11 * ppm; g.strokeStyle = '#111'; g.strokeText('POV', mid, Hc * .46);
-    g.fillStyle = '#ffffff'; g.fillText('POV', mid, Hc * .46); g.restore();
+    const L = C2.z1 - (R2.z1 + .2), mid = Wc / 2;   // 벽 한가운데에 벽 높이만큼 크게(작가님: 팝아트답게 더 크고 넓게, 잘리지 않게)
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `900 ${2.35 * ppm}px "Black Han Sans", "Noto Sans KR", sans-serif`; g.letterSpacing = `${.55 * ppm}px`;
+    { const w = g.measureText('POV').width; if (w > Wc * .94) { const k = Wc * .94 / w; g.font = `900 ${2.35 * k * ppm}px "Black Han Sans", "Noto Sans KR", sans-serif`; g.letterSpacing = `${.55 * k * ppm}px`; } }   // 더 크게, 글자 사이 넓게(작가님)
+    g.lineJoin = 'round'; g.lineWidth = .18 * ppm; g.strokeStyle = '#111'; g.strokeText('POV', mid, Hc * .5);
+    g.fillStyle = '#ffffff'; g.fillText('POV', mid, Hc * .5); g.restore();
   });
   for (const [x, z] of [[(C2.bx1 + C2.x1) / 2, (C2.z0 + C2.z1) / 2], [R2_DOOR.x, (R2.z1 + C2.z0) / 2]]) { const l = new THREE.PointLight(0xfffaf0, 3.2, 7, 1.3); l.position.set(x, C2.h - .3, z); scene.add(l); }
   // ── 룸2 ──
   ground(R2.x0, R2.x1, R2.z0, R2.z1, .04, terM, 2.0);
-  ceiling(R2.x0, R2.x1, R2.z0, R2.z1, R2.h, new THREE.MeshBasicMaterial({ color: 0xf6f3ee, side: THREE.DoubleSide }), 2.4);
+  { const m = new THREE.Mesh(new THREE.PlaneGeometry(R2.x1 - R2.x0, R2.z1 - R2.z0), papMat(R2.x1 - R2.x0, R2.z1 - R2.z0)); m.rotation.x = Math.PI / 2; m.position.set((R2.x0 + R2.x1) / 2, R2.h - .005, (R2.z0 + R2.z1) / 2); scene.add(m); }   // 천장도 벽과 같은 조개 벽지(작가님 제안)
   const Wd = R2.x1 - R2.x0, Dd = R2.z1 - R2.z0, rcx = (R2.x0 + R2.x1) / 2, rcz = (R2.z0 + R2.z1) / 2;
   boxMM(R2.x0 - .2, R2.x0, 0, R2.h, R2.z0 - .2, R2.z1 + .2, W); solid(R2.x0 - .2, R2.x0, R2.z0 - .2, R2.z1 + .2);
   boxMM(R2.x1, R2.x1 + .2, 0, R2.h, R2.z0 - .2, R2.z1 + .2, W); solid(R2.x1, R2.x1 + .2, R2.z0 - .2, R2.z1 + .2);
@@ -269,15 +278,32 @@ interior('pov', [[C2.x0, R1.x0 + .3, C2.z0, C2.z1], [C2.x0, C2.bx1, R2.z1 - .3, 
     const t = papT.clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / PAP, 1 / PAP);
     const m = new THREE.Mesh(new THREE.ShapeGeometry(s), std({ map: t, roughness: .85, side: THREE.DoubleSide })); m.position.set(rcx, 0, R2.z1 - .005); scene.add(m);
   }
+  {   // 통로 쪽 벽면도 둥근 문 모양으로 뚫은 한 장으로 덮는다(작가님: 문 위 양 귀퉁이가 뚫려 보임)
+    const x0 = C2.x0 - R2_DOOR.x, x1 = C2.bx1 - R2_DOOR.x, dp = doorShape(R2_DOOR.w + 2 * R2_DOOR.b, R2_DOOR.h + R2_DOOR.b, R2_DOOR.r + R2_DOOR.b).getPoints().slice(0, -1);
+    const sh = new THREE.Shape([new THREE.Vector2(x0, 0), ...dp, new THREE.Vector2(x1, 0), new THREE.Vector2(x1, C2.h), new THREE.Vector2(x0, C2.h)]);   // 바닥에서 문 둘레를 따라 한 붓으로(구멍이 바닥선에 닿으면 메워져 버림)
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), std({ color: 0xfbeec0, roughness: .85, side: THREE.DoubleSide })); m.position.set(R2_DOOR.x, 0, R2.z1 + .205); scene.add(m);
+  }
   // 만화 칸: 굵은 검은 테(벽을 꿰뚫고 양쪽으로 3 cm 나온다)
   {
-    const ring = doorShape(R2_DOOR.w + 2 * R2_DOOR.b, R2_DOOR.h + R2_DOOR.b, R2_DOOR.r + R2_DOOR.b);
-    ring.holes.push(new THREE.Path(doorShape(R2_DOOR.w, R2_DOOR.h, R2_DOOR.r).getPoints()));
+    // ㄷ자를 뒤집은 한 붓 모양(바닥 쪽은 열림): 구멍이 바닥선에 닿아 바닥에 까만 띠가 생기던 것을 없앤다(작가님)
+    const op = doorShape(R2_DOOR.w + 2 * R2_DOOR.b, R2_DOOR.h + R2_DOOR.b, R2_DOOR.r + R2_DOOR.b).getPoints(), ip = doorShape(R2_DOOR.w, R2_DOOR.h, R2_DOOR.r).getPoints();
+    const ring = new THREE.Shape([...op.slice(0, -1), ...ip.slice(0, -1).reverse()]);
     const m = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: .26, bevelEnabled: false, curveSegments: 16 }), std({ color: 0x141414, roughness: .55 }));
     m.position.set(R2_DOOR.x, 0, R2.z1 - .03); scene.add(m);
   }
+  {   // 룸2 → 문턱③ 문도 들어오는 문과 같은 둥근 검은 테(작가님: 통일). 네모 구멍의 윗귀퉁이는 양쪽 벽면으로 메운다
+    const DX = -32.8, b = R2_DOOR.b, DW = 2.4, DH = 2.7, r = R2_DOOR.r, z = R2.z0;
+    const op = doorShape(DW + 2 * b, DH + b, r + b).getPoints().slice(0, -1), ip = doorShape(DW - .04, DH - .02, r).getPoints().slice(0, -1);   /* 테 안쪽을 벽 구멍보다 2 cm 안으로: 벽 옆면과 겹쳐 지글거리지 않게 */
+    const ring = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape([...op, ...ip.slice().reverse()]), { depth: .26, bevelEnabled: false, curveSegments: 16 }), std({ color: 0x141414, roughness: .55 }));
+    ring.rotation.y = Math.PI; ring.position.set(DX, 0, z + .03); scene.add(ring);
+    const x0 = -34.2 - DX, x1 = -31.4 - DX, top = 2.98, notch = [new THREE.Vector2(x0, 0), ...op, new THREE.Vector2(x1, 0), new THREE.Vector2(x1, top), new THREE.Vector2(x0, top)];
+    const t = papT.clone(); t.needsUpdate = true; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / PAP, 1 / PAP);
+    const inside = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(notch)), std({ map: t, roughness: .85, side: THREE.DoubleSide })); inside.position.set(DX, 0, z + .007); scene.add(inside);
+    const outside = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(notch)), std({ color: 0xd9c27a, roughness: .9, side: THREE.DoubleSide })); outside.position.set(DX, 0, z - .207); scene.add(outside);
+  }
   for (const x of [rcx - 2.5, rcx + 2.5]) { const l = new THREE.PointLight(0xfff8ec, 6.5, 10, 1.2); l.position.set(x, R2.h - .4, rcz); scene.add(l); }
   // 작품: 벽마다 한 점(오른쪽 벽부터 한 바퀴). 벽면 d는 보는 사람의 오른쪽
+  floorArrows([[-28.7, -4.4, 0], [-27.2, -10.4, Math.PI / 2], [-32.9, -10.7, 0]], .05);   // 룸2: 동 → 북 → 서 벽, 북서쪽 문으로
   hang(povUnits, [
     { name: '룸2 POV · 동쪽 벽', o: [R2.x1 - .02, -8.2], d: [0, 1], n: [-1, 0], len: 3.2 },
     { name: '룸2 POV · 북쪽 벽', o: [rcx - 1.3, R2.z0 + .02], d: [1, 0], n: [0, 1], len: 3.8 },
@@ -295,7 +321,7 @@ interior('pov', [[C2.x0, R1.x0 + .3, C2.z0, C2.z1], [C2.x0, C2.bx1, R2.z1 - .3, 
   const SAY = [['HD-2026-006', '아이스아메리카노를 사느라 늦겠다.'], ['HD-2026-003', '얼빵해달의 직업은 조개배달부다.'], ['HD-2026-007', '얼른 집에 가서 각 잡고 봐야지.'], ['HD-2026-010', '달력 속 파란 날, 토요일이다.']];
   const spots = [[-31.6, -6.2], [-27.0, -9.6], [-30.4, -9.9], [-26.4, -5.6], [-32.8, -9.0], [-28.6, -7.4], [-25.6, -8.4]];
   const balloons = spots.map(([x, z], i) => {
-    const g = new THREE.Group(), sc = .85 + (i % 3) * .15;
+    const g = new THREE.Group(), sc = (.85 + (i % 3) * .15) * (i < SAY.length ? 1 : .6);   /* 글 없는 말풍선은 더 작게(작가님) */
     const body = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), silver); body.scale.set(.7 * sc, .42 * sc, .24 * sc); g.add(body);
     const tail = new THREE.Mesh(new THREE.ConeGeometry(.15 * sc, .42 * sc, 14), silver); tail.scale.z = .55; tail.position.set(-.3 * sc, -.44 * sc, 0); tail.rotation.z = Math.PI - .55; g.add(tail);   // 말풍선 꼬리: 아래로 비스듬히
     const say = SAY[i];
@@ -410,24 +436,26 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
   ceiling(C3.ax0, C3.ax1, C3.zn, R2.z0, C3.h, ceilM, 2.4); ceiling(C3.bx0, C3.ax0, C3.zn, C3.zc1, C3.h, ceilM, 2.4); ceiling(C3.bx0, C3.bx1, C3.zf, C3.zn, C3.h, ceilM, 2.4);
   // 바닥: 테라초 → 어두워지며 → 젖은 돌
   const terT = terrazzoTex(1), darkTer = canvasTex(1024, 1024, (g, w, h) => { g.drawImage(terT.image, 0, 0); g.fillStyle = 'rgba(40,40,44,.62)'; g.fillRect(0, 0, w, h); });
-  ground(C3.ax0, C3.ax1, C3.zc1, R2.z0 - .2, .04, std({ map: terT, roughness: .35 }), 2.0);
+  ground(C3.ax0, C3.ax1, C3.zc1, R2.z0 + .02, .041,   /* 룸2 바닥과 틈 없이(문턱 까만 띠) */ std({ map: terT, roughness: .35 }), 2.0);
   ground(C3.bx1, C3.ax1, C3.zn, C3.zc1, .04, std({ map: darkTer, roughness: .25 }), 2.0);
   ground(C3.bx0, C3.bx1, C3.zf, C3.zc1, .04, std({ color: 0x2a2b2e, roughness: .12, metalness: .15 }), 2.0);
   for (const [x, z, k] of [[(C3.ax0 + C3.ax1) / 2, -13.2, 1.4], [-36, (C3.zc1 + C3.zn) / 2, .7]]) { const l = new THREE.PointLight(0xffeccc, k, 5, 1.5); l.position.set(x, C3.h - .3, z); scene.add(l); }
 
   // ── 팔각 방 ──
   const face = (k) => { const th = k * Math.PI / 4; return { th, nx: Math.sin(th), nz: Math.cos(th), cx: OC.x + Math.sin(th) * OC.a, cz: OC.z + Math.cos(th) * OC.a }; };   // k: 0 남, 1 남동, 2 동, 3 북동, 4 북, 5 북서, 6 서, 7 남서
-  const ENTRY = { a: 1.85 };   // 팔각 창살 문: 내접원 1.85(폭 3.7 m), 가운데 열린 칸 = 아랫변 폭
+  const ENTRY = { a: 1.3, slide: .87 };   // 팔각 창살 문: 내접원 1.3(폭·높이 2.6 m = 문턱③ 길 폭에 꼭 맞게). 창살 두 짝이 옆 벽 속으로 미끄러져 열린다(작가님: 팔각문 제대로)
   const midW = 2 * ENTRY.a * Math.tan(Math.PI / 8);
+  // 팔각 문: 길 폭(2.6 m)에 꽉 차고 높이 2.7 m, 모서리만 0.42 m 깎은 키 큰 팔각(작가님 예시). 아래 빗변이 작아 걸어 지날 때 바닥 쐐기가 거의 없다
+  const doorPts = (a) => { const m = a - ENTRY.a, W = 1.3 + m, H = 2.7 + m, c = .42; return [[-W + c, 0], [W - c, 0], [W, c], [W, H - c], [W - c, H], [-W + c, H], [-W, H - c], [-W, c]].map(([x, y]) => new THREE.Vector2(x, y)); };
   for (let k = 0; k < 8; k++) {
     const f = face(k), g = new THREE.Group();
     if (k === 0) {   // 남쪽 면: 팔각 구멍 난 벽
       const s = new THREE.Shape(); s.moveTo(-OCT_SIDE / 2 - .1, 0); s.lineTo(OCT_SIDE / 2 + .1, 0); s.lineTo(OCT_SIDE / 2 + .1, OC.h); s.lineTo(-OCT_SIDE / 2 - .1, OC.h); s.closePath();
-      s.holes.push(new THREE.Path(octPts(ENTRY.a + .1)));
+      s.holes.push(new THREE.Path(doorPts(ENTRY.a + .1)));
       const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: .2, bevelEnabled: false }), mukM); m.position.z = -.0; g.add(m); blockers.push(m);
       // 검은 팔각 테
-      const ring = new THREE.Shape(octPts(ENTRY.a + .1)); ring.holes.push(new THREE.Path(octPts(ENTRY.a)));
-      const rm = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: .28, bevelEnabled: false }), std({ color: 0x0c0c0c, roughness: .35 })); rm.position.z = -.04; g.add(rm);
+      const ring = new THREE.Shape(doorPts(ENTRY.a + .1)); ring.holes.push(new THREE.Path(doorPts(ENTRY.a)));
+      const rm = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: .2, bevelEnabled: false }), std({ color: 0x0c0c0c, roughness: .35 })); rm.position.z = 0; g.add(rm);
       // 양쪽 살창(아자 무늬) + 뒤의 한지. 가운데 세로 칸은 비어 있어 지나간다
       const latT = canvasTex(512, 512, (c, w, h) => {
         c.fillStyle = '#efe6d2'; c.fillRect(0, 0, w, h); c.strokeStyle = '#141210'; c.lineWidth = 10; c.lineCap = 'square';
@@ -437,17 +465,26 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
         for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const x = i * s2, y = j * s2, q = s2 * .28; c.strokeRect(x + q, y + q, s2 - 2 * q, s2 - 2 * q); c.beginPath(); c.moveTo(x + s2 / 2, y); c.lineTo(x + s2 / 2, y + q); c.moveTo(x + s2 / 2, y + s2 - q); c.lineTo(x + s2 / 2, y + s2); c.moveTo(x, y + s2 / 2); c.lineTo(x + q, y + s2 / 2); c.moveTo(x + s2 - q, y + s2 / 2); c.lineTo(x + s2, y + s2 / 2); c.stroke(); }
       });
       const SC = .9; latT.repeat.set(1 / SC, 1 / SC);
-      const oct = octPts(ENTRY.a);
-      for (const side of [-1, 1]) {   // 팔각형을 x = ±midW/2 바깥만 잘라 살창 한 짝
-        const clip = [], cut = side * midW / 2, inside = p => side < 0 ? p.x <= cut : p.x >= cut;
-        for (let i = 0; i < oct.length; i++) { const a = oct[i], b = oct[(i + 1) % oct.length]; if (inside(a)) clip.push(a); if (inside(a) !== inside(b)) { const t = (cut - a.x) / (b.x - a.x); clip.push(new THREE.Vector2(cut, a.y + (b.y - a.y) * t)); } }
-        const lm = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(clip)), new THREE.MeshStandardMaterial({ map: latT, roughness: .8, emissive: 0xfff4dc, emissiveMap: latT, emissiveIntensity: .28, side: THREE.DoubleSide }));
-        lm.position.z = .1; g.add(lm);
-        const lf = new THREE.Mesh(new THREE.BoxGeometry(.05, ENTRY.a * 2, .1), std({ color: 0x0c0c0c, roughness: .35 })); lf.position.set(cut, ENTRY.a, .1); g.add(lf);   // 살창 짝의 안쪽 문울
+      const oct = doorPts(ENTRY.a);
+      const leaves = [];
+      for (const side of [-1, 1]) {   // 팔각형을 가운데(x = 0)에서 둘로 나눈 살창 한 짝씩
+        const clip = [], inside = p => side < 0 ? p.x <= 0 : p.x >= 0;
+        for (let i = 0; i < oct.length; i++) { const a = oct[i], b = oct[(i + 1) % oct.length]; if (inside(a)) clip.push(a); if (inside(a) !== inside(b)) { const t = (0 - a.x) / (b.x - a.x); clip.push(new THREE.Vector2(0, a.y + (b.y - a.y) * t)); } }
+        const leaf = new THREE.Group();
+        leaf.add(new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(clip)), new THREE.MeshStandardMaterial({ map: latT, roughness: .8, emissive: 0xfff4dc, emissiveMap: latT, emissiveIntensity: .28, side: THREE.DoubleSide })));
+        const lf = new THREE.Mesh(new THREE.BoxGeometry(.05, 2.7, .06), std({ color: 0x0c0c0c, roughness: .35 })); lf.position.set(side * .025, 1.35, 0); leaf.add(lf);   // 짝이 만나는 문울
+        leaf.position.z = .1; g.add(leaf); leaves.push([leaf, side]);
       }
-      // 막는 칸: 가운데 열린 칸만 지나간다
-      const x0 = f.cx, z0 = f.cz;
-      solid(x0 - OCT_SIDE / 2 - .2, x0 - midW / 2 + .02, z0 - .25, z0 + .05); solid(x0 + midW / 2 - .02, x0 + OCT_SIDE / 2 + .2, z0 - .25, z0 + .05);
+      // 막는 칸: 팔각 바깥(벽)과, 닫혀 있을 때의 창살 두 짝. 다가가면 열린다
+      const x0 = f.cx, z0 = f.cz, door = [x0 - ENTRY.slide, x0 + ENTRY.slide, z0 - .18, z0 + .12]; colliders.push(door);
+      solid(x0 - OCT_SIDE / 2 - .2, x0 - ENTRY.slide, z0 - .25, z0 + .05); solid(x0 + ENTRY.slide, x0 + OCT_SIDE / 2 + .2, z0 - .25, z0 + .05);
+      let openK = 0;
+      animators.push((t, dt, me) => {
+        const want = Math.hypot(me.x - x0, me.z - z0) < 2.6 ? 1 : 0;
+        openK += (want - openK) * Math.min(1, reduceMotion ? 1 : dt * 3);
+        for (const [leaf, side] of leaves) leaf.position.x = side * openK * ENTRY.slide;
+        const i = colliders.indexOf(door); if (openK > .6 && i >= 0) colliders.splice(i, 1); else if (openK <= .6 && i < 0) colliders.push(door);
+      });
     } else if (k === 2) {   // 동쪽 면: 문턱④로 나가는 낮은 문(폭 2.2, 높이 2.1 = 통로 천장)
       const half = OCT_SIDE / 2 + .09, dw = 1.1, dh = C4.h;
       for (const [a, b, y0, y1] of [[-half, -dw, 0, OC.h], [dw, half, 0, OC.h], [-dw, dw, dh, OC.h]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(b - a, y1 - y0, .2), mukM); m.position.set((a + b) / 2, (y0 + y1) / 2, .1); g.add(m); blockers.push(m); }
@@ -459,22 +496,22 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
     }
     g.position.set(f.cx, 0, f.cz); g.rotation.y = f.th + Math.PI; scene.add(g);   // 그룹의 +z가 방 안쪽
   }
-  // 바닥: 잘게 자른 자개(물빛·분홍·은빛 조각) 위에 얕은 물
-  const nacreT = canvasTex(1024, 1024, (g, w, h) => {
+  // 바닥: 먹빛 고요한 검은 물(작가님 결정, 전문가 셋 자문·두 샘플 비교 뒤). 기둥·창 속 별·작품 빛이 길게 비친다
+  const FLOOR = 'a';
+  const deepT = canvasTex(1024, 1024, (g, w, h) => {
+    g.fillStyle = FLOOR === 'b' ? '#03060c' : '#05070b'; g.fillRect(0, 0, w, h);
+    if (FLOOR !== 'b') return;
     let seed = 23; const r = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-    g.fillStyle = '#0e1522'; g.fillRect(0, 0, w, h);
-    const cols = ['#8fe0e6', '#a9c4ff', '#f2b3d9', '#c8f2dc', '#f4f6ff', '#66c2d9', '#c7a3f5', '#ffe2b8'];
-    for (let i = 0; i < 1500; i++) { const x = r() * w, y = r() * h, s = 6 + r() * 15, a = r() * Math.PI; g.save(); g.translate(x, y); g.rotate(a); g.globalAlpha = .45 + r() * .5; g.fillStyle = cols[Math.floor(r() * cols.length)]; g.beginPath(); g.moveTo(-s, -s * .4); g.lineTo(s * .7, -s * .55); g.lineTo(s, s * .35); g.lineTo(-s * .5, s * .5); g.closePath(); g.fill(); g.restore(); }
-    g.globalAlpha = 1;
+    for (let i = 0; i < 160; i++) { const x = r() * w, y = r() * h, rr = 1.5 + r() * 3.5, gr = g.createRadialGradient(x, y, 0, x, y, rr * 3); const c = r() < .7 ? '120,200,230' : '190,175,240'; gr.addColorStop(0, `rgba(${c},${.35 + r() * .45})`); gr.addColorStop(1, `rgba(${c},0)`); g.fillStyle = gr; g.fillRect(x - rr * 3, y - rr * 3, rr * 6, rr * 6); }
   });
-  ground(OC.x - OC.a - .2, OC.x + OC.a + .2, OC.z - OC.a - .2, OC.z + OC.a + .2, .03, new THREE.MeshStandardMaterial({ map: nacreT, roughness: .3, metalness: .2, emissive: 0xffffff, emissiveMap: nacreT, emissiveIntensity: .42 }), 1.8);
+  ground(OC.x - OC.a - .2, OC.x + OC.a + .2, OC.z - OC.a - .2, OC.z + OC.a + .2, .03, new THREE.MeshStandardMaterial({ map: deepT, roughness: 1, metalness: 0, emissive: 0xffffff, emissiveMap: deepT, emissiveIntensity: FLOOR === 'b' ? .55 : 0 }), 3.2);
   {   // 물: 방과 상자, 작품이 비친다. 물결은 반사를 살짝 흔든다
     const sh = Reflector.ReflectorShader;
-    const shader = { name: 'WaterReflector', uniforms: { ...THREE.UniformsUtils.clone(sh.uniforms), time: { value: 0 }, alpha: { value: .55 } }, vertexShader: sh.vertexShader,
+    const shader = { name: 'WaterReflector', uniforms: { ...THREE.UniformsUtils.clone(sh.uniforms), time: { value: 0 }, alpha: { value: FLOOR === 'b' ? .72 : .9 } }, vertexShader: sh.vertexShader,
       fragmentShader: sh.fragmentShader.replace('uniform vec3 color;', 'uniform vec3 color;\nuniform float time;\nuniform float alpha;')
-        .replace('vec4 base = texture2DProj( tDiffuse, vUv );', 'vec4 uv = vUv; uv.xy += vec2( sin( vUv.y / vUv.w * 80.0 + time * 1.3 ), cos( vUv.x / vUv.w * 64.0 + time * 1.1 ) ) * 0.0032 * vUv.w;\n vec4 base = texture2DProj( tDiffuse, uv );')
+        .replace('vec4 base = texture2DProj( tDiffuse, vUv );', 'vec4 uv = vUv; uv.xy += vec2( sin( vUv.y / vUv.w * 11.0 + time * .35 ) + .4 * sin( vUv.x / vUv.w * 23.0 - time * .5 ), cos( vUv.x / vUv.w * 9.0 + time * .3 ) + .4 * cos( vUv.y / vUv.w * 19.0 + time * .45 ) ) * 0.0035 * vUv.w;   // 느리고 긴 물결\n vec4 base = texture2DProj( tDiffuse, uv );')
         .replace('gl_FragColor = vec4( blendOverlay( base.rgb, color ), 1.0 );', 'gl_FragColor = vec4( blendOverlay( base.rgb, color ), alpha );') };
-    const water = new Reflector(new THREE.CircleGeometry(OC.a / Math.cos(Math.PI / 8), 8), { clipBias: .003, textureWidth: Math.round(innerWidth * .6), textureHeight: Math.round(innerHeight * .6), color: 0xb4bfcd, shader });
+    const water = new Reflector(new THREE.CircleGeometry(OC.a / Math.cos(Math.PI / 8), 8), { clipBias: .003, textureWidth: Math.round(innerWidth * .6), textureHeight: Math.round(innerHeight * .6), color: FLOOR === 'b' ? 0x5d6a7c : 0x6f7a88, shader });
     water.material.transparent = true; water.rotation.x = -Math.PI / 2; water.rotation.z = Math.PI / 8; water.position.set(OC.x, .075, OC.z); scene.add(water);
     SPACE.water = water;
     animators.push((t) => { water.material.uniforms.time.value = reduceMotion ? 0 : t; });
@@ -483,46 +520,48 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
   { const l = new THREE.PointLight(0xdfe8ff, 3.2, 9, 1.4); l.position.set(OC.x, OC.h - .5, OC.z); scene.add(l); }
   // 작품: 북서 → 남동 → 남서 → 서 → 북 → 북동. 면마다 위에서 비스듬히 비추는 빛
   const slot = (k) => { const f = face(k), n = [-f.nx, -f.nz], d = [-f.nz, f.nx], len = OCT_SIDE - .5; return { light: true, name: '룸3 우주조약 · ' + ['남', '남동', '동', '북동', '북', '북서', '서', '남서'][k] + '쪽 면', o: [f.cx - d[0] * len / 2 + n[0] * .22, f.cz - d[1] * len / 2 + n[1] * .22], d, n, len }; };   // 벽 안쪽 면(.2) 앞
-  const spaceUnits = units.filter(u => ROOM_OF(u.works[0]) === 'territory').flatMap(u => u.works.map((w, k) => ({ key: '#' + w.id, series: false, works: [w], sizes: [u.sizes[k]], width: u.sizes[k][0] + CAP_W })));
+  const spaceUnits = units.filter(u => ROOM_OF(u.works[0]) === 'territory').flatMap(u => u.works.map((w, k) => ({ key: '#' + w.id, series: false, works: [w], sizes: [u.sizes[k]], width: u.sizes[k][0] + CAP_SPACE })));
+  floorArrows([[-38.8, -21.2, 0], [-42.4, -26.6, -Math.PI / 4], [-35.6, -24.8, -Math.PI / 2]], .09, arrowLightM);   // 룸3: 들어와 왼쪽으로 돌아 동쪽 문으로(물 위)
   hang(spaceUnits, [5, 1, 7, 6, 4, 3].map(slot));
-  [5, 1, 7, 6, 4, 3].slice(0, spaceUnits.length).forEach(k => {
-    const f = face(k), sp = new THREE.SpotLight(0xfff3e2, 26, 9, .38, .55, 1.4);
-    sp.position.set(f.cx - f.nx * 2.3, 4.6, f.cz - f.nz * 2.3); sp.target.position.set(f.cx - f.nx * .2, 1.75, f.cz - f.nz * .2); scene.add(sp, sp.target);
-  });
-  // 가운데 떠 있는 상자: 네 면에 팔각 창(창살 없이 검은 팔각 테만). 모서리가 입구를 본다
-  const B = 2.2, WA = .72, box = new THREE.Group(), boxM = std({ color: 0x242322, roughness: .4 }), frameM = std({ color: 0x050505, roughness: .3 });
+  for (const P of workPlaced) if (P.info.where && P.info.where.startsWith('룸3')) {   // 빛은 걸린 작품 한가운데로(작가님 지적)
+    const [x, y, z, nx, nz] = P.at, sp = new THREE.SpotLight(0xfff3e2, 26, 9, .3, .55, 1.4);
+    sp.position.set(x + nx * 2.2, 4.6, z + nz * 2.2); sp.target.position.set(x, y, z); scene.add(sp, sp.target);
+  }
+  // 가운데 기둥: 바닥부터 천장까지, 네 면에 눈높이 팔각 창(창살 없이 검은 팔각 테만). 모서리가 입구를 본다(작가님: 띄우지 말고 기둥으로, 10% 작게)
+  const B = 1.98, WA = .65, WIN_Y = 1.6, box = new THREE.Group(), boxM = std({ color: 0x242322, roughness: .4 }), frameM = std({ color: 0x050505, roughness: .3 });
   const winMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.AlwaysStencilFunc, stencilZPass: THREE.ReplaceStencilOp });
   for (let k = 0; k < 4; k++) {
-    const g = new THREE.Group(), s = new THREE.Shape(); s.moveTo(-B / 2, -B / 2); s.lineTo(B / 2, -B / 2); s.lineTo(B / 2, B / 2); s.lineTo(-B / 2, B / 2); s.closePath();
-    s.holes.push(new THREE.Path(octPts(WA + .07, 0)));
+    const g = new THREE.Group(), s = new THREE.Shape(); s.moveTo(-B / 2, 0); s.lineTo(B / 2, 0); s.lineTo(B / 2, OC.h); s.lineTo(-B / 2, OC.h); s.closePath();
+    s.holes.push(new THREE.Path(octPts(WA + .07, WIN_Y)));
     const pm = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: .06, bevelEnabled: false }), boxM); pm.position.z = -.06; g.add(pm); blockers.push(pm);
-    const ring = new THREE.Shape(octPts(WA + .07, 0)); ring.holes.push(new THREE.Path(octPts(WA, 0)));
+    const ring = new THREE.Shape(octPts(WA + .07, WIN_Y)); ring.holes.push(new THREE.Path(octPts(WA, WIN_Y)));
     const rm = new THREE.Mesh(new THREE.ExtrudeGeometry(ring, { depth: .1, bevelEnabled: false }), frameM); rm.position.z = -.07; g.add(rm);
-    const win = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(octPts(WA + .005, 0))), winMat); win.position.z = -.03; win.renderOrder = 10; g.add(win); blockers.push(win);   // 카메라가 상자 안으로 들어가지 않게
+    const win = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(octPts(WA + .005, WIN_Y))), winMat); win.position.z = -.03; win.renderOrder = 10; g.add(win); blockers.push(win);   // 카메라가 상자 안으로 들어가지 않게
     g.rotation.y = k * Math.PI / 2; g.position.set(Math.sin(k * Math.PI / 2) * B / 2, 0, Math.cos(k * Math.PI / 2) * B / 2); box.add(g);
   }
-  for (const y of [-1, 1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(B, .06, B), boxM); m.position.y = y * (B / 2 - .03); box.add(m); }
-  box.rotation.y = Math.PI / 4; box.position.set(OC.x, 2.75, OC.z); scene.add(box);
+  box.rotation.y = Math.PI / 4; box.position.set(OC.x, 0, OC.z); scene.add(box);
+  { const h = B / Math.SQRT2; const V = [[OC.x, OC.z - h], [OC.x + h, OC.z], [OC.x, OC.z + h], [OC.x - h, OC.z]]; V.forEach((v, i) => { const w2 = V[(i + 1) % 4]; segSolid(v[0], v[1], w2[0], w2[1], .2); }); solid(OC.x - h / 2, OC.x + h / 2, OC.z - h / 2, OC.z + h / 2); }   // 마름모 기둥을 걸어 지나가지 않게
   // 창 너머 우주: 창(스텐실 1)으로 보이는 곳에만 그린다. 홈페이지 배경과 같은 바탕색·성운, 별은 실제 깊이로 흩어져 보는 자리에 따라 다르게 움직인다
   const sten = { fog: false, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.EqualStencilFunc, stencilFail: THREE.KeepStencilOp, stencilZFail: THREE.KeepStencilOp, stencilZPass: THREE.KeepStencilOp, depthTest: false, depthWrite: false };
-  const sky = SPACE.group = new THREE.Group(); sky.position.set(OC.x, 2.75, OC.z);
+  const sky = SPACE.group = new THREE.Group(); sky.position.set(OC.x, WIN_Y, OC.z);
   const skyT = canvasTex(1024, 512, (g, w, h) => {
-    const bg = g.createRadialGradient(w * .5, h * .45, 0, w * .5, h * .45, w * .6); bg.addColorStop(0, '#111420'); bg.addColorStop(1, '#05050a'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const bg = g.createRadialGradient(w * .5, h * .45, 0, w * .5, h * .45, w * .6); bg.addColorStop(0, '#05060b'); bg.addColorStop(1, '#010103'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
     g.globalCompositeOperation = 'lighter';
-    for (const [x, y, rr, col, a] of [[.2, .35, .3, '27,42,74', .55], [.62, .55, .26, '232,230,224', .12], [.85, .4, .3, '27,42,74', .45], [.45, .7, .28, '17,20,32', .5], [.05, .6, .22, '232,230,224', .08]]) {
+    for (const [x, y, rr, col, a] of [[.2, .35, .3, '27,42,74', .16], [.62, .55, .26, '232,230,224', .035], [.85, .4, .3, '27,42,74', .12], [.45, .7, .28, '17,20,32', .2], [.05, .6, .22, '232,230,224', .025]]) {
       const n = g.createRadialGradient(x * w, y * h, 0, x * w, y * h, rr * w); n.addColorStop(0, `rgba(${col},${a})`); n.addColorStop(1, `rgba(${col},0)`); g.fillStyle = n; g.fillRect(0, 0, w, h);
     }
   });
-  const skyBall = new THREE.Mesh(new THREE.SphereGeometry(150, 48, 24), new THREE.MeshBasicMaterial({ map: skyT, side: THREE.BackSide, toneMapped: false, ...sten })); skyBall.renderOrder = 11; sky.add(skyBall);
+  const skyBall = new THREE.Mesh(new THREE.SphereGeometry(150, 48, 24), new THREE.MeshBasicMaterial({ map: skyT, side: THREE.BackSide, toneMapped: false, transparent: true, ...sten })); skyBall.renderOrder = 11; sky.add(skyBall);
   const dotT = canvasTex(64, 64, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.35, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
   let seed = 7; const r = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-  const layers = [[9, 22, 260, .55], [22, 60, 900, .42], [60, 140, 2200, .5]].map(([r0, r1, n, size], li) => {
+  const layers = [[60, 100, 260, 2.2], [90, 130, 700, 1.7], [110, 145, 900, 1.4]].map(   // 1화소보다 작은 점은 깜빡이며 지글거려서 없앰
+      // 가까운 큰 별은 없애고 모두 아득히 먼 작은 점으로
+   ([r0, r1, n, size], li) => {
     const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { const u = r() * 2 - 1, th = r() * Math.PI * 2, rr = r0 + (r1 - r0) * r(), q = Math.sqrt(1 - u * u); pos.set([Math.cos(th) * q * rr, u * rr, Math.sin(th) * q * rr], i * 3); const gold = r() < .18; col.set(gold ? [.9, .81, .6] : [1, 1, 1], i * 3); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const mat = new THREE.PointsMaterial({ size: size * (li === 2 ? 1.6 : 1), map: dotT, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, toneMapped: false, sizeAttenuation: li < 2, ...sten });
-    if (li === 2) mat.size = 2.2;
-    const p = new THREE.Points(geo, mat); p.renderOrder = 12; sky.add(p); return { p, mat, base: li === 2 ? .8 : .95, ph: li * 1.7 };
+    const mat = new THREE.PointsMaterial({ size, map: dotT, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, toneMapped: false, sizeAttenuation: false, ...sten });
+    const p = new THREE.Points(geo, mat); p.renderOrder = 12; sky.add(p); return { p, mat, base: [1, .9, .7][li], ph: li * 1.7 };
   });
   // 유성: 가끔 하나
   const metT = canvasTex(256, 8, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,1)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
@@ -533,7 +572,6 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
   animators.push((t, dt, who) => {
     const near = Math.hypot(who.x - OC.x, who.z - OC.z) < 9;
     if (!near) return;
-    box.position.y = 2.75 + (reduceMotion ? 0 : Math.sin(t * .6) * .04);
     if (reduceMotion) return;
     skyBall.rotation.y = t * .004;
     for (const L of layers) L.mat.opacity = L.base * (.82 + .18 * Math.sin(t * 1.3 + L.ph));
@@ -623,7 +661,8 @@ function ribbon(offA, offB, yA, yB, mat, col) {
 }
 const nthWorks = restUnits.flatMap(u => u.works.map((w, k) => ({ w, size: u.sizes[k], real: parseSize(w.size) })));
 interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R4.z1]], [C4.x0 - .1, R4.x1 + .25, R4.z0 - 1.0, R4.z1 + .1, R4.h + .3], () => {
-  const navyM = std({ color: NAVY, roughness: 1 }), wallC = std({ color: 0x1d2130, roughness: .95, side: THREE.DoubleSide });
+  const navyM = new THREE.MeshBasicMaterial({ color: NAVY }),   // 빛에 따라 벽마다 색이 달라 보이지 않게 고른 남색(작가님 지적)
+    wallC = std({ color: 0x1d2130, roughness: .95, side: THREE.DoubleSide });
   // ── 문턱④ ──
   const HW4 = C4.w / 2;
   for (const s of [1, -1]) {
@@ -633,34 +672,31 @@ interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R
   ribbon(-HW4 - .05, HW4 + .05, C4.h, 0, std({ color: 0x181b24, roughness: 1, side: THREE.DoubleSide }));   // 천장
   const wet = new THREE.Color(0x2a2b2e), blk = new THREE.Color(0x06070a);
   ribbon(-HW4 - .05, HW4 + .05, .035, 0, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .12, metalness: .35, side: THREE.DoubleSide }), t => wet.clone().lerp(blk, Math.min(1, t * 1.6)));   // 바닥: 젖은 돌 → 검은 거울
-  // 안내선: 걷는 방향 왼쪽 바닥 가장자리의 가는 빛 하나
-  ribbon(HW4 - .1, HW4 - .07, .04, 0, new THREE.MeshBasicMaterial({ color: 0xcfc4a8, side: THREE.DoubleSide }));
-  for (const t of [.2, .5, .8]) { const p = c4pts[Math.round(t * 48)], l = new THREE.PointLight(0xcfc4a8, .35, 2.4, 1.6); l.position.set(p.x + p.lx * (HW4 - .2), .12, p.z + p.lz * (HW4 - .2)); scene.add(l); }
+  // 안내선: 바닥 양쪽 가장자리의 가는 빛(작가님: 양쪽 똑같이)
+  for (const sd of [1, -1]) {
+    ribbon(sd * (HW4 - .085) - .015, sd * (HW4 - .085) + .015, .04, 0, new THREE.MeshBasicMaterial({ color: 0xcfc4a8, side: THREE.DoubleSide }));
+    for (const t of [.2, .5, .8]) { const p = c4pts[Math.round(t * 48)], l = new THREE.PointLight(0xcfc4a8, .35, 2.4, 1.6); l.position.set(p.x + p.lx * sd * (HW4 - .2), .12, p.z + p.lz * sd * (HW4 - .2)); scene.add(l); }
+  }
   // 음각 글자: 첫 굽이 바깥(왼쪽) 벽. 위에서 벽을 스치는 빛에만 드러난다. 글은 N차적 저작물 A·B 캡션의 낱말 그대로(작가님이 고름)
   {
     const ENG_TEXT = '해체와 재구축';
     const engH = canvasTex(1024, 192, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); font(g, h * .58, 500, FONT_B, '#000'); g.textAlign = 'center'; g.fillText(ENG_TEXT, w / 2, h * .74); });
     const engC = canvasTex(1024, 192, (g, w, h) => {
-      g.fillStyle = '#1d2130'; g.fillRect(0, 0, w, h); g.textAlign = 'center';
+      g.clearRect(0, 0, w, h); g.textAlign = 'center';
       font(g, h * .58, 500, FONT_B, 'rgba(0,0,0,.55)'); g.fillText(ENG_TEXT, w / 2, h * .74 - 3);       // 윗 가장자리 그늘
       font(g, h * .58, 500, FONT_B, 'rgba(120,128,150,.45)'); g.fillText(ENG_TEXT, w / 2, h * .74 + 3);   // 아랫 가장자리가 빛을 받는다
       font(g, h * .58, 500, FONT_B, '#161a26'); g.fillText(ENG_TEXT, w / 2, h * .74);
     });
     const i = Math.round(.3 * 48), p = c4pts[i], q = c4pts[i + 1], tx = q.x - p.x, tz = q.z - p.z, L = Math.hypot(tx, tz);
     const wx = p.x + p.lx * (HW4 - .012), wz = p.z + p.lz * (HW4 - .012);
-    const eng = new THREE.Mesh(new THREE.PlaneGeometry(1.5, .28), new THREE.MeshStandardMaterial({ map: engC, bumpMap: engH, bumpScale: 2.5, roughness: .9 }));
+    const eng = new THREE.Mesh(new THREE.PlaneGeometry(1.5, .28), new THREE.MeshStandardMaterial({ map: engC, bumpMap: engH, bumpScale: 2.5, roughness: .95, transparent: true, depthWrite: false }));   // 바탕 판 없이 글자만(작가님: 필름 붙인 것처럼 보임)
     place(eng, wx, 1.55, wz, -p.lx, -p.lz);
     const sp = new THREE.SpotLight(0xe8e0d0, 5, 2.2, .7, 1, 1.2); sp.position.set(wx - p.lx * .18, C4.h - .06, wz - p.lz * .18); sp.target.position.set(wx + tx / L * 0, 1.45, wz); scene.add(sp, sp.target);
   }
 
   // ── 룸4 ──
-  ground(R4.x0, R4.x1, R4.z0, R4.z1, .03, std({ color: 0x030406, roughness: .2, metalness: .3 }), 2.0);
-  {   // 검은 거울 바닥: 벽감의 빛과 별먼지가 희미하게 비친다
-    const mir = new Reflector(new THREE.PlaneGeometry(R4.x1 - R4.x0, R4.z1 - R4.z0), { clipBias: .003, textureWidth: Math.round(innerWidth * .6), textureHeight: Math.round(innerHeight * .6), color: 0x3c414c });
-    mir.rotation.x = -Math.PI / 2; mir.position.set((R4.x0 + R4.x1) / 2, .045, (R4.z0 + R4.z1) / 2); scene.add(mir);
-    gateMirror(mir, (x, z) => Math.min(rectDist(R4, x, z), Math.hypot(x - C4.x1, z - C4.z1) + 1));
-  }
-  ceiling(R4.x0, R4.x1, R4.z0, R4.z1, R4.h, std({ color: 0x0f1424, roughness: 1, side: THREE.DoubleSide }), 2.4);
+  ground(R4.x0, R4.x1, R4.z0, R4.z1, .03, new THREE.MeshBasicMaterial({ color: NAVY }), 2.0);   // 바닥도 벽과 같은 남색(작가님: 떠 있는 별먼지만으로 충분히 우주 같다). 검은 거울은 뺌
+  ceiling(R4.x0, R4.x1, R4.z0, R4.z1, R4.h, new THREE.MeshBasicMaterial({ color: NAVY, side: THREE.DoubleSide }), 2.4);   // 천장도 벽·바닥과 같은 남색(작가님: 경계 없이)
   const T = .2, eIn = (C4.z1 - HW4 + .15), eOut = (C4.z1 + HW4 - .15);   // 서쪽 벽 들어오는 문(통로 폭, 높이 2.1)
   wallHoles('z', R4.x0 - T, R4.x0, R4.z0 - T, R4.z1 + T, R4.h, [[eIn - .15, eOut + .15, 0, C4.h]], navyM);
   wallHoles('z', R4.x1, R4.x1 + T, R4.z0 - T, R4.z1 + T, R4.h, [], navyM);
@@ -669,30 +705,42 @@ interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R
   // 벽감: 북쪽 벽(왼쪽 → 오른쪽 = 서 → 동)부터, 넘치면 남쪽 벽(서 → 동)
   const NS = .6 * SCALE, ND = .25 * SCALE, GAP = 2.5;
   const nicheS = (r) => (Math.max(r[0], r[1]) > 45 ? 1.5 : 1) * NS;
-  const nCY = TOP - .273 * SCALE / 2;   // 벽감 가운데 높이: 27.3 cm 작품이 벽감 한가운데 오는 높이(작품 윗면은 언제나 TOP)
+  const nCY = HANG_CY;   // 벽감 가운데 높이 = 작품 가운데 높이 1.5 m(작가님 결정)
+  floorArrows([[-25.4, -21.3, -Math.PI / 2], [-17.4, -20.2, Math.PI], [-15.8, -17.0, Math.PI]], .05, arrowLightM);   // 룸4: 서쪽 문에서 동쪽으로, 남쪽 벽 동쪽 끝 문으로
+  {   // 천장 가까이 가끔 유성이 떨어진다(작가님: 우주를 표현한 방)
+    const mt = canvasTex(256, 8, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,250,235,1)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+    const met = new THREE.Mesh(new THREE.PlaneGeometry(1.8, .035), new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide })); met.visible = false; scene.add(met);
+    let next = 3, t0 = -1; const from = new THREE.Vector3(), dir = new THREE.Vector3();
+    animators.push((t, dt, who) => {
+      if (reduceMotion || who.x < R4.x0 || who.x > R4.x1 || who.z < R4.z0 || who.z > R4.z1) { met.visible = false; return; }
+      if (t0 < 0 && t > next) { t0 = t; const a = Math.random() * Math.PI * 2; from.set((R4.x0 + R4.x1) / 2 + Math.cos(a) * 4, R4.h - .25, (R4.z0 + R4.z1) / 2 + Math.sin(a) * 3); dir.set(-Math.cos(a) + (Math.random() - .5) * .6, -.18, -Math.sin(a) + (Math.random() - .5) * .6).normalize(); met.visible = true; }
+      if (t0 >= 0) { const k = (t - t0) / .9; if (k > 1) { met.visible = false; t0 = -1; next = t + 4 + Math.random() * 7; } else { met.position.copy(from).addScaledVector(dir, k * 5); met.lookAt(met.position.clone().add(dir)); met.rotateY(Math.PI / 2); met.material.opacity = Math.sin(k * Math.PI); } }
+    });
+  }
   const north = nthWorks.slice(0, 3), south = nthWorks.slice(3, 5);
-  const rowX = (list) => { const ws = list.map(o => nicheS(o.real)), tot = ws.reduce((s, v) => s + v, 0) + GAP * (list.length - 1) + CAP_W + .12; let x = (R4.x0 + R4.x1) / 2 - tot / 2; return ws.map(v => { const c = x + v / 2; x += v + GAP; return c; }); };
+  const rowX = (list) => { const ws = list.map(o => nicheS(o.real)), tot = ws.reduce((s, v) => s + v, 0) + GAP * (list.length - 1); let x = (R4.x0 + R4.x1) / 2 - tot / 2; return ws.map(v => { const c = x + v / 2; x += v + GAP; return c; }); };
   const nicheM = std({ color: 0x1c2640, roughness: .85 });
   const place4 = (list, zf, nz) => {   // zf: 벽 안쪽 면, nz: 방 안쪽(+1 북쪽 벽, -1 남쪽 벽)
     const xs = rowX(list), holes = [];
     list.forEach((o, i) => {
       const S = nicheS(o.real), cx = nz > 0 ? xs[i] : (R4.x0 + R4.x1) - xs[i] - 0, [ww, hh] = o.size;
-      const big = S > NS, cy = Math.max(TOP - hh / 2, .9 + hh / 2), ny = big ? cy : nCY, zb = zf - nz * ND;
-      holes.push([cx - S / 2, cx + S / 2, ny - S / 2, ny + S / 2]);
+      const big = S > NS, cy = Math.max(HANG_CY, .9 + hh / 2), ny = big ? cy : nCY, zb = zf - nz * ND;
+      holes.push([cx - S / 2 - .01, cx + S / 2 + .01, ny - S / 2 - .01, ny + S / 2 + .01]);   // 벽 구멍을 벽감보다 1 cm 크게: 벽 구멍 안쪽 면과 벽감 면이 겹쳐 지글거리지 않게
       // 벽감 안쪽 다섯 면
-      const z0 = Math.min(zf, zb), z1 = Math.max(zf, zb), e = .04;
+      const zfi = zf - nz * .006, z0 = Math.min(zfi, zb), z1 = Math.max(zfi, zb), e = .04;   // 벽감 상자 앞면을 벽면보다 6 mm 안쪽에서 시작(벽면과 겹쳐 지글거리지 않게)
       boxMM(cx - S / 2 - e, cx + S / 2 + e, ny - S / 2 - e, ny + S / 2 + e, nz > 0 ? zb - e : zb, nz > 0 ? zb : zb + e, nicheM);
       boxMM(cx - S / 2 - e, cx + S / 2 + e, ny + S / 2, ny + S / 2 + e, z0, z1, nicheM); boxMM(cx - S / 2 - e, cx + S / 2 + e, ny - S / 2 - e, ny - S / 2, z0, z1, nicheM);
       boxMM(cx - S / 2 - e, cx - S / 2, ny - S / 2, ny + S / 2, z0, z1, nicheM); boxMM(cx + S / 2, cx + S / 2 + e, ny - S / 2, ny + S / 2, z0, z1, nicheM);
       // 숨긴 빛: 벽감 윗면 안쪽 앞에서 비스듬히 작품으로
-      const sp = new THREE.SpotLight(0xfff0dc, 4.2, S * 1.9, .62, .95, 1.3); sp.position.set(cx, ny + S / 2 - .04, zf - nz * .07); sp.target.position.set(cx, cy - hh * .15, zb); scene.add(sp, sp.target);
+      const sp = new THREE.SpotLight(0xfff0dc, 4.2, S * 1.9, .62, .95, 1.3); sp.position.set(cx, ny + S / 2 - .04, zf - nz * .07); sp.target.position.set(cx, cy, zb);   // 빛은 작품 한가운데로 scene.add(sp, sp.target);
       const dX = nz > 0 ? 1 : -1;
       putWork(o.w, ww, hh, cx, cy, zb + nz * .005, [0, nz], [dX, 0], true, '룸4 N차적 저작물 · ' + (nz > 0 ? '북쪽' : '남쪽') + ' 벽 벽감 ' + (i + 1),
-        [cx + dX * (S / 2 + .12 + (CAP_W - .08) / 2), zf + nz * .012]);
+        [cx + dX * (S / 2 + .04 - (CAP_W - .08) * .72 / 2), zf + nz * .012, ny - S / 2 - .06 - CAP_H * .72 / 2, true]);   // 캡션은 벽감 아래, 오른쪽 끝을 벽감 바깥선에 맞춰 오른쪽 맞춤(작가님)
     });
     return holes;
   };
   const nh = place4(north, R4.z0, 1);
+  { const xs = rowX(north); if (xs[1] != null) stampMark('works', xs[1], R4.z0 + 1.4); }   // 조개 도장: N차적 저작물B 앞(작가님)
   wallHoles('x', R4.z0 - T, R4.z0, R4.x0 - T, R4.x1 + T, R4.h, nh, navyM);
   const sh = south.length ? place4(south, R4.z1, -1) : [];
   wallHoles('x', R4.z1, R4.z1 + T, R4.x0 - T, R4.x1 + T, R4.h, [...sh, [xo0, xo1, 0, 2.6]], navyM);
@@ -736,8 +784,8 @@ interior('exit', [[C5.ax0, C5.ax1, C5.z0 - .3, C5.bz0 + .1], [C5.ax0, C5.x1 + .2
   [C5.ax0 - .25, C5.x1, C5.z0 - .1, CDOOR.z1 + .25, C5.h + .3], () => {
   const T = .2, dm = std({ color: 0x1a1e2a, roughness: .95 }), dmD = std({ color: 0x1a1e2a, roughness: .95, side: THREE.DoubleSide });
   const W = (x0, x1, z0, z1, h = C5.h) => { const m = boxMM(x0, x1, 0, h, z0, z1, dm); blockers.push(m); solid(x0, x1, z0, z1); };
-  W(C5.ax0 - T, C5.ax0, C5.z0 - T, C5.bz1);              // 서쪽(꺾이는 벽)
-  W(C5.ax1, C5.ax1 + T, C5.z0 - T, C5.bz0);              // 첫 길 동쪽
+  W(C5.ax0 - T, C5.ax0, C5.z0, C5.bz1);              // 서쪽(꺾이는 벽). 룸4 벽 안으로 나오지 않게(문 옆 까만 기둥)
+  W(C5.ax1, C5.ax1 + T, C5.z0, C5.bz0);              // 첫 길 동쪽
   W(C5.ax1, -10.55, C5.bz0 - T, C5.bz0);             // 둘째 길 북쪽
   W(R1.x1 + .2, -10.55, CDOOR.z1, CDOOR.z1 + T);      // 문 남쪽 옆(룸1 모서리와 중정 벽 사이)
   // 둘째 길 남쪽 = 룸1 북쪽 벽 바깥, 문 옆 = 룸1 동쪽 벽 바깥: 같은 어두운 면으로 덮는다
@@ -752,7 +800,6 @@ interior('exit', [[C5.ax0, C5.ax1, C5.z0 - .3, C5.bz0 + .1], [C5.ax0, C5.x1 + .2
   ceiling(C5.ax0, C5.ax1, C5.z0 - .2, C5.bz0, C5.h, cm, 2.4); ceiling(C5.ax0, -10.4, C5.bz0, C5.bz1, C5.h, cm, 2.4); ceiling(R1.x1 + .2, -10.4, C5.bz1, CDOOR.z1, C5.h, cm, 2.4);
   // 빛나는 간유리가 전실에 흘리는 빛(문 쪽에서만)
   { const l = new THREE.PointLight(0xfff3e0, 1.3, 7, 1.6); l.position.set(-11.0, 1.7, (CDOOR.z0 + CDOOR.z1) / 2); scene.add(l); }
-  stampMark('works', -12.6, (C5.bz0 + C5.bz1) / 2);   // 도장 자리: 중정으로 나가기 전 마지막 바닥
 }, [-10.4, (CDOOR.z0 + CDOOR.z1) / 2, 9]);
 
 // 눈의 적응: 어두운 룸4·문턱④⑤에서는 천천히 눈이 열리고(조금 밝게), 중정에 나서면 1~1.5초에 걸쳐 제 밝기로 돌아온다

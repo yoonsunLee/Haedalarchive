@@ -212,7 +212,7 @@ const banners = [];
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, roughness: .85, side: THREE.DoubleSide }));
     mesh.position.set(x, TOP - H_ / 2, 19.9); scene.add(mesh);
     // 위아래 가는 검은 봉, 위 봉은 벽에서 나온 짧은 받침 둘에 걸린다
-    for (const yy of [TOP + .03, TOP - H_ - .03]) { const bar = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, W_ + .12, 10), M.steel); bar.rotation.z = Math.PI / 2; bar.position.set(x, yy, 19.9); scene.add(bar); }
+    for (const yy of [TOP + .03]) { /* 아래 막대는 뺌(작가님: 바람에 나부끼는데 막대만 가만히 있어 어색) */ const bar = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, W_ + .12, 10), M.steel); bar.rotation.z = Math.PI / 2; bar.position.set(x, yy, 19.9); scene.add(bar); }
     for (const sx of [-1, 1]) boxMM(x + sx * (W_ / 2 - .1) - .02, x + sx * (W_ / 2 - .1) + .02, TOP + .01, TOP + .05, 19.55, 19.9, M.steel);
     banners.push({ mesh, base: geo.attributes.position.array.slice(), h: H_, phase: x });
     if (ex) pickable(mesh, { kind: (upcoming ? `UPCOMING · D-${dday(ex)}` : 'NOW ON VIEW') + ' · ' + ex.type, title: ex.title, meta: `${dfmt(ex)} · ${ex.venue}`,
@@ -226,8 +226,20 @@ const banners = [];
   const sc = new THREE.Mesh(new THREE.PlaneGeometry(dW, dH), new THREE.MeshBasicMaterial({ map: heroTex, toneMapped: false })); place(sc, 13.5, .3 + dH / 2, 19.74, 0, 1);
   pickable(sc, { kind: 'SHIN HAEDAL', title: '쉽게 들어와서 오래 머무는 작업.', body: '순서가 다를 뿐, 깊이는 같습니다.', img: 'ip/hero-bg.webp', links: [[SITE + '/', '홈페이지']] });
   // 이름: 작가소개 바깥벽에 놋쇠 글자
-  const name = panel(7, 1.4, (g, W, H) => { g.clearRect(0, 0, W, H); g.fillStyle = '#d8b878'; g.font = `500 ${H * .2}px ${FONT_M}`; g.fillText('SHIN HAEDAL GALLERY', W * .02, H * .3); g.font = `700 ${H * .46}px ${FONT_D}`; g.fillText('신해달 갤러리', W * .02, H * .85); }, { transparent: true, ppm: 200 });
+  // 이름: 작가소개 바깥벽(현무암)에 얕게 판 음각. 금 없이 돌 그대로, 가는 글자(작가님: 고급스럽게, 골드는 빼고)
+  const name = panel(7, 1.4, (g, W, H) => {
+    g.clearRect(0, 0, W, H);
+    const x = W * .02, lines = [[`800 ${H * .15}px "Noto Sans KR", sans-serif`, 'SHIN HAEDAL GALLERY', H * .3, H * .055], [`900 ${H * .44}px "Noto Sans KR", sans-serif`, '신해달 갤러리', H * .82, H * .06]], d = Math.max(2, H * .009);
+    for (const [f, t, y, sp] of lines) {
+      g.font = f; g.letterSpacing = `${sp}px`;
+      g.fillStyle = 'rgba(255,255,255,.13)'; g.fillText(t, x + d, y + d);   // 아래 오른쪽 홈 가장자리에 닿는 옅은 빛
+      g.fillStyle = 'rgba(0,0,0,.7)'; g.fillText(t, x - d * .8, y - d * .8);   // 위 왼쪽 홈 안쪽 그늘
+      g.fillStyle = 'rgba(0,0,0,.26)'; g.fillText(t, x, y);                   // 판 바닥: 돌결이 그대로 비치게 살짝만 어둡게
+    }
+  }, { transparent: true, ppm: 200 });
   name.material.alphaTest = .3; place(name, -13.6, 2.6, 19.57, 0, 1);
+  // 이름을 위에서 벽을 스치듯 비추는 빛 두 개(작가님 제안): 돌결과 음각 그늘이 살아난다
+  for (const lx of [-16.9, -15.3, -13.7]) { /* 셋을 겹쳐 이름만 한 덩어리로 비춘다(작가님) */ const sp = new THREE.SpotLight(0xfff1dc, 24, 4.2, .46, .9, 1.3); sp.position.set(lx, 4.1, 20.15); sp.target.position.set(lx, 2.45, 19.6); /* 이름 바로 위에서 아래로 */ scene.add(sp, sp.target); }
   for (const x of [-12, -6.5, 9, 18]) { boxMM(x - .9, x + .9, 0, .42, 26.5, 27.0, M.blackStone); solid(x - .9, x + .9, 26.5, 27.0); }
 }
 

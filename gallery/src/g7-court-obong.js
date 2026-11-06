@@ -13,29 +13,31 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
   }, { transparent: true, ppm: 300 });
   mark.rotation.x = -Math.PI / 2; mark.position.set(standeeSpot.x - .95, .05, standeeSpot.z + .9); scene.add(mark);
   stampMark('court', -2.6, 1.8);
-  // 문 위 현판: 판과 테두리 없이 문틀 위 벽에 얇은 낱글자. 한글 이름 + 아래 작은 영문 한 줄.
+  // 문 옆 현판(작가님: 1인칭 눈높이에서는 문 위가 너무 높아 문 옆으로): 판과 테두리 없이 벽에 얇은 낱글자. 한글 이름 + 아래 작은 영문 한 줄.
+  //   문을 바라볼 때 오른쪽 벽, 글 가운데 높이 1.75 m. side: 문 가운데에서 글 가운데까지(0이면 문 위 그대로)
   // 관람 순서상 다음에 갈 문의 현판만 은은하게 밝아진다(작품관 → IP관 → 일월오봉단관 → 해달 라운지)
   const HY_INK = '#6b5230', HY_LIT = '#c98a2e';   // 평소 짙은 청동색, 다음 문은 따뜻한 호박빛
-  const hyeon = (key, ko, en, x, z, nx, nz, w = 2.6) => {
+  const hyeon = (key, ko, en, x0, z0, nx, nz, w = 2.6, side = 0) => {
+    const rx = nz, rz = -nx, x = x0 + rx * side, z = z0 + rz * side, Y = side ? 1.75 : 3.245;
     const draw = (color, glow) => (g, W, H) => {
       g.textAlign = 'center';
       if (glow) { g.shadowColor = 'rgba(240,170,70,.9)'; g.shadowBlur = H * .3; }
       font(g, H * .5, 400, FONT_D, color); g.fillText(ko, W / 2, H * .56);
       font(g, H * .17, 400, FONT_M, color); g.fillText(en, W / 2, H * .9);
     };
-    const ink = letters(w, .3, draw(HY_INK, false), 600); place(ink, x, 3.245, z, nx, nz);
-    const lit = letters(w, .3, draw(HY_LIT, true), 600); place(lit, x + nx * .004, 3.245, z + nz * .004, nx, nz);
+    const ink = letters(w, .3, draw(HY_INK, false), 600); place(ink, x, Y, z, nx, nz);
+    const lit = letters(w, .3, draw(HY_LIT, true), 600); place(lit, x + nx * .004, Y, z + nz * .004, nx, nz);
     lit.material.opacity = 0;
     // 글자 뒤 벽에 번지는 옅은 빛
     const halo = panel(w * 1.25, .7, (g, W, H) => { g.clearRect(0, 0, W, H); const gr = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2); gr.addColorStop(0, 'rgba(250,180,80,.4)'); gr.addColorStop(1, 'rgba(250,180,80,0)'); g.fillStyle = gr; g.save(); g.scale(1, H / W); g.fillRect(0, 0, W, W); g.restore(); }, { transparent: true, ppm: 120 });
-    halo.material.depthWrite = false; halo.material.opacity = 0; place(halo, x + nx * .002, 3.2, z + nz * .002, nx, nz);
+    halo.material.depthWrite = false; halo.material.opacity = 0; place(halo, x + nx * .002, Y - .045, z + nz * .002, nx, nz);
     HYEON.push({ key, lit, halo, on: 0 });
   };
-  hyeon('works', '작품관', 'WORKS', -10.22, -6.9, 1, 0);
-  hyeon('ip', 'IP관', 'IP EXPERIENCE', 10.22, -4.5, -1, 0);
-  hyeon('ipExit', 'IP관 나가는 곳', 'IP EXPERIENCE · EXIT', 10.22, 5.5, -1, 0, 3.0);
-  hyeon('obong', '일월오봉단관', 'IRWOROBONGDAN', 0, -9.22, 0, 1, 3.0);
-  hyeon('lounge', '해달 라운지', 'HAEDAL LOUNGE', 8.3, 9.22, 0, -1);
+  hyeon('works', '작품관', 'WORKS', -10.22, -6.9, 1, 0, 1.4, 2.0 + .9);
+  hyeon('ip', 'IP관', 'IP EXPERIENCE', 10.22, -4.5, -1, 0, 1.4, 1.5 + .9);
+  hyeon('ipExit', 'IP관 나가는 곳', 'IP EXPERIENCE · EXIT', 10.22, 5.5, -1, 0, 1.8, 1.3 + 1.1);
+  hyeon('obong', '일월오봉단관', 'IRWOROBONGDAN', 0, -9.22, 0, 1, 1.8, 3.0 + 1.1);
+  hyeon('lounge', '해달 라운지', 'HAEDAL LOUNGE', 8.3, 9.22, 0, -1, 1.6, 1.3 + 1.0);
   // 로비 쪽은 바닥부터 통째로 열려 있으니 툇마루 반자 밑에 가는 나무 인방을 걸고 거기에 쓴다
   boxMM(-6, 6, 3.08, 3.4, 9.32, 9.5, M.soffit);
   hyeon('lobby', '로비', 'LOBBY', 0, 9.3, 0, -1);
@@ -60,7 +62,7 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
       for (const side of [1, -1]) {
         const t = letters(L - .06, .15, (g, W, H) => {
           g.textAlign = side > 0 ? 'left' : 'right'; font(g, H * .56, 500, FONT_B, '#e8d9b8');
-          g.fillText(side > 0 ? `${name} →` : `← ${name}`, side > 0 ? W * .04 : W * .96, H * .72);
+          g.fillText(name, side > 0 ? W * .04 : W * .96, H * .72);   // 화살표 없음(작가님)
         }, 520);
         t.position.set(L / 2 + .04, 0, side * .0135); if (side < 0) t.rotation.y = Math.PI; arm.add(t);
       }
@@ -121,7 +123,8 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + 1.3;   // 발자국이 멈추�
   const paintWall = new THREE.Mesh(new THREE.PlaneGeometry(wallW, wallH), new THREE.MeshBasicMaterial({ map: t, color: 0xdedede, toneMapped: false })); paintWall.position.set(0, .1 + wallH / 2, OB.z0 + .17); scene.add(paintWall);
   pickable(paintWall, { kind: 'IRWOROBONGDAN', title: '일월오봉단', body: '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.\n\n캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.', img: 'ip/friends.webp', links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: { pos: [0, OB_STOP + 1.6], look: [0, 3.6, OB.z0] } });
   // 함께 쓰는 단 하나(높이 30 cm, 검은 옻칠, 가로 12 m, 앞면은 똑바로). 두 단 단상과 차단봉 줄은 없다. 그림과의 거리는 단이 지킨다
-  const SH = .30, SX = 6.0, stepZ0 = OB.z0 + .45, stepZ1 = OB.z0 + 2.15, topZ1 = stepZ1;
+  const SH = .46, SX = 6.0,   // 단 높이 46 cm(작가님: 단을 높여서라도 명판 글 줄간격을 확보)
+        stepZ0 = OB.z0 + .45, stepZ1 = OB.z0 + 2.15, topZ1 = stepZ1;
   boxMM(-SX, SX, 0, SH, stepZ0, stepZ1, M.lacquer);
   const faceMid = [SH / 2, stepZ1];
   // 윗면 앞 모서리 놋쇠 띠는 3 cm 앞으로 내밀고, 그 밑에 숨긴 빛이 앞면을 아래로 쓸어내린다
@@ -147,7 +150,7 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + 1.3;   // 발자국이 멈추�
     pickable(fig, info);
     // 단 앞면: 멀리서 읽히는 놋쇠 글자. 크게 이름 / 작게 '역할 · 아이템'. 캐릭터 중심선 아래 가운데 맞춤
     // 이름 16 cm · 둘째 줄 7 cm(30 cm 앞면 안에)
-    const L = { FH: .27, n: .19, ny: .175, r: .08, ry: .25 };
+    const L = { FH: .40, n: .19, ny: .205, r: .08, ry: .335 };   // 이름과 역할·아이템 사이를 띄운다
     const FW = 1.9, FH = L.FH;
     const front = letters(FW, FH, (g, W, H) => {
       const m = v => v * H / FH;   // 미터 → 캔버스 픽셀
@@ -186,7 +189,7 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + 1.3;   // 발자국이 멈추�
   });
   stampMark('obong', 0, -19.9);
   // 나가는 문 안내: 툇마루 반자(3.4 m) 바로 위, 어두운 벽이라 밝은 글자
-  doorSign('중정 · 출구 라운지 →', 'COURTYARD · EXIT', 0, RING + .38, OB.z1 - .16, 0, -1, 3.4, 'center', '#ddd6cc', '#b08a4a');
+  doorSign('중정 · 출구 라운지', 'COURTYARD · EXIT', 0, RING + .38, OB.z1 - .16, 0, -1, 3.4, 'center', '#ddd6cc', '#b08a4a');
   // 입구 왼쪽 벽 소개글: 홈페이지 IP 페이지 글 그대로, 누르면 뜨는 창의 글을 벽에 전부(영문·제목·두 문단). 오른쪽(그림 벽 쪽)에 홈페이지 원래 일러스트
   const P1 = '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.';
   const P2 = '캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.';

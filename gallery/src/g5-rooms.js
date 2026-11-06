@@ -234,7 +234,7 @@ animators.push((t, dt) => { heroT += dt; if ((heroT * 30 | 0) !== ((heroT - dt) 
       if (next === 0) paint(0);   // 끝까지 읽으면 처음으로 돌아간다
     });
   }
-  doorSign('① 작품관', 'NEXT · WORKS', -17.25, 3.45, nz, 0, 1, 2.6);
+  doorSign('① 작품관', 'NEXT · WORKS', -17.25, 2.95, nz, 0, 1, 2.6);   // 문틀(2.6 m) 바로 위로 내림(작가님)
   // 남쪽 벽: CV. 학력 · 자격 · 브랜드와 활동을 분류별 세 단으로. 전시 이력은 눌렀을 때 뜨는 창에
   const sz = AR.z1 - .16, CH = 2.9;
   const cvWall = letters(11.4, CH, (g, W, H) => {

@@ -19,7 +19,7 @@ const floors = [], blockers = [], colliders = [];
 const solid = (x0, x1, z0, z1) => colliders.push([Math.min(x0, x1), Math.max(x0, x1), Math.min(z0, z1), Math.max(z0, z1)]);
 function ground(x0, x1, z0, z1, y, mat, tile = 2.4, click = true) {
   const w = x1 - x0, d = z1 - z0, geo = new THREE.PlaneGeometry(w, d);
-  const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / tile, uv.getY(i) * d / tile);
+  const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (x0 + uv.getX(i) * w) / tile, (-z1 + uv.getY(i) * d) / tile);   // 무늬를 세상 좌표에 맞춘다: 이어 붙인 바닥끼리 타일 줄이 맞는다(작가님)
   const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
   scene.add(m); if (click) floors.push(m); return m;
 }
@@ -56,8 +56,9 @@ ground(ROOMS.lounge.x0, ROOMS.lounge.x1, ROOMS.lounge.z0, ROOMS.lounge.z1, .02, 
 {
   const st = new THREE.MeshStandardMaterial({ color: 0x8a847a, roughness: .85 });
   const r = rng(5);
-  for (let z = 6.2; z > -6.6; z -= 1.15) { const s = boxMM(-.55 - r() * .1, .55 + r() * .1, .03, .09, z - .4, z + .4, st); s.rotation.y = (r() - .5) * .12; }
-  for (const x of [-6.9, -5.6, -4.3, -3.0, -1.7, 1.7, 3.0, 4.3, 5.6, 6.9]) { const s = boxMM(x - .45, x + .45, .03, .09, -5.0, -4.0, st); s.rotation.y = (r() - .5) * .2; }
+  // 크기와 줄을 고르게(작가님: 삐뚤빼뚤 놓지 말 것)
+  for (let z = 6.2; z > -6.6; z -= 1.15) boxMM(-.6, .6, .03, .09, z - .4, z + .4, st);
+  for (const x of [-6.9, -5.6, -4.3, -3.0, -1.7, 1.7, 3.0, 4.3, 5.6, 6.9]) boxMM(x - .45, x + .45, .03, .09, -5.0, -4.0, st);
   // 축선에 깔린 가는 빛줄
   const glow = new THREE.MeshBasicMaterial({ color: 0xfff1d0 });
   boxMM(-.03, .03, .03, .05, -6.9, 6.9, glow);
@@ -109,7 +110,7 @@ wallLine('x', 9.4, 6, 10.4, [[0, RING, C, U], [RING, HS, F, U]], [[7, 9.6, 3.0]]
 wallLine('x', 9.4, 10.4, 21, [[0, HS, P, U], [HS, HW, P, F]]);
 // 로비 북쪽은 아래가 중정으로 열리고, 툇마루 반자(3.4 m) 위로는 천장까지 통유리. 가장자리와 유리 살은 가는 놋쇠
 {
-  const g0 = RING, g1 = ROOMS.lobby.ceil;
+  const g0 = RING + .315 + .45, g1 = ROOMS.lobby.ceil;   // 처마 위 나무 띠 위에서 시작
   const gl = new THREE.Mesh(new THREE.PlaneGeometry(12, g1 - g0), M.glass); gl.position.set(0, (g0 + g1) / 2, 9.4); scene.add(gl);
   for (const x of [-4, -2, 0, 2, 4]) boxMM(x - .025, x + .025, g0, g1, 9.37, 9.43, M.brass);
   boxMM(-6, 6, g0 - .03, g0 + .03, 9.37, 9.43, M.brass);
@@ -141,8 +142,8 @@ ceiling(-10.4, 10.4, -27, -9.4, ROOMS.obong.ceil, M.obongCeil, 12);
   const s = new THREE.Shape(); s.moveTo(-10.4, -9.4); s.lineTo(10.4, -9.4); s.lineTo(10.4, 9.4); s.lineTo(-10.4, 9.4); s.closePath();
   const oct = [[-4.5, -6], [4.5, -6], [7, -3.5], [7, 3.5], [4.5, 6], [-4.5, 6], [-7, 3.5], [-7, -3.5]];
   const hole = new THREE.Path(); oct.forEach(([x, z], i) => i ? hole.lineTo(x, z) : hole.moveTo(x, z)); hole.closePath(); s.holes.push(hole);
-  const geo = new THREE.ExtrudeGeometry(s, { depth: .3, bevelEnabled: false });
-  const m = new THREE.Mesh(geo, M.soffit); m.rotation.x = Math.PI / 2; m.position.y = RING + .3; scene.add(m); blockers.push(m);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: .315, bevelEnabled: false });   // 윗면을 1.5 cm 올려 같은 높이의 다른 면과 겹쳐 지글거리지 않게(작가님 지적)
+  const m = new THREE.Mesh(geo, M.soffit); m.rotation.x = Math.PI / 2; m.position.y = RING + .315; scene.add(m); blockers.push(m);
   // 반자 아래 서까래 결
   for (let i = -10; i <= 10; i += .55) { const zs = 6.3 + Math.max(0, Math.abs(i) - 4.5); if (zs > 9.2) continue; boxMM(i - .05, i + .05, RING - .1, RING, -9.25, -zs, M.wood); boxMM(i - .05, i + .05, RING - .1, RING, zs, 9.25, M.wood); }   // 구멍 밖 반자에만
   // 구멍 가장자리: 가는 놋쇠 띠
@@ -151,6 +152,10 @@ ceiling(-10.4, 10.4, -27, -9.4, ROOMS.obong.ceil, M.obongCeil, 12);
     const band = new THREE.Mesh(new THREE.BoxGeometry(len, .05, .05), M.brass); band.position.set((x0 + x1) / 2, RING - .02, (z0 + z1) / 2); band.rotation.y = -ang; scene.add(band);
   }
 }
+// 처마 위 나무 띠(작가님: 통유리는 처마 위에서 시작, 그 아래는 나무로). 반자 윗면에서 45 cm, 중정 네 벽 안쪽에 둘러 유리 밑동과 겹친 면을 가린다
+{ const y0 = RING - .02, y1 = RING + .315 + .45, t = .06;
+  boxMM(-10.4, 10.4, y0, y1, -9.4, -9.4 + t, M.soffit); boxMM(-10.4, 10.4, y0, y1, 9.4 - t, 9.4, M.soffit);
+  boxMM(-10.4, -10.4 + t, y0, y1, -9.4, 9.4, M.soffit); boxMM(10.4 - t, 10.4, y0, y1, -9.4, 9.4, M.soffit); }
 // 툇마루 기둥은 두지 않는다: 반자가 놋쇠 띠를 두른 채 떠 있다(작가님 결정, 비교 샘플에서 '모두 빼기')
 
 /* ───────── 지붕: 처마 끝이 들린 진주빛 곡면 ───────── */

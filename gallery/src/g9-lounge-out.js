@@ -225,21 +225,61 @@ const banners = [];
   boxMM(13.5 - dW / 2 - .06, 13.5 + dW / 2 + .06, .3 - .06, .3 + dH + .06, 19.55, 19.72, M.steel);
   const sc = new THREE.Mesh(new THREE.PlaneGeometry(dW, dH), new THREE.MeshBasicMaterial({ map: heroTex, toneMapped: false })); place(sc, 13.5, .3 + dH / 2, 19.74, 0, 1);
   pickable(sc, { kind: 'SHIN HAEDAL', title: '쉽게 들어와서 오래 머무는 작업.', body: '순서가 다를 뿐, 깊이는 같습니다.', img: 'ip/hero-bg.webp', links: [[SITE + '/', '홈페이지']] });
-  // 이름: 작가소개 바깥벽에 놋쇠 글자
-  // 이름: 작가소개 바깥벽(현무암)에 얕게 판 음각. 금 없이 돌 그대로, 가는 글자(작가님: 고급스럽게, 골드는 빼고)
-  const name = panel(7, 1.4, (g, W, H) => {
-    g.clearRect(0, 0, W, H);
-    const x = W * .02, lines = [[`800 ${H * .15}px "Noto Sans KR", sans-serif`, 'SHIN HAEDAL GALLERY', H * .3, H * .055], [`900 ${H * .44}px "Noto Sans KR", sans-serif`, '신해달 갤러리', H * .82, H * .06]], d = Math.max(2, H * .009);
-    for (const [f, t, y, sp] of lines) {
-      g.font = f; g.letterSpacing = `${sp}px`;
-      g.fillStyle = 'rgba(255,255,255,.13)'; g.fillText(t, x + d, y + d);   // 아래 오른쪽 홈 가장자리에 닿는 옅은 빛
-      g.fillStyle = 'rgba(0,0,0,.7)'; g.fillText(t, x - d * .8, y - d * .8);   // 위 왼쪽 홈 안쪽 그늘
-      g.fillStyle = 'rgba(0,0,0,.26)'; g.fillText(t, x, y);                   // 판 바닥: 돌결이 그대로 비치게 살짝만 어둡게
+  // 이름 간판(작가님 시안 2차): 「신해달 갤러리」 한 줄은 Pretendard ExtraBold(800), 기본 글자 폭, 자간 살짝. 아래 영문은 왼쪽 맞춤·한글 높이의 1/5(Pretendard Medium)
+  //   채도 낮은 샴페인 브론즈 입체 글자: 앞면 은은한 반광, 옆면 한 톤 어둡게, 모서리는 아주 얕게. 글자 모양 그림을 얇게 여러 장 겹쳐 옆면 두께를 만든다.
+  //   Pretendard는 간판 글자만 남긴 작은 글꼴 조각(SIL OFL)을 여기에 넣어 둔다(구글 폰트에 없어서)
+  {
+    const PF = 'PretendardSign', FONT_EB = 'data:font/woff2;base64,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', FONT_MD = 'data:font/woff2;base64,d09GMgABAAAAAARsAA0AAAAAB/QAAAQbAAFPGgAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbggIcKgZgAGwKhVyESQE2AiQDNAscAAQgBYI6ByAbXgYIHoNteyk95SRF7UzstpjHz4fes95MJt12kvKkLIEDhSW+zioPxL17f4cRbxuLNwW2wOZ5YBO7yNMAy/PZ/wCrFScupz8rXBSuDVyAAb9Ia0zqz9OlBRjRmrT2+ToPqPPMcm0Yu8ghvAQEIAMAgCIoGUEAnA0vtBOXkgPdovuoIdBhAPwbFfPeI4ZADZ6O0VgIvJEC1KhJGGAOtkFDBeZLvhpMYJlPO1t78xMvy6TvBvPK4pvNj2pZv/arSTUOXhMIQNDkDhcwjIhRsZivRSopiwgxilHCTijacSA2d4CLWbqDfJWAWGBPABvTAvRmI130IVUEgGIAQk2MHudm4xoU7bPN/02A8ZP3dTdkNXEfAIUMoAAB0Hh+yvTpTAHAxEBAKSLFSpQiTbb2f1BGixEPZX0Dc63rrrrikovOORkR3KIFAC0BOsANgFQBAACra6KRLNHk3iXHJI1sIzOVbNC4cmmiNJ530BWM7cI7SRO1C2tLMa2khuctLBdmlnGunmiELtTbZQzvIr7g1StMKyyUFhYX58tE30ZZxldXRqaX10+vLczlEyWmF6XxXNQxrsVKblL3UFryCVyNDhgvaaSJ+oWFhZj2Kqc/H8BlxgcuLCbTi3IMwwRzcwtjJTK+ys4VFeVJo6qyknl1wnSs9ObC8fj6SwOlcazzBDtl9r7/yu59r2dO9gnfaqxvYX/+aopVEK8Nr7wO7Yipqd0VF3C4TLr65btJIJ/zb347QNPdt+jKsTPTLk27cO7KKkTfu19btmTirSlDvx74sC93p0wfebhjtwNkRK8zQbtOrdeZVhy96XhqV0Zd3e4Mu1MXN2LcpaT5wrru8BWjno2qgJgmj3s2zjJMaspnvF5yZQCyGnjg2mAlWwHjI5W20dmU1PqHbFfN8GGP5q6a/XK6R3jCb1tLnYNVxbvqTctnTJ22Yv5Gk4zAx+Ltw6bkz/SL6xbWaXX34a0W2h5x+HS5Y5iwvfpp0N7t7/vMuaqaUaEZfnzsnI7LgrIGIFbertssy4Ou4/s2nzDn8pu+y5fX95l+ho4sgvG5b+xSw/ilv5X6YQEVAcrNYQAAEADptSxc4vm1qz7km1pQAwBqB3dZYhYOb/9b/rffLfUCABZoa5XHn/+bgKYpJv15tQS5pAfmgHXkK+IEdskcrGIbsEq8hF7JMayiNB9MMZ1LA+83Yq91SEJggwC0pkFy4vlf2pYK0AugwgAWOhCQWAMgBPI4hJUQDqXThSMIMKiR1eWIWtp1iIqVK4g21DDjjdBfX/2MotgfU7x4/MLeFMn6G0SRYLzRhujL1QD9DZFhhN5G6W2IXroboRdFqt566W+0wbL01tdog3Q3gic33jwEChYtR65swb3Ju4J5SsQYqb+hDYqttg+PIMAyyzYCAA==';
+    const SX = -15.1, SY = 2.75, SZ = 19.57, SW = 6.4, SH = 1.6, PPM = 260, DEP = .06, NL = 12;
+    const W = Math.round(SW * PPM), H = Math.round(SH * PPM);
+    const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = maxAniso; return [c, t]; };
+    const [cF, tF] = mk(), [cS, tS] = mk();
+    const KO = '신해달 갤러리', EN = 'SHIN HAEDAL GALLERY';
+    const KF = (px) => `800 ${px}px "${PF}", "Noto Sans KR", sans-serif`, EF = (px) => `500 ${px}px "${PF}", "Noto Sans KR", sans-serif`;
+    const layout = (g) => {
+      const kh = .86 * PPM; g.font = KF(kh); g.letterSpacing = `${kh * .03}px`;
+      const kw = g.measureText(KO).width, x0 = (W - kw) / 2, ky = H * .66;
+      let eh = kh * .2; g.font = EF(eh); g.letterSpacing = `${eh * .22}px`;
+      const ew = g.measureText(EN).width; if (ew > kw * .78) eh *= kw * .78 / ew;   /* 영문 줄은 한글보다 짧게 */
+      return { kh, kw, x0, ky, eh, ey: ky + kh * .12 + eh * 1.25 };
+    };
+    const paint = (g, front) => {
+      g.clearRect(0, 0, W, H); const L = layout(g);
+      const lines = [[KF(L.kh), L.kh * .03, KO, L.ky], [EF(L.eh), L.eh * .22, EN, L.ey]];
+      for (const [f, sp, t, y] of lines) {
+        g.font = f; g.letterSpacing = `${sp}px`;
+        if (!front) { g.fillStyle = '#66594a'; g.fillText(t, L.x0, y); continue; }   /* 옆면: 한 톤 어두운 브론즈 */
+        const gr = g.createLinearGradient(0, y - L.kh, 0, y + L.kh * .1); gr.addColorStop(0, '#dcd1be'); gr.addColorStop(.5, '#c3b398'); gr.addColorStop(1, '#a29278');   /* 채도 낮은 샴페인 브론즈, 은은한 반광 */
+        g.fillStyle = 'rgba(250,243,228,.6)'; g.fillText(t, L.x0 - 1, y - 1);   /* 아주 얕게 깎은 위 모서리 */
+        g.fillStyle = gr; g.fillText(t, L.x0, y);
+      }
+    };
+    const draw = () => { paint(cF.getContext('2d'), true); paint(cS.getContext('2d'), false); tF.needsUpdate = tS.needsUpdate = true; };
+    draw();
+    Promise.all([new FontFace(PF, `url(${FONT_EB})`, { weight: '800' }), new FontFace(PF, `url(${FONT_MD})`, { weight: '500' })].map(f => f.load().then(ff => (document.fonts.add(ff), ff)))).then(draw).catch(() => {});
+    const geo = new THREE.PlaneGeometry(SW, SH);
+    for (let i = 0; i < NL; i++) {   // 뒤에서부터 옆면 겹, 맨 앞이 앞면
+      const front = i === NL - 1, m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: front ? tF : tS, transparent: true, alphaTest: .45, toneMapped: false, color: front ? 0xffffff : new THREE.Color(1, 1, 1).multiplyScalar(.85 + .15 * i / NL) }));
+      place(m, SX, SY, SZ + .004 + DEP * i / (NL - 1), 0, 1);
     }
-  }, { transparent: true, ppm: 200 });
-  name.material.alphaTest = .3; place(name, -13.6, 2.6, 19.57, 0, 1);
-  // 이름을 위에서 벽을 스치듯 비추는 빛 두 개(작가님 제안): 돌결과 음각 그늘이 살아난다
-  for (const lx of [-16.9, -15.3, -13.7]) { /* 셋을 겹쳐 이름만 한 덩어리로 비춘다(작가님) */ const sp = new THREE.SpotLight(0xfff1dc, 24, 4.2, .46, .9, 1.3); sp.position.set(lx, 4.1, 20.15); sp.target.position.set(lx, 2.45, 19.6); /* 이름 바로 위에서 아래로 */ scene.add(sp, sp.target); }
+    // 처마 아래에서 내려오는 3000K 부드러운 빛: 간판 전체를 덮는 넓은 띠로, 위가 조금 밝고 가장자리는 아주 길게 풀린다
+    const glowT = canvasTex(512, 256, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      /* 빛 윗끝은 벽 맨 위(처마 밑, 6 m)에 붙는다: 처마 바로 밑이 가장 밝고 아래로 갈수록 풀린다(중간에서 잘린 선이 없게) */
+      const v = g.createLinearGradient(0, 0, 0, h); v.addColorStop(0, 'rgba(255,214,160,.46)'); v.addColorStop(.05, 'rgba(255,212,158,.58)'); v.addColorStop(.4, 'rgba(255,208,150,.44)'); v.addColorStop(.65, 'rgba(255,206,148,.3)'); v.addColorStop(.85, 'rgba(255,202,144,.12)'); v.addColorStop(1, 'rgba(255,200,140,0)');
+      g.fillStyle = v; g.fillRect(0, 0, w, h);
+      const mc = document.createElement('canvas'); mc.width = w; mc.height = h; const mg = mc.getContext('2d');
+      for (let y = 0; y < h; y++) {   /* 옆 가장자리: 위는 좁게, 아래로 갈수록 넓게 퍼지며 길게 풀린다 */
+        const t = y / (h - 1), a = .1 - .07 * t, b = a + .2;
+        const hz = mg.createLinearGradient(0, 0, w, 0); hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(a, 'rgba(0,0,0,0)'); hz.addColorStop(b, 'rgba(0,0,0,1)'); hz.addColorStop(1 - b, 'rgba(0,0,0,1)'); hz.addColorStop(1 - a, 'rgba(0,0,0,0)'); hz.addColorStop(1, 'rgba(0,0,0,0)');
+        mg.fillStyle = hz; mg.fillRect(0, y, w, 1);
+      }
+      g.globalCompositeOperation = 'destination-in'; g.drawImage(mc, 0, 0);
+    });
+    const GT = 5.97, GB = 1.3;   /* 벽 맨 위(처마 밑) ~ 간판 아래 */
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(SW * 1.8, GT - GB), new THREE.MeshBasicMaterial({ map: glowT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: .45, toneMapped: false }));
+    place(glow, SX, (GT + GB) / 2, SZ + .002, 0, 1);
+  }
   for (const x of [-12, -6.5, 9, 18]) { boxMM(x - .9, x + .9, 0, .42, 26.5, 27.0, M.blackStone); solid(x - .9, x + .9, 26.5, 27.0); }
 }
 

@@ -8,7 +8,7 @@ metadata:
   modified: 2026-11-05T10:30:18.830Z
 ---
 
-When the board decisions are being built into the real gallery, finish one space, show it, and stop. Start the next space only when the user says to move on (user, 2026-11-05). The order agreed was: exterior → lobby and 작가소개 → works hall with its five transitions → 중정 → 일월오봉단관 → lounge → IP 체험관 → the lightmap bake last.
+When the board decisions are being built into the real gallery, finish one space, show it, and stop. Start the next space only when the user says to move on (user, 2026-11-05). The order agreed was: exterior → lobby and 작가소개 → works hall with its five transitions → 중정 → 일월오봉단관 → lounge → IP관 → the lightmap bake last.
 
 **Why:** the user reviews each space before more work piles on top of it.
 **How to apply:** never chain into the next space in the same turn, even when it looks quick. Related: [[gallery-v31-preferred]].

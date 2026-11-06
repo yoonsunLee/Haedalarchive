@@ -13,15 +13,19 @@ doors_js = r"""
         const b = new THREE.Mesh(new THREE.BoxGeometry(w, hh, .05), M.brass); b.position.set(x, y, 0); leaf.add(b);
       }
       if (axis === 'z') leaf.rotation.y = Math.PI / 2;
-      scene.add(leaf); if (mat === frost) blockers.push(pane);
+      scene.add(leaf); if (mat.transparent) blockers.push(pane);
       leaves.push({ leaf, s });
     }
     const d = { axis, fixed, mid, half, leaves, open: 0 };
     autoDoors.push(d); return d;
   }
   autoDoor('x', -9.4, -3, 3, 3.1);            // ③ 일월오봉단관: 처마 밑까지만
-  autoDoor('z', -10.4, -6.5, -2.5, 3.1);      // ① 작품관
-  autoDoor('z', 10.4, 4.2, 6.8, 3.1);         // ② IP관 나가는 곳 (들어가는 곳은 그림책 표지가 문)
+  // ① 작품관(문턱⑤ 끝): 어두운 전실 쪽에서는 한낮을 등진 간유리가 빛나 보이게 조금 스스로 빛난다
+  const frostGlow = frost.clone(); frostGlow.opacity = .9; frostGlow.emissive = new THREE.Color(0xfff4e2); frostGlow.emissiveIntensity = .6;
+  autoDoor('z', -10.4, -8.9, -4.9, 3.1, frostGlow);
+  animators.push((t, dt, me) => { const inside = me.x < -10.45; frostGlow.emissiveIntensity = inside ? .6 : 0; frostGlow.opacity = inside ? .9 : .72; });   // 중정 쪽에서는 다른 문과 똑같이
+  autoDoor('z', 10.4, -6, -3, 3.1);           // ② IP관 들어가는 곳(다른 관과 같은 간유리 미닫이, 안은 그려지는 전실)
+  autoDoor('z', 10.4, 4.2, 6.8, 3.1);         // ② IP관 나가는 곳
   autoDoor('x', 9.4, 7, 9.6, 3.0);            // 출구 라운지
   animators.push((t, dt, me) => {
     for (const d of autoDoors) {

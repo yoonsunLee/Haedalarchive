@@ -86,7 +86,7 @@ function wallLine(axis, fixed, a0, a1, parts, doors = []) {
     if (!door) { if (axis === 'x') solid(s0, s1, fixed - WT / 2, fixed + WT / 2); else solid(fixed - WT / 2, fixed + WT / 2, s0, s1); }
   }
 }
-const F = M.facade, C = M.changho, O = M.earth, G = M.white, P = M.navy, A = M.plaster, L = M.plaster, U = M.plaster;
+const F = M.facade, C = M.changho, O = M.earth, G = M.white, P = M.navy, A = M.plaster, L = M.plaster, U = std({ color: 0xf5f8fb, roughness: .9 });   // U: 해달 라운지 안쪽 흰 벽
 // 오봉단관
 wallLine('x', -27, -10.4, 10.4, [[0, HO, F, O]]);
 wallLine('z', -10.4, -27, -20, [[0, HO, F, O]]);
@@ -97,7 +97,7 @@ wallLine('x', -9.4, -10.4, 10.4, [[0, RING, O, C], [RING, HO, O, F]], [[-3, 3, 3
 // 작품관
 wallLine('x', -20, -21, -10.4, [[0, HW, F, G]]);
 wallLine('z', -21, -20, 9.4, [[0, HW, F, G]]);
-wallLine('z', -10.4, -9.4, 9.4, [[0, RING, G, C], [RING, HW, G, F]], [[-6.5, -2.5, 3.1]]);
+wallLine('z', -10.4, -9.4, 9.4, [[0, RING, G, C], [RING, HW, G, F]], [[-8.9, -4.9, 3.1]]);   // 작품관 문: 문턱⑤가 룸1 북쪽으로 지나가게 북쪽으로 옮겼다
 // IP관
 wallLine('x', -20, 10.4, 21, [[0, HW, F, P]]);
 wallLine('z', 21, -20, 9.4, [[0, HW, P, F]]);
@@ -130,7 +130,8 @@ solid(-24, -10.4, -34, -20); solid(10.4, 24, -34, -20); solid(-24, 24, -34, -27)
 /* ───────── 천장 ───────── */
 ceiling(-21, -6, 9.4, 19.4, ROOMS.artist.ceil, M.hanjiCeil, 1.8);
 ceiling(-6, 6, 9.4, 19.4, ROOMS.lobby.ceil, M.hanjiCeil, 1.8);
-ceiling(6, 21, 9.4, 19.4, ROOMS.lounge.ceil, M.hanjiCeil, 1.8);
+// 해달 라운지 천장: 스포츠센터처럼 흰 60 cm 텍스판에 한 칸 건너 하나씩 조명판
+ceiling(6, 21, 9.4, 19.4, ROOMS.lounge.ceil, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#cfd7de'; g.fillRect(0, 0, w, h); const n = 4, s = w / n; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { g.fillStyle = i % 2 === 0 && j % 2 === 0 ? '#ffffff' : '#e6ebef'; g.fillRect(i * s + 3, j * s + 3, s - 6, s - 6); } }) }), 2.4);
 ceiling(-21, -10.4, -20, 9.4, ROOMS.works.ceil, M.hanjiCeil, 1.8);
 for (let z = -18.5; z < 9; z += 2.6) boxMM(-21, -10.4, ROOMS.works.ceil - .28, ROOMS.works.ceil, z - .14, z + .14, M.wood);   // 밝은 나무 보
 ceiling(10.4, 21, -20, 9.4, ROOMS.ip.ceil, M.stars, 30);
@@ -150,8 +151,7 @@ ceiling(-10.4, 10.4, -27, -9.4, ROOMS.obong.ceil, M.obongCeil, 12);
     const band = new THREE.Mesh(new THREE.BoxGeometry(len, .05, .05), M.brass); band.position.set((x0 + x1) / 2, RING - .02, (z0 + z1) / 2); band.rotation.y = -ang; scene.add(band);
   }
 }
-// 툇마루 기둥(검은 금속)
-for (const [x, z] of [[-8, -7], [8, -7], [-8, 7], [8, 7], [-8, 0], [8, 0], [-4, -7], [4, -7], [-4, 7], [4, 7]]) { boxMM(x - .09, x + .09, 0, RING, z - .09, z + .09, M.steel); solid(x - .09, x + .09, z - .09, z + .09); }
+// 툇마루 기둥은 두지 않는다: 반자가 놋쇠 띠를 두른 채 떠 있다(작가님 결정, 비교 샘플에서 '모두 빼기')
 
 /* ───────── 지붕: 처마 끝이 들린 진주빛 곡면 ───────── */
 function roof({ w, d, cx, cz, h0, lift, ridge, thick = .22, alongZ = false }) {

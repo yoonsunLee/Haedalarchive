@@ -1,26 +1,163 @@
 
-/* ───────── 출구 라운지: 회원 발급 창구와 샵 배너 ───────── */
-const LG = ROOMS.lounge, deskSpot = { x: 17.6, z: 14.4 };
+/* ───────── 해달 라운지: 현대사회스포츠센터 로비처럼 ───────── */
+// 하늘색·흰색, 타일 바닥과 허리 높이 타일 띠, 안내데스크 + 멤버십 키오스크, 이름 이야기, 아트토이 진열장 둘, 아침 수영반 시간표, 기다리는 의자, 브랜드샵 배너
+const LG = ROOMS.lounge, deskSpot = { x: 17.2, z: 11.2 };   // 키오스크 앞
+const LB = '#2b4ec9', LB2 = '#20307a', LSKY = '#cfe3f6';   // 카드 앞면과 같은 파랑, 짙은 파랑, 하늘색
+function redrawPanel(m) { const r = REDRAW.find(o => o.t === m.material.map); if (r) { r.draw(r.t.image.getContext('2d'), r.W, r.H); r.t.needsUpdate = true; } }
 {
-  boxMM(18.6, 19.6, 0, 1.05, 12.6, 16.2, M.lacquer); boxMM(18.5, 19.7, 1.05, 1.1, 12.5, 16.3, M.brass); solid(18.5, 19.7, 12.5, 16.3);
-  const sign = panel(3.4, 1.3, (g, W, H) => {
-    g.fillStyle = '#eaf1ff'; g.fillRect(0, 0, W, H); g.strokeStyle = '#2b4ec9'; g.lineWidth = H * .05; g.strokeRect(H * .03, H * .03, W - H * .06, H - H * .06);
-    g.fillStyle = '#2b4ec9'; g.font = `700 ${H * .1}px ${FONT_B}`; g.fillText('HYUNDAI SOCIAL SPORTS CENTER', W * .06, H * .24);
-    g.fillStyle = '#20307a'; g.font = `400 ${H * .25}px ${FONT_K}`; g.fillText('회원 발급 창구', W * .06, H * .56);
-    g.font = `500 ${H * .085}px ${FONT_B}`; g.fillText('조개 도장 다섯 개를 모은 해달에게 멤버십 카드를 드려요.', W * .06, H * .8);
-  }, { ppm: 300 });
-  place(sign, LG.x1 - .17, 2.35, 14.4, -1, 0);
-  const shop = panel(3.6, 1.6, (g, W, H) => {
-    g.fillStyle = '#1d2a5c'; g.fillRect(0, 0, W, H);
-    g.fillStyle = '#c9a86a'; g.font = `500 ${H * .08}px ${FONT_M}`; g.fillText('BEFORE YOU GO', W * .05, H * .17);
-    g.fillStyle = '#efe9df'; g.font = `400 ${H * .2}px ${FONT_K}`; g.fillText('해달자개 브랜드샵', W * .05, H * .42);
-    g.font = `500 ${H * .085}px ${FONT_B}`; g.fillText('한글자음·알파벳 자개키링과 나전칠기 굿즈', W * .05, H * .6);
-    g.fillStyle = '#efe9df'; g.beginPath(); g.roundRect(W * .05, H * .72, W * .42, H * .16, H * .08); g.fill();
-    g.fillStyle = '#1d2a5c'; g.font = `700 ${H * .085}px ${FONT_B}`; g.fillText('아이디어스에서 보기 ↗', W * .08, H * .83);
-  }, { ppm: 300 });
-  place(shop, 18.0, 1.9, LG.z1 - .17, 0, -1);
-  pickable(shop, { kind: 'Brand Shop', title: '해달자개 브랜드샵', body: '한글자음 자개키링과 알파벳 자개키링, 나전칠기 굿즈는 아이디어스 해달자개 브랜드샵에서 만날 수 있어요.', img: 'img/shell-stamp.webp', links: [[SHOP_URL, '브랜드샵 바로가기']] });
-  for (const x of [9.5, 11.5]) { boxMM(x - .7, x + .7, 0, .45, 16.4, 16.9, M.lacquer); solid(x - .7, x + .7, 16.4, 16.9); }
+  const WF = .16;   // 벽 안쪽 면까지
+  // 바닥: 흰 타일(30 cm), 줄눈은 연한 회청색
+  const floorT = canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#c9d3dc'; g.fillRect(0, 0, w, h); const n = 8, s = w / n; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { g.fillStyle = (i + j) % 2 ? '#f3f6f9' : '#eef2f6'; g.fillRect(i * s + 2, j * s + 2, s - 4, s - 4); } });
+  ground(LG.x0, LG.x1, LG.z0, LG.z1, .026, std({ map: floorT, roughness: .32 }), 2.4);
+  // 벽 아래 1.2 m: 하늘색 작은 타일(10 cm) 띠, 위에 파란 줄 하나
+  const tileT = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#e9f1f8'; g.fillRect(0, 0, w, h); const n = 8, s = w / n; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { g.fillStyle = (i * 7 + j * 3) % 5 ? '#bcd8f1' : '#b2d1ee'; g.fillRect(i * s + 1.5, j * s + 1.5, s - 3, s - 3); } });
+  const tileM = (w, h = 1.2) => { const t = tileT.clone(); t.needsUpdate = true; t.repeat.set(w / .8, h / .8); return std({ map: t, roughness: .35 }); };
+  const band = (w, x, z, nx, nz) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, 1.2), tileM(w)); place(m, x, .6, z, nx, nz);
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(w, .05), new THREE.MeshBasicMaterial({ color: LB })); place(line, x + nx * .002, 1.225, z + nz * .002, nx, nz);
+  };
+  band(LG.x1 - 9.6, (9.6 + LG.x1) / 2, LG.z0 + WF, 0, 1); band(1, 6.5, LG.z0 + WF, 0, 1);    // 북쪽(중정 문 7~9.6 m 빼고)
+  band(LG.x1 - LG.x0, (LG.x0 + LG.x1) / 2, LG.z1 - WF, 0, -1);                               // 남쪽
+  band(LG.z1 - LG.z0, LG.x1 - WF, (LG.z0 + LG.z1) / 2, -1, 0);                               // 동쪽
+  band(LG.z1 - 12.6, LG.x0 + WF, (12.6 + LG.z1) / 2, 1, 0); band(.8, LG.x0 + WF, 9.8, 1, 0);   // 서쪽(로비 문 10.2~12.6 m 빼고)
+  // 한낮처럼 고르게 밝은 실내: 천장 조명판 아래로 퍼지는 흰 빛
+  for (const x of [10, 16]) { const l = new THREE.PointLight(0xffffff, 9, 14, 1.2); l.position.set(x, 4.6, 14.4); scene.add(l); }
+
+  // 안내데스크: 동쪽 벽 앞 흰 카운터, 앞면 하늘색 타일과 파란 줄. 뒤 벽에 센터 이름
+  const white = std({ color: 0xf7f9fb, roughness: .4 });
+  boxMM(18.7, 19.5, 0, 1.0, 12.4, 16.4, white); boxMM(18.6, 19.6, 1.0, 1.06, 12.3, 16.5, std({ color: 0xffffff, roughness: .25 })); solid(18.6, 19.6, 12.3, 16.5);
+  const deskFront = new THREE.Mesh(new THREE.PlaneGeometry(4.0, .9), tileM(4.0, .9)); place(deskFront, 18.69, .5, 14.4, -1, 0);
+  const deskLine = new THREE.Mesh(new THREE.PlaneGeometry(4.0, .06), new THREE.MeshBasicMaterial({ color: LB })); place(deskLine, 18.685, .97, 14.4, -1, 0);
+  const deskSign = letters(2.4, .32, (g, W, H) => { g.textAlign = 'center'; font(g, H * .55, 700, FONT_B, LB2); g.fillText('멤버십카드 발급', W / 2, H * .72, W * .98); });
+  place(deskSign, 18.68, .55, 14.4, -1, 0);
+  const centerSign = letters(5.2, 1.0, (g, W, H) => {
+    g.textAlign = 'center';
+    font(g, H * .16, 700, FONT_M, LB); g.fillText('HYUNDAI SOCIAL SPORTS CENTER', W / 2, H * .2);
+    font(g, H * .5, 400, FONT_K, LB2); g.fillText('현대사회스포츠센터', W / 2, H * .78);
+  });
+  place(centerSign, LG.x1 - WF - .01, 2.9, 14.4, -1, 0);
+  const centerInfo = { kind: 'HYUNDAI SOCIAL SPORTS CENTER', title: '현대사회스포츠센터', body: '두 발로 하는 배달은 너무 느렸어요. 조금이라도 더 빨리 조개를 전하고 싶었던 얼빵해달은 수영을 배우기로 결심했어요. 그렇게 현대사회스포츠센터 아침 수영반에 등록했어요.\n\n해달도 배워야 수영을 한다.\n처음부터 능숙한 존재는 없습니다. 누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다. 누군가의 미숙함을 너그럽게 보길 바라는 마음을 담았습니다.', img: 'ip/swim-cover.webp', links: [[SITE + '/ip/#swimming', '홈페이지에서 보기']], focus: focusFrom(LG.x1 - WF, 2.2, 14.4, -1, 0, 5) };
+  pickable(centerSign, centerInfo);
+
+  // 멤버십 키오스크: 데스크 북쪽 끝, 중정 문에서 들어오면 바로 보인다. 누르면 이름을 적고 카드를 받는다
+  const kx = 18.15, kz = 11.2;
+  boxMM(kx - .22, kx + .22, 0, .08, kz - .32, kz + .32, std({ color: 0xdfe6ee, roughness: .5 }));
+  boxMM(kx - .12, kx + .12, .08, 1.62, kz - .3, kz + .3, white);
+  solid(kx - .3, kx + .3, kz - .4, kz + .4);
+  const cardImg = new Image(); cardImg.src = 'img/card-front.webp';
+  const screen = panel(.52, .92, (g, W, H) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    g.fillStyle = LB; g.fillRect(0, 0, W, H * .12);
+    g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.font = `700 ${H * .045}px ${FONT_M}`; g.fillText('MEMBERSHIP', W / 2, H * .08);
+    if (cardImg.complete && cardImg.naturalWidth) g.drawImage(cardImg, W * .06, H * .16, W * .88, W * .88);
+    g.fillStyle = LB2; g.font = `700 ${H * .07}px ${FONT_B}`; g.fillText('멤버십 카드 발급', W / 2, H * .74);
+    g.fillStyle = '#4a5878'; g.font = `500 ${H * .036}px ${FONT_B}`; g.fillText('화면을 누르고 이름을 적어 주세요', W / 2, H * .82);
+    g.fillStyle = LB; g.beginPath(); g.roundRect(W * .2, H * .87, W * .6, H * .08, H * .04); g.fill();
+    g.fillStyle = '#ffffff'; g.font = `700 ${H * .04}px ${FONT_B}`; g.fillText('시작하기', W / 2, H * .925);
+  }, { ppm: 900 });
+  cardImg.onload = () => redrawPanel(screen);
+  place(screen, kx - .125, 1.1, kz, -1, 0);
+  pickable(screen, { kind: 'MEMBERSHIP', title: '멤버십 카드 발급', act: () => openMember(false) });
+
+  // 이름 이야기: 남쪽 벽. 홈페이지 IP 페이지 글을 전부 벽에(누르면 뜨는 창과 같은 글)
+  const N0 = '\'Spaced-out Sea Otter\'는 이름뿐 아니라, 캐릭터의 성격까지 담아낸 번역이에요.';
+  const N1 = '\'얼빵\'을 소리 그대로 Eolbbang이라 쓰는 대신, 조금 얼빠져 있고 어딘가 엇박자지만 그래서 사랑스러운 느낌을 \'Spaced-out\'으로 옮겼어요.';
+  const N2 = '\'해달\'은 동물 해달이면서, 해(☀︎)와 달(☾︎)로도 읽혀요. 하나의 이름 안에 동물과 하늘, 두 겹의 의미가 함께 들어 있어요.';
+  const NW = 6.4, NH = 3.3, nx0 = 6.9;
+  const nameWall = letters(NW, NH, (g, W, H) => {
+    const cm = c => H * c / 100 / NH, col = W * .52;
+    font(g, cm(9), 700, FONT_M, LB); g.fillText('A LITTLE MORE ABOUT ME', 0, cm(10));
+    font(g, cm(38), 400, FONT_K, LB2); g.fillText('이름에도 의미가 있어요.', 0, cm(56));
+    font(g, cm(15), 500, FONT_B, '#3d4a66'); textBlock(g, wrapText(g, N0, W), 0, cm(92), cm(24));
+    for (const [i, big, txt] of [[0, '얼빵 → SPACED-OUT', N1], [1, '해달 → SUN + MOON', N2]]) {
+      const x = i * col;
+      font(g, cm(30), 700, FONT_D, LB); g.fillText(big, x, cm(168));
+      font(g, cm(14), 500, FONT_B, '#3d4a66'); textBlock(g, wrapText(g, txt, col - cm(30)), x, cm(206), cm(22));
+    }
+  });
+  place(nameWall, nx0 + NW / 2, 1.55 + NH / 2, LG.z1 - WF - .01, 0, -1);
+  pickable(nameWall, { kind: 'A LITTLE MORE ABOUT ME', title: '이름에도 의미가 있어요.', body: N0 + '\n\n얼빵 → SPACED-OUT\n' + N1 + '\n\n해달 → SUN + MOON\n' + N2, img: 'ip/name_haedal.webp', links: [[SITE + '/ip/#identity', '홈페이지에서 보기']], focus: focusFrom(nx0 + NW / 2, 2.8, LG.z1 - WF, 0, -1, 5.2) });
+
+  // 아트토이 진열장: 흰 좌대 위 유리장 둘, 둘 다 조개배달부 얼빵해달. 새 아트토이가 생기면 TOYS에 더하면 그 장부터 바뀐다
+  const D = DETAIL[TOY_ID];
+  const TOYS = [{ img: 'img/toy-cutout.webp', name: '조개배달부 얼빵해달', sub: '2026 Limited Edition · 10 × 9 × 6 cm', info: { kind: D.en, title: '조개배달부 얼빵해달 2026 Limited Edition', meta: D.medium, body: D.body.join('\n\n') + '\n\n시그니처 조개는 자석으로 떼고 붙일 수 있어요.', ex: D.ex, img: `img/${TOY_ID}.webp`, links: [[`${SITE}/works/w/${TOY_ID}/`, '작품 페이지'], [SITE + '/ip/#toy', '아트토이 이야기', true]] } }];
+  const nCase = Math.max(2, TOYS.length), cz = 17.9;
+  for (let i = 0; i < nCase; i++) {
+    const cx = 15.2 + i * 1.9, toy = TOYS[i] || TOYS[0];
+    boxMM(cx - .38, cx + .38, 0, 1.0, cz - .38, cz + .38, white); solid(cx - .45, cx + .45, cz - .45, cz + .45);
+    boxMM(cx - .36, cx + .36, 1.0, 1.02, cz - .36, cz + .36, std({ color: 0xe3eaf1, roughness: .4 }));
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(.72, .62, .72), M.glass); glass.position.set(cx, 1.33, cz); scene.add(glass);
+    boxMM(cx - .37, cx + .37, 1.64, 1.66, cz - .37, cz + .37, white);
+    for (const [ex, ez] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) boxMM(cx + ex * .36 - .008, cx + ex * .36 + .008, 1.02, 1.64, cz + ez * .36 - .008, cz + ez * .36 + .008, white);   // 유리장 모서리
+    const label = letters(.7, .2, (g, W, H) => {
+      g.textAlign = 'center';
+      if (toy) { font(g, H * .3, 700, FONT_B, LB2); g.fillText(toy.name, W / 2, H * .42, W * .98); font(g, H * .18, 500, FONT_B, '#4a5878'); g.fillText(toy.sub, W / 2, H * .82, W * .98); }
+      else { font(g, H * .34, 700, FONT_M, LB); g.fillText('UPCOMING', W / 2, H * .62); }
+    }, 900);
+    place(label, cx, .78, cz - .385, 0, -1);   // 관람객이 오는 북쪽을 본다
+    if (toy) {
+      const fig = cutout(toy.img, .3); place(fig, cx, 1.03, cz, 0, -1);
+      const info = { ...toy.info, focus: { pos: [cx, cz - 2.1], look: [cx, 1.2, cz] } };
+      pickable(fig, info); pickable(label, info); pickable(glass, info);
+    }
+  }
+
+  // 아침 수영반 시간표: 북쪽 벽(실제 스포츠센터 강습 시간표 형식)
+  const shell = new Image(); shell.src = 'img/shell-stamp.webp';
+  const TT = [['06:00 – 06:50', '초급반', '중급반'], ['07:00 – 07:50', '중급반', '초급반'], ['08:00 – 08:50', '고급반', '고급반'], ['09:00 – 09:50', '연수반', '자유수영']];
+  const tt = panel(3.2, 2.3, (g, W, H) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    g.fillStyle = LB; g.fillRect(0, 0, W, H * .2);
+    g.fillStyle = '#ffffff'; g.font = `700 ${H * .045}px ${FONT_M}`; g.fillText('MORNING SWIMMING · TIMETABLE', W * .05, H * .07);
+    g.font = `400 ${H * .085}px ${FONT_K}`; g.fillText('아침 수영반 강습 시간표', W * .05, H * .165);
+    const x0 = W * .05, cw = [W * .34, W * .28, W * .28], rh = H * .1, y0 = H * .25, cx = i => x0 + cw.slice(0, i).reduce((a, b) => a + b, 0) + W * .02;
+    g.fillStyle = LSKY; g.fillRect(x0, y0, W * .9, rh);
+    g.fillStyle = LB2; g.font = `700 ${H * .045}px ${FONT_B}`;
+    ['시간', '월 · 수 · 금', '화 · 목'].forEach((t, i) => g.fillText(t, cx(i), y0 + rh * .66));
+    TT.forEach((row, r) => {
+      const y = y0 + rh * (r + 1);
+      g.fillStyle = r % 2 ? '#f2f7fc' : '#ffffff'; g.fillRect(x0, y, W * .9, rh);
+      g.fillStyle = '#2d3a58'; g.font = `500 ${H * .045}px ${FONT_B}`;
+      row.forEach((t, i) => g.fillText(t, cx(i), y + rh * .66));
+    });
+    // 작은 농담: 월·수·금 6시 초급반에만 조개 표시
+    if (shell.complete && shell.naturalWidth) { const s = rh * .7; g.drawImage(shell, cx(1) + W * .13, y0 + rh * 1.15, s * shell.naturalWidth / shell.naturalHeight, s); }
+    g.strokeStyle = '#c9d8e8'; g.lineWidth = 2; g.strokeRect(x0, y0, W * .9, rh * 5);
+    g.fillStyle = '#4a5878'; g.font = `500 ${H * .036}px ${FONT_B}`;
+    g.fillText('강습 50분 · 수모와 수경을 꼭 써 주세요 · 강습 10분 전부터 입장', x0, H * .87);
+    g.fillText('조개 표시: 얼빵해달 수강 중 — 해달도 배워야 수영을 한다.', x0, H * .935);
+  }, { ppm: 420 });
+  shell.onload = () => redrawPanel(tt);
+  place(tt, 12.6, 2.1, LG.z0 + WF + .01, 0, 1);
+
+  // 해달자개 브랜드샵 배너: 서쪽 벽, 두 줄의자 사이 위. 바탕은 벽과 같은 흰색
+  const logo = new Image(); logo.src = 'img/haedal-jagae-logo.webp';
+  const shop = panel(2.6, 1.7, (g, W, H) => {
+    g.fillStyle = '#f5f8fb'; g.fillRect(0, 0, W, H);
+    if (logo.complete && logo.naturalWidth) { const lh = H * .62; g.drawImage(logo, W * .04, H * .08, lh * logo.naturalWidth / logo.naturalHeight, lh); }
+    g.fillStyle = LB2; g.font = `700 ${H * .085}px ${FONT_B}`; g.fillText('해달자개 브랜드샵', W * .04, H * .8);
+    g.fillStyle = '#4a5878'; g.font = `500 ${H * .05}px ${FONT_B}`; g.fillText('한글자음·알파벳 자개키링과 나전칠기 굿즈', W * .04, H * .88);
+    g.fillStyle = LB; g.beginPath(); g.roundRect(W * .62, H * .5, W * .34, H * .12, H * .06); g.fill();
+    g.fillStyle = '#ffffff'; g.font = `700 ${H * .05}px ${FONT_B}`; g.fillText('아이디어스에서 보기 ↗', W * .645, H * .575);
+  }, { ppm: 360, basic: false });   // 벽처럼 빛을 받아 벽과 같은 색으로 보인다
+  logo.onload = () => redrawPanel(shop);
+  place(shop, LG.x0 + WF + .01, 2.3, 16.0, 1, 0);
+  pickable(shop, { kind: 'Brand Shop', title: '해달자개 브랜드샵', body: '한글자음 자개키링과 알파벳 자개키링, 나전칠기 굿즈는 아이디어스 해달자개 브랜드샵에서 만날 수 있어요.', img: 'img/haedal-jagae-logo.webp', links: [[SHOP_URL, '브랜드샵 바로가기']] });
+
+  // 기다리는 의자: 서쪽 벽을 따라 스포츠센터 로비의 줄의자 둘(하늘색·흰색 번갈아), 앉아서 쉴 수 있다
+  const steel = std({ color: 0xb9c2cc, roughness: .35, metalness: .7 }), seatA = std({ color: 0x8fbfe8, roughness: .45 }), seatB = std({ color: 0xf4f7fa, roughness: .45 });
+  for (const zc of [14.4, 17.6]) {
+    const sx = 6.75, n = 4, sw = .52, half = n * sw / 2;
+    boxMM(sx - .03, sx + .03, .34, .4, zc - half, zc + half, steel);
+    for (const dz of [-1, 1]) { const lz = zc + dz * (half - .15); boxMM(sx - .25, sx + .25, 0, .04, lz - .04, lz + .04, steel); boxMM(sx - .03, sx + .03, .04, .34, lz - .03, lz + .03, steel); }
+    for (let i = 0; i < n; i++) {
+      const z = zc - half + sw * (i + .5), mat = i % 2 ? seatB : seatA;
+      boxMM(sx - .2, sx + .24, .4, .45, z - .23, z + .23, mat);
+      const back = boxMM(sx - .24, sx - .2, .45, .86, z - .23, z + .23, mat); back.rotation.z = -.12;
+    }
+    solid(sx - .3, sx + .3, zc - half, zc + half);
+    SEATS.push({ x: 7.35, z: zc, yaw: -Math.PI / 2, label: '의자에 앉아 쉬기' });
+  }
 }
 
 /* ───────── 바깥: 광장, 처마 아래 세로 현수막 한 쌍, 대형 디스플레이, 이름 ───────── */
@@ -130,7 +267,7 @@ const banners = [];
     }
   });
   cones.count = ki;
-  scene.add(trunks, cones);
+  scene.add(trunks, cones); OUTDOOR.push(trunks, cones);
   // 정문 앞에서 숲 속으로 곧게 뻗은 길(눈으로만 본다)
   const roadMat = new THREE.MeshStandardMaterial({ color: 0xb3a58c, roughness: 1 });
   ground(-3, 3, 36, 170, -.02, roadMat, 4, false);
@@ -143,7 +280,7 @@ const banners = [];
     if (side === 3 && Math.abs(x) < 7) continue;
     const w = .8 + r() * 1.3; m4.compose(p.set(x, w * .4, z), q.identity(), sc.set(w * 1.4, w * .8, w * 1.4)); bush.setMatrixAt(bi, m4); bush.setColorAt(bi++, new THREE.Color(0x3d5f30).offsetHSL(0, 0, (r() - .5) * .08));
   }
-  bush.count = bi; scene.add(bush);
+  bush.count = bi; scene.add(bush); OUTDOOR.push(bush);
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x8a867d, roughness: .9, flatShading: true });
   for (const [x, z, w] of [[-29, 30, 2.2], [30, -12, 1.6], [-30, -28, 1.8], [28, 40, 2.6]]) { const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(w, 0), rockMat); rk.position.set(x, w * .35, z); rk.scale.y = .6; rk.rotation.y = x; scene.add(rk); }
 }

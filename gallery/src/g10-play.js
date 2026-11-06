@@ -19,8 +19,9 @@ setAvView('back');
 
 /* ───────── 걷기 ───────── */
 const RAD = .32, BOUND = { x0: -22.5, x1: 22.5, z0: -27, z1: 35 };
+const inInterior = (x, z) => INTERIORS.find(I => I.rects.some(r => x > r[0] && x < r[1] && z > r[2] && z < r[3]));
 function blocked(x, z) {
-  if (x < BOUND.x0 || x > BOUND.x1 || z < BOUND.z0 || z > BOUND.z1) return true;
+  if ((x < BOUND.x0 || x > BOUND.x1 || z < BOUND.z0 || z > BOUND.z1) && !inInterior(x, z)) return true;
   for (const c of colliders) if (x > c[0] - RAD && x < c[1] + RAD && z > c[2] - RAD && z < c[3] + RAD) return true;
   return false;
 }
@@ -29,7 +30,7 @@ function tryMove(dx, dz) { let moved = false; if (!blocked(me.x + dx, me.z)) { m
 const view = { yaw: 0, pitch: -.2, dist: 3.6 };
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const PLACES = {
-  outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [-15.7, 6.8], yaw: 0 },
+  outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [DOORX, R1_GABLE + 3.8], yaw: 0 },   // 법과 권리: 첫 작품 정면
   court: { pos: [0, 6.6], yaw: 0 }, ip: { pos: [11.4, -4.5], yaw: -Math.PI / 2 }, obong: { pos: [0, -13.5], yaw: 0 }, lounge: { pos: [12.6, 13.8], yaw: -Math.PI / 2 },
 };
 let walkTo = null, focus = null;   // focus: 작품을 보는 동안 카메라가 따로 선다
@@ -110,6 +111,7 @@ function endDrag(e) {
   if (!wasClick || e.type === 'pointercancel') return;
   const h = hitAt(e.clientX, e.clientY); if (!h) return;
   const info = h.object.userData.info;
+  if (info && info.act) { info.act(); return; }
   if (info) { openCard(info); return; }
   if (floors.includes(h.object)) { walkTo = { x: h.point.x, z: h.point.z, stuck: 0 }; focus = null; hideHint(); }
 }
@@ -157,9 +159,50 @@ const navBtns = [...document.querySelectorAll('[data-go]')];
 navBtns.forEach(b => b.addEventListener('click', () => { closeCard(); const p = PLACES[b.dataset.go]; jump(p.pos, p.yaw); hideHint(); }));
 function zoneOf(x, z) {
   const inR = (R) => x > R.x0 && x < R.x1 && z > R.z0 && z < R.z1;
+  const In = inInterior(x, z); if (In) return In.zone || 'works';
   for (const k of ['obong', 'works', 'ip', 'artist', 'lobby', 'lounge']) if (inR(ROOMS[k])) return k;
   if (Math.abs(x) < 10.4 && Math.abs(z) < 9.4) return 'court';
   return 'outside';
+}
+
+/* ───────── 안쪽 공간 보이기 ───────── */
+// 안쪽 공간에 있으면 그 방을 파고드는 바깥 건물(벽, 바닥 등)을 숨긴다. 작품관·작가소개 밖에서는 안쪽 공간을 숨긴다(바깥 건물 밖으로 나온 부분이 보이지 않게)
+const setShown = (o, v) => { o.visible = v; o.traverse(c => c.layers.set(v ? 0 : 1)); };   // 숨긴 것은 누르기·카메라 벽 살피기에서도 빠진다
+{
+  const own = new Set(INTERIORS.flatMap(I => I.objs)), bb = new THREE.Box3(), size = new THREE.Vector3();
+  for (const I of INTERIORS) {
+    const [x0, x1, z0, z1, y1] = I.box, B = new THREE.Box3(new THREE.Vector3(x0, -.05, z0), new THREE.Vector3(x1, y1, z1));
+    I.intruders = scene.children.filter(o => {
+      if (own.has(o) || o.isLight || o === avatar) return false;
+      bb.setFromObject(o); if (bb.isEmpty()) return false;
+      return bb.intersectsBox(B);
+    });
+  }
+  // 바깥 건물의 막는 칸은 안쪽 공간 테두리만큼 잘라 낸다
+  const ownCols = new Set(INTERIORS.flatMap(I => I.cols)), cut = (c, r) => {
+    if (c[1] <= r[0] || c[0] >= r[1] || c[3] <= r[2] || c[2] >= r[3]) return [c];
+    const out = [], xa = Math.max(c[0], r[0]), xb = Math.min(c[1], r[1]);
+    if (c[0] < r[0]) out.push([c[0], r[0], c[2], c[3]]);
+    if (c[1] > r[1]) out.push([r[1], c[1], c[2], c[3]]);
+    if (c[2] < r[2]) out.push([xa, xb, c[2], r[2]]);
+    if (c[3] > r[3]) out.push([xa, xb, r[3], c[3]]);
+    return out;
+  };
+  let list = colliders.filter(c => !ownCols.has(c));
+  for (const I of INTERIORS) list = list.flatMap(c => cut(c, [I.box[0], I.box[1], I.box[2], I.box[3]]));
+  colliders.splice(0, colliders.length, ...list, ...ownCols);
+}
+let interiorKey = '';
+function showInteriors(inside, zone, x, z) {
+  const wide = !!inside || zone === 'works' || zone === 'artist';
+  const nb = inside && LINKS[inside.name];   // 이어 붙인 장면(IP관): 지금 장면과 이웃만 보인다. 섬끼리 겹쳐 있어도 된다
+  const near = (I) => !!(I.near && Math.hypot(x - I.near[0], z - I.near[1]) < I.near[2]);   // 중정에서 문 너머로 보이는 전실
+  const shows = INTERIORS.map(I => nb ? (I === inside || nb.has(I.name)) : wide ? (!LINKS[I.name] || near(I)) : near(I));
+  const key = (inside ? 'in' : '-') + '|' + shows.join();
+  if (key === interiorKey) return; interiorKey = key;
+  INTERIORS.forEach((I, i) => { for (const o of I.objs) if (!o.isLight) setShown(o, shows[i]); });
+  for (const I of INTERIORS) for (const o of I.intruders) setShown(o, !inside);
+  for (const o of OUTDOOR) setShown(o, !inside);
 }
 
 /* ───────── 조개 도장과 멤버십 카드 ───────── */
@@ -168,7 +211,7 @@ const stamps = new Set(store.get('stamps', []).filter(k => STAMPS.some(s => s[0]
 for (const k of store.get('visited', [])) VISITED.add(k);
 const shellImgs = STAMPS.map(([k, label]) => { const im = document.createElement('img'); im.src = 'img/shell-stamp.webp'; im.alt = `${label} 도장`; im.title = label; im.classList.toggle('got', stamps.has(k)); shellsEl.insertBefore(im, myCardBtn); return im; });
 const toast = $('toast'); let toastTimer = 0;
-function showToast(t, s) { $('toastT').textContent = t; $('toastS').textContent = s; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 3200); }
+function showToast(t, s, ms = 3200) { $('toastT').textContent = t; $('toastS').textContent = s; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), ms); }
 function award(k) {
   if (stamps.has(k)) return;
   stamps.add(k); store.set('stamps', [...stamps]);
@@ -182,7 +225,8 @@ myCardBtn.hidden = !member;
 const modal = $('memberModal'), flip = $('flip');
 function renderCard() {
   $('cardName').textContent = member.name; $('cardNo').textContent = 'No.' + String(member.no).padStart(4, '0'); $('cardDate').textContent = member.date;
-  $('cardStamps').replaceChildren(...STAMPS.map(([k, label], i) => { const s = document.createElement('span'); const im = document.createElement('img'); im.src = 'img/shell-stamp.webp'; im.alt = label; im.style.setProperty('--r', `${[-8, 5, -3, 7, -6][i]}deg`); s.append(im); return s; }));
+  $('cardStamps').replaceChildren(...STAMPS.map(([k, label], i) => { const s = document.createElement('span'); s.title = label; if (!stamps.has(k)) return s;   // 못 받은 도장은 빈칸
+    const im = document.createElement('img'); im.src = 'img/shell-stamp.webp'; im.alt = label; im.style.setProperty('--r', `${[-8, 5, -3, 7, -6][i]}deg`); s.append(im); return s; }));
 }
 function openMember(issueNow) {
   modal.hidden = false;
@@ -191,7 +235,7 @@ function openMember(issueNow) {
     $('issueForm').hidden = true; flip.hidden = false; $('mmFlip').hidden = false; renderCard();
     if (issueNow) setTimeout(() => flip.classList.add('back'), 900);
   } else {
-    $('mmTitle').textContent = '현대사회스포츠센터 회원이 되었어요'; $('mmLead').textContent = '다섯 곳을 모두 둘러본 해달에게 드리는 멤버십 카드예요. 카드에 새길 이름을 적어 주세요.';
+    $('mmTitle').textContent = '현대사회스포츠센터 회원이 되었어요'; $('mmLead').textContent = (stamps.size === STAMPS.length ? '다섯 곳을 모두 둘러본 해달에게 드리는 멤버십 카드예요.' : '못 받은 도장은 빈칸으로 남겨 둘게요.') + ' 카드에 새길 이름을 적어 주세요.';
     $('issueForm').hidden = false; flip.hidden = true; $('mmFlip').hidden = true; setTimeout(() => $('nick').focus(), 50);
   }
 }
@@ -202,6 +246,8 @@ $('issueForm').addEventListener('submit', e => {
   const d = TODAY.replace(/-/g, '.');
   member = { name, no: 1 + Math.floor(Math.random() * 9999), date: d }; store.set('member', member);
   myCardBtn.hidden = false; flip.classList.remove('back'); openMember(true);
+  // 도장이 모자라도 카드는 주고, 작가님 글을 띄운다
+  if (stamps.size < STAMPS.length) setTimeout(() => showToast('처음부터 능숙한 존재는 없습니다.', '누구에게나 서툰 시작이 있고, 시작하기에 늦은 때도 없습니다.', 7000), 1600);
 });
 flip.addEventListener('click', () => flip.classList.toggle('back'));
 $('mmFlip').addEventListener('click', () => flip.classList.toggle('back'));
@@ -214,8 +260,7 @@ function checkStamps() {
   const atDesk = zoneOf(me.x, me.z) === 'lounge' && Math.hypot(me.x - deskSpot.x, me.z - deskSpot.z) < 2.6;
   if (atDesk && !deskShown) {
     deskShown = true;
-    if (stamps.size === STAMPS.length && !member) openMember(false);
-    else if (!member) showToast(`조개 도장 ${stamps.size}/5`, '남은 곳: ' + STAMPS.filter(s => !stamps.has(s[0])).map(s => s[1]).join(', '));
+    if (!member) openMember(false);   // 도장이 모자라도 키오스크 앞에 서면 발급 화면
     else showToast('반가워요, ' + member.name, '위쪽 「내 카드」에서 멤버십 카드를 다시 볼 수 있어요.');
   }
   if (!atDesk) deskShown = false;
@@ -254,6 +299,27 @@ $('introKeys').innerHTML = coarse
 const intro = $('intro');
 $('enter').disabled = false;
 $('enter').addEventListener('click', () => { intro.classList.add('gone'); playVideo(); walkTo = { x: 0, z: 22.5, stuck: 0 }; });
+
+/* ───────── 이어 붙이기 ───────── */
+// 문 a를 앞으로 지나면 문 b 너머 같은 자리로, 문 b를 뒤로 지나면 문 a로. 카메라와 발자국도 함께 옮겨 화면이 끊기지 않는다
+const portalPrev = { x: me.x, z: me.z };
+function stepPortals() {
+  const px = portalPrev.x, pz = portalPrev.z; portalPrev.x = me.x; portalPrev.z = me.z;
+  const loc = (P, x, z) => { const fx = -Math.sin(P[2]), fz = -Math.cos(P[2]); return [(x - P[0]) * fx + (z - P[1]) * fz, (x - P[0]) * fz - (z - P[1]) * fx]; };   // [앞, 오른쪽]
+  const glob = (P, f, l) => { const fx = -Math.sin(P[2]), fz = -Math.cos(P[2]); return [P[0] + fx * f + fz * l, P[1] + fz * f - fx * l]; };
+  for (const { a, b, w } of PORTALS) {
+    for (const [S, D, fwd] of [[a, b, true], [b, a, false]]) {
+      const [f0] = loc(S, px, pz), [f1, l1] = loc(S, me.x, me.z);
+      if (Math.abs(l1) > w / 2 || !(fwd ? f0 < 0 && f1 >= 0 : f0 >= 0 && f1 < 0)) continue;
+      const d = D[2] - S[2], move = (x, z) => { const [f, l] = loc(S, x, z); return glob(D, f, l); };
+      [me.x, me.z] = move(me.x, me.z); me.face += d; view.yaw += d;
+      for (const v of [camera.position, camLook]) { const [nx, nz] = move(v.x, v.z); v.x = nx; v.z = nz; }
+      if (typeof paws !== 'undefined') for (const p of paws) { const [nx, nz] = move(p.m.position.x, p.m.position.z); p.m.position.x = nx; p.m.position.z = nz; p.m.rotation.z += d; }
+      if (walkTo) { const [nx, nz] = move(walkTo.x, walkTo.z); walkTo.x = nx; walkTo.z = nz; }
+      portalPrev.x = me.x; portalPrev.z = me.z; return;
+    }
+  }
+}
 
 /* ───────── 매 장면 ───────── */
 function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
@@ -331,6 +397,7 @@ function frame() {
   avBody.position.y = bob;
   avMesh.rotation.z = reduceMotion ? 0 : Math.sin(me.walkT) * .06 * me.moving;
 
+  stepPortals();
   placeCamera(dt);
   stepPages(dt, me);
   for (const a of animators) a(time, dt, me);
@@ -342,6 +409,7 @@ function frame() {
   for (const [k, m] of Object.entries(stampMarks)) { const got = stamps.has(k); m.ring.visible = !got; m.ring.scale.setScalar(1 + Math.sin(time * 2.4) * .08); m.shell.userData.mesh.material.color.setScalar(got ? .55 : 1); }
   checkStamps();
   const z = zoneOf(me.x, me.z);
+  showInteriors(inInterior(me.x, me.z), z, me.x, me.z);
   if (z !== lastZone) {
     lastZone = z; navBtns.forEach(b => b.classList.toggle('on', b.dataset.go === z));
     if (!VISITED.has(z)) { VISITED.add(z); store.set('visited', [...VISITED]); }
@@ -359,5 +427,7 @@ function frame() {
   requestAnimationFrame(frame);
 }
 me.face = view.yaw = 0;
+// 화면 확인용: 주소에 ?at=x,z,방향(라디안, 0 = 북쪽, + = 왼쪽으로 돈다)을 붙이면 그 자리에서 시작한다
+{ const at = new URLSearchParams(location.search).get('at'); if (at) { const [x, z, yaw = 0] = at.split(',').map(Number); me.x = x; me.z = z; me.face = view.yaw = yaw; walkTo = null; snapCam = true; } }
 requestAnimationFrame(frame);
 </script>

@@ -12,3 +12,9 @@ migration*.sql
 gallery-plan/work/blender-data/
 gallery-plan/work/handoff/transcript/
 gallery-plan/work/renders/
+
+# 3D 갤러리: GPT 그림 원본(PNG)과 작업 기록은 PC에만 둔다. 갤러리는 web/ 사본(webp)을 쓴다
+gallery/ip/new/*/*.png
+gallery/ip/new/_production/
+# 검사할 때마다 새로 생기는 임시 파일
+gallery-plan/work/tools/_chk.mjs

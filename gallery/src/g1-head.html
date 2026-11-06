@@ -3,7 +3,7 @@
 <title>신해달 갤러리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap">
 <style>
 /* 레이아웃: 화면 전체가 3D 전시장, 그 위에 옻칠처럼 검은 패널이 가장자리에만 얹힌다. 한 가지 어두운 화면으로 고정. */
 :root {
@@ -55,7 +55,7 @@ button { font: inherit; color: inherit; }
   white-space: nowrap; pointer-events: none; transition: opacity .6s; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
 .hint.gone { opacity: 0; }
 body:has(.intro:not(.gone)) .hint { opacity: 0; }
-.toast { position: fixed; z-index: 7; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 78px); transform: translate(-50%, -8px); opacity: 0;
+.toast { position: fixed; z-index: 12; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 78px); transform: translate(-50%, -8px); opacity: 0;
   padding: 10px 16px 10px 12px; display: flex; align-items: center; gap: 10px; pointer-events: none; transition: opacity .3s, transform .3s cubic-bezier(.2,.8,.2,1); max-width: calc(100% - 32px); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast img { width: 34px; height: 28px; object-fit: contain; flex: none; }

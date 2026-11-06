@@ -16,11 +16,11 @@ function letters(wm, hm, draw, ppm = 460) {
 }
 const font = (g, size, weight, fam, color = INK) => { g.font = `${weight} ${size}px ${fam}`; g.fillStyle = color; };
 // 문 위 안내: 다음 방 이름과 화살표
-function doorSign(text, sub, x, y, z, nx, nz, w = 2.4, align = 'center') {
+function doorSign(text, sub, x, y, z, nx, nz, w = 2.4, align = 'center', ink = INK, ink2 = INK2) {
   const s = letters(w, .42, (g, W, H) => {
     g.textAlign = align; const X = align === 'center' ? W / 2 : align === 'right' ? W : 0;
-    font(g, H * .5, 400, FONT_K); g.fillText(text, X, H * .52);
-    if (sub) { font(g, H * .2, 400, FONT_M, INK2); g.fillText(sub, X, H * .92); }
+    font(g, H * .5, 400, FONT_K, ink); g.fillText(text, X, H * .52);
+    if (sub) { font(g, H * .2, 400, FONT_M, ink2); g.fillText(sub, X, H * .92); }
   });
   return place(s, x, y, z, nx, nz);
 }

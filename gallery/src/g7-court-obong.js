@@ -14,7 +14,7 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
   mark.rotation.x = -Math.PI / 2; mark.position.set(standeeSpot.x - .95, .05, standeeSpot.z + .9); scene.add(mark);
   stampMark('court', -2.6, 1.8);
   // 문 위 현판: 판과 테두리 없이 문틀 위 벽에 얇은 낱글자. 한글 이름 + 아래 작은 영문 한 줄.
-  // 관람 순서상 다음에 갈 문의 현판만 은은하게 밝아진다(작품관 → IP 체험관 → 일월오봉단관 → 해달 라운지)
+  // 관람 순서상 다음에 갈 문의 현판만 은은하게 밝아진다(작품관 → IP관 → 일월오봉단관 → 해달 라운지)
   const HY_INK = '#6b5230', HY_LIT = '#c98a2e';   // 평소 짙은 청동색, 다음 문은 따뜻한 호박빛
   const hyeon = (key, ko, en, x, z, nx, nz, w = 2.6) => {
     const draw = (color, glow) => (g, W, H) => {
@@ -31,9 +31,9 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
     halo.material.depthWrite = false; halo.material.opacity = 0; place(halo, x + nx * .002, 3.2, z + nz * .002, nx, nz);
     HYEON.push({ key, lit, halo, on: 0 });
   };
-  hyeon('works', '작품관', 'WORKS', -10.22, -4.5, 1, 0);
-  hyeon('ip', 'IP 체험관', 'IP EXPERIENCE', 10.22, -4.5, -1, 0);
-  hyeon('ipExit', 'IP 체험관 나가는 곳', 'IP EXPERIENCE · EXIT', 10.22, 5.5, -1, 0, 3.0);
+  hyeon('works', '작품관', 'WORKS', -10.22, -6.9, 1, 0);
+  hyeon('ip', 'IP관', 'IP EXPERIENCE', 10.22, -4.5, -1, 0);
+  hyeon('ipExit', 'IP관 나가는 곳', 'IP EXPERIENCE · EXIT', 10.22, 5.5, -1, 0, 3.0);
   hyeon('obong', '일월오봉단관', 'IRWOROBONGDAN', 0, -9.22, 0, 1, 3.0);
   hyeon('lounge', '해달 라운지', 'HAEDAL LOUNGE', 8.3, 9.22, 0, -1);
   // 로비 쪽은 바닥부터 통째로 열려 있으니 툇마루 반자 밑에 가는 나무 인방을 걸고 거기에 쓴다
@@ -52,7 +52,7 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
   {
     const px = -1.5, pz = 6.1;   // 축선 바로 옆이라 로비에서 오봉단관을 보는 눈길은 막지 않는다
     boxMM(px - .05, px + .05, 0, 2.35, pz - .05, pz + .05, M.steel); solid(px - .1, px + .1, pz - .1, pz + .1);
-    const dirs = [['일월오봉단관', 0, -9.4], ['작품관', -10.4, -4.5], ['IP 체험관', 10.4, -4.5], ['해달 라운지', 8.3, 9.4], ['로비', 0, 9.4]];
+    const dirs = [['일월오봉단관', 0, -9.4], ['작품관', -10.4, -6.9], ['IP관', 10.4, -4.5], ['해달 라운지', 8.3, 9.4], ['로비', 0, 9.4]];
     dirs.forEach(([name, tx, tz], i) => {
       const y = 2.15 - i * .24, th = Math.atan2(-(tz - pz), tx - px), L = .78;
       const arm = new THREE.Group(); arm.position.set(px, y, pz); arm.rotation.y = th; scene.add(arm);
@@ -98,7 +98,7 @@ const HYEON = [], SEATS = [], VISITED = new Set();   // 현판 빛, 앉는 자�
 }
 
 /* ───────── ③ 일월오봉단관 ───────── */
-const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + .6;   // 발자국이 멈추는 곳: 디딤단 앞 60 cm
+const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + 1.3;   // 발자국이 멈추는 곳: 단 앞 1.3 m(캐릭터 머리까지 화면에 들어온다)
 {
   // 정면 벽 전체: 가로로 긴 일월오봉도. 남는 양옆은 거울처럼 이어 그린다
   const wallW = OB.x1 - OB.x0 - .3, wallH = 10.8;
@@ -120,35 +120,50 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + .6;   // 발자국이 멈추는
   };
   const paintWall = new THREE.Mesh(new THREE.PlaneGeometry(wallW, wallH), new THREE.MeshBasicMaterial({ map: t, color: 0xdedede, toneMapped: false })); paintWall.position.set(0, .1 + wallH / 2, OB.z0 + .17); scene.add(paintWall);
   pickable(paintWall, { kind: 'IRWOROBONGDAN', title: '일월오봉단', body: '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.\n\n캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.', img: 'ip/friends.webp', links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: { pos: [0, OB_STOP + 1.6], look: [0, 3.6, OB.z0] } });
-  // 함께 쓰는 낮은 디딤단 하나(높이 15 cm, 검은 옻칠). 두 단 단상과 차단봉 줄은 없다. 그림과의 거리는 디딤단이 지킨다
-  const SH = .15, stepZ0 = OB.z0 + .45, stepZ1 = OB.z0 + 2.15;
-  boxMM(-5.4, 5.4, 0, SH, stepZ0, stepZ1, M.lacquer);
-  boxMM(-5.4, 5.4, SH - .012, SH + .004, stepZ1 - .03, stepZ1 + .004, M.brass);   // 앞 모서리 놋쇠 띠
+  // 함께 쓰는 단 하나(높이 30 cm, 검은 옻칠, 가로 12 m, 앞면은 똑바로). 두 단 단상과 차단봉 줄은 없다. 그림과의 거리는 단이 지킨다
+  const SH = .30, SX = 6.0, stepZ0 = OB.z0 + .45, stepZ1 = OB.z0 + 2.15, topZ1 = stepZ1;
+  boxMM(-SX, SX, 0, SH, stepZ0, stepZ1, M.lacquer);
+  const faceMid = [SH / 2, stepZ1];
+  // 윗면 앞 모서리 놋쇠 띠는 3 cm 앞으로 내밀고, 그 밑에 숨긴 빛이 앞면을 아래로 쓸어내린다
+  boxMM(-SX - .015, SX + .015, SH - .014, SH + .006, topZ1 - .02, topZ1 + .03, M.brass);
+  {
+    const faceGlow = panel(SX * 2, SH, (g, W, H) => { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,214,150,.20)'); gr.addColorStop(.55, 'rgba(255,214,150,.06)'); gr.addColorStop(1, 'rgba(255,214,150,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }, { transparent: true, ppm: 30 });
+    faceGlow.material.depthWrite = false; faceGlow.position.set(0, faceMid[0], faceMid[1] + .004); scene.add(faceGlow);
+  }
   solid(OB.x0, OB.x1, OB.z0, OB_STOP - .35);
-  // 그림 빛은 디딤단 윗면까지만 닿고 모서리에서 멎는다
-  const pool = panel(10.8, stepZ1 - stepZ0, (g, W, H) => { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,226,180,.16)'); gr.addColorStop(1, 'rgba(255,226,180,.07)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }, { transparent: true, ppm: 30 });
-  pool.material.depthWrite = false; pool.rotation.x = -Math.PI / 2; pool.position.set(0, SH + .003, (stepZ0 + stepZ1) / 2); scene.add(pool);
-  // 다섯은 같은 높이 곧은 한 줄, 각자 그림 속 자기 상징 아래(가운데에서 ±1.7 m, ±3.4 m)
+  // 그림 빛은 단 윗면까지만 닿고 모서리에서 멎는다
+  const pool = panel(SX * 2, topZ1 - stepZ0, (g, W, H) => { const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,226,180,.16)'); gr.addColorStop(1, 'rgba(255,226,180,.07)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }, { transparent: true, ppm: 30 });
+  pool.material.depthWrite = false; pool.rotation.x = -Math.PI / 2; pool.position.set(0, SH + .003, (stepZ0 + topZ1) / 2); scene.add(pool);
+  // 다섯은 같은 높이 곧은 한 줄, 가운데에서 2.2 m씩(양 끝은 그림 속 해·달 바로 아래 ±4.4 m)
   const T0 = 1.9, charZ = OB.z0 + 1.15, SYM = { SUN: '해', MOON: '달', MOUNTAIN: '산', PINE: '소나무', SEA: '바다' };
-  const xs = { deer: -3.4, rabbit: -1.7, tiger: 0, crane: 1.7, otter: 3.4 };
+  const xs = { deer: -4.4, rabbit: -2.2, tiger: 0, crane: 2.2, otter: 4.4 };
   for (const f of FRIENDS) {
     const x = xs[f.c], h = T0 * f.s * f.k;
     const fig = cutout(`img/${f.c}-cutout.webp`, h); place(fig, x, SH - T0 * f.s * f.g, charZ, 0, 1);
     // 크고 부드러운 빛이라 그림 위에 짧고 흐린 그림자
     const sh = panel(1.6, h * .7, (g, W, H) => { g.clearRect(0, 0, W, H); g.save(); g.scale(1, H / W); const gr = g.createRadialGradient(W / 2, W / 2, 0, W / 2, W / 2, W / 2); gr.addColorStop(0, 'rgba(0,0,0,.32)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, W); g.restore(); }, { transparent: true, ppm: 60 });
     sh.material.depthWrite = false; sh.position.set(x, SH + h * .3, OB.z0 + .19); scene.add(sh);
-    // 명판: 발 앞 디딤단 윗면에 놋쇠 글자로 눕혀서. 작게 영문 / 크게 역할과 이름 / 작게 상징
-    const PW_ = 1.62, PH_ = .56;
-    const plaque = letters(PW_, PH_, (g, W, H) => {
-      g.textAlign = 'center';
-      font(g, H * .17, 700, FONT_M, '#c9a86a'); g.fillText(f.en, W / 2, H * .2);
-      font(g, H * .27, 700, FONT_B, '#d8b878'); g.fillText(`${f.role} ${f.name}`, W / 2, H * .58, W * .98);
-      font(g, H * .19, 500, FONT_B, '#c9a86a'); g.fillText(SYM[f.en] || '', W / 2, H * .9);
-    }, 420);
-    plaque.rotation.x = -Math.PI / 2; plaque.position.set(x, SH + .005, stepZ1 - .33); scene.add(plaque);
-    // 누르면 뜨는 창: 지금 있는 정보만(영문, 이름, 역할, 아이템). 설명 문장은 넣지 않는다
     const info = { kind: f.en, title: f.name, meta: `${f.role} · 아이템: ${f.item}`, img: `img/${f.c}-cutout.webp`, links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: { pos: [x * .6, OB_STOP + .6], look: [x, SH + h * .5, charZ] } };
-    pickable(fig, info); pickable(plaque, info);
+    pickable(fig, info);
+    // 단 앞면: 멀리서 읽히는 놋쇠 글자. 크게 이름 / 작게 '역할 · 아이템'. 캐릭터 중심선 아래 가운데 맞춤
+    // 이름 16 cm · 둘째 줄 7 cm(30 cm 앞면 안에)
+    const L = { FH: .27, n: .19, ny: .175, r: .08, ry: .25 };
+    const FW = 1.9, FH = L.FH;
+    const front = letters(FW, FH, (g, W, H) => {
+      const m = v => v * H / FH;   // 미터 → 캔버스 픽셀
+      g.textAlign = 'center';
+      font(g, m(L.n), 700, FONT_B, '#e4c78e'); g.fillText(f.name, W / 2, m(L.ny), W * .98);
+      font(g, m(L.r), 500, FONT_B, '#c9a86a'); g.fillText(`${f.role} · ${f.item}`, W / 2, m(L.ry), W * .98);
+    }, 600);
+    front.position.set(x, faceMid[0] - .015, faceMid[1] + .006); scene.add(front);
+    // 윗면: 가까이서만 읽는 작은 영문 · 상징(4.5 cm)
+    const top = letters(1.0, .1, (g, W, H) => {
+      g.textAlign = 'center';
+      font(g, H * .55, 700, FONT_M, '#b8955a'); g.fillText(`${f.en} · ${SYM[f.en] || ''}`, W / 2, H * .75);
+    }, 500);
+    top.rotation.x = -Math.PI / 2; top.position.set(x, SH + .005, topZ1 - .16); scene.add(top);
+    // 누르면 뜨는 창: 지금 있는 정보만(영문, 이름, 역할, 아이템). 설명 문장은 넣지 않는다
+    pickable(front, info); pickable(top, info);
   }
   // 천장: 별 없이 높고 어두운 나무 천장과 서까래. 그림 벽에서 튀어 오른 따뜻한 빛이 서까래 아랫면을 엷게 비춘다
   const rafter = std({ color: 0x5a3b26, roughness: .85 });
@@ -166,21 +181,32 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + .6;   // 발자국이 멈추는
     const near = Math.min(1, Math.max(0, (12 - (me.z - OB.z0)) / 9));
     paintWall.material.color.setScalar(.87 * adapt * (.95 + .05 * near));
     bounce.intensity = (inside ? 14 : 6) * adapt * (.85 + .15 * near);
-    // 디딤단 너머를 눌러도 발자국은 단 앞에서 멈추고 그림 쪽을 바라본다
+    // 단 너머를 눌러도 발자국은 단 앞에서 멈추고 그림 쪽을 바라본다
     if (walkTo && walkTo.x > OB.x0 && walkTo.x < OB.x1 && walkTo.z < OB_STOP && walkTo.z > OB.z0 - 1) { walkTo.z = OB_STOP; walkTo.faceTo = 0; }
   });
   stampMark('obong', 0, -19.9);
-  doorSign('중정 · 출구 라운지 →', 'COURTYARD · EXIT', 0, 7.0, OB.z1 - .16, 0, -1, 3.4);
-  // 입구 왼쪽 벽 소개글: 홈페이지 IP 페이지 글 그대로. 벽에는 영문·제목·첫 문단만, 둘째 문단은 누르면 뜨는 창에
+  // 나가는 문 안내: 툇마루 반자(3.4 m) 바로 위, 어두운 벽이라 밝은 글자
+  doorSign('중정 · 출구 라운지 →', 'COURTYARD · EXIT', 0, RING + .38, OB.z1 - .16, 0, -1, 3.4, 'center', '#ddd6cc', '#b08a4a');
+  // 입구 왼쪽 벽 소개글: 홈페이지 IP 페이지 글 그대로, 누르면 뜨는 창의 글을 벽에 전부(영문·제목·두 문단). 오른쪽(그림 벽 쪽)에 홈페이지 원래 일러스트
   const P1 = '일월오봉단은 조선 왕실과 깊이 연결된 전통 회화인 일월오봉도에서 영감을 받은 신해달 작가의 오리지널 캐릭터 그룹이에요. 해와 달, 다섯 봉우리, 소나무와 물이 그 세계의 출발점이에요.';
   const P2 = '캐릭터와 이야기는 학·토끼·호랑이·사슴 등 한국의 전통적인 소재에서 출발했어요. 각자의 역할에는 신해달 작가가 존중하고 동경하는 직업과 삶의 방식을 담았어요.';
-  const IW = 2.7, IH = 2.2;
+  const IW = 4.0, IH = 3.7, ITOP = 3.9, IZ0 = -13.8;   // 글 칸: 폭 4 m, 윗변 높이 3.9 m, 왼쪽 끝 z −13.8(글+일러스트 묶음이 입구 모서리와 단 앞 사이 빈 벽 한가운데)
   const intro = letters(IW, IH, (g, W, H) => {
     const cm = c => H * c / 100 / IH;
-    font(g, cm(7), 700, FONT_M, '#b08a4a'); g.fillText('IRWOROBONGDAN', 0, cm(8));
-    font(g, cm(31), 400, FONT_K, '#f4f1ea'); g.fillText('혼자가 아니에요.', 0, cm(46));
-    font(g, cm(15), 400, FONT_B, '#ddd6cc'); textBlock(g, wrapText(g, P1, W), 0, cm(84), cm(24));
+    font(g, cm(9), 700, FONT_M, '#b08a4a'); g.fillText('IRWOROBONGDAN', 0, cm(10));
+    font(g, cm(38), 400, FONT_K, '#f4f1ea'); g.fillText('혼자가 아니에요.', 0, cm(58));
+    font(g, cm(19), 400, FONT_B, '#ddd6cc');
+    const y = textBlock(g, wrapText(g, P1, W), 0, cm(104), cm(30));
+    textBlock(g, wrapText(g, P2, W), 0, y + cm(18), cm(30));
   });
-  place(intro, OB.x0 + .16, 1.75, -12.9, 1, 0);
-  pickable(intro, { kind: 'IRWOROBONGDAN', title: '혼자가 아니에요.', body: P1 + '\n\n' + P2, img: 'ip/friends.webp', links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: focusFrom(OB.x0 + .16, 1.75, -12.9, 1, 0, 3.4) });
+  const introZ = IZ0 - IW / 2;
+  place(intro, OB.x0 + .16, ITOP - IH / 2, introZ, 1, 0);
+  // 원래 일러스트: 얇은 검은 판(5 cm)에 얹어 벽에 붙임. 어두운 방이라 정면 그림처럼 살짝 낮춘 밝기
+  const FH_ = 2.4, FW_ = FH_ * 1162 / 1354, fz = IZ0 - IW - .6 - FW_ / 2, fy = 2.1;
+  boxMM(OB.x0 + .12, OB.x0 + .17, fy - FH_ / 2 - .02, fy + FH_ / 2 + .02, fz - FW_ / 2 - .02, fz + FW_ / 2 + .02, std({ color: 0x0d0b0a, roughness: .7 }));
+  const ft = loader.load('ip/friends.webp'); ft.colorSpace = THREE.SRGBColorSpace; ft.anisotropy = maxAniso;
+  const friendsPic = new THREE.Mesh(new THREE.PlaneGeometry(FW_, FH_), new THREE.MeshBasicMaterial({ map: ft, color: 0xd6d6d6, toneMapped: false }));
+  place(friendsPic, OB.x0 + .175, fy, fz, 1, 0);
+  const introInfo = { kind: 'IRWOROBONGDAN', title: '혼자가 아니에요.', body: P1 + '\n\n' + P2, img: 'ip/friends.webp', links: [[SITE + '/ip/#friends', '홈페이지에서 보기']], focus: focusFrom(OB.x0 + .16, 2.3, (introZ + fz) / 2, 1, 0, 5.6) };
+  pickable(intro, introInfo); pickable(friendsPic, introInfo);
 }

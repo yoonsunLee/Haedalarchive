@@ -11,6 +11,7 @@
 | 관리 화면 | 이 저장소 → GitHub Pages (`admin.html`) |
 | 홈페이지 발행 트리거 | Supabase Edge Function (`supabase/functions/publish/index.ts`) — admin.html의 "🚀 홈페이지에 반영" 버튼이 호출 |
 | 홈페이지 문의 접수 | Supabase Edge Function (`supabase/functions/contact/index.ts`) — 홈페이지 Contact 폼이 호출. 봇 확인 → `inquiries` 저장 → 작가 메일 발송 |
+| 전시 시뮬레이터 | `simulator.html` — 관리 화면 왼쪽 메뉴 "전시 시뮬레이터 ↗"로 새 탭에서 열림. 작품 사진을 전시벽에 실제 크기로 걸어 보는 도구. 관리 화면과 같은 로그인 세션으로 미공개 작품까지 읽음(읽기 전용). 배치안은 그 브라우저에 자동 저장되고, 다른 컴퓨터로는 "파일로 저장"한 .json으로 옮김 |
 | 실제 홈페이지 | 별도 저장소 [`shinhaedal`](https://github.com/yoonsunLee/shinhaedal) — GitHub Actions가 Supabase에서 데이터를 읽어 정적 JSON/이미지로 구워서 커밋 |
 
 - admin.html은 로그인해야만 데이터를 조회·수정할 수 있습니다(RLS로 강제).

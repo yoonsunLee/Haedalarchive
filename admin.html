@@ -586,6 +586,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="workspage">Works 운영</button>
   <button data-v="works">작품 관리</button>
   <button data-v="exhibitions">전시 관리</button>
+  <button type="button" id="navSimulator" title="전시벽 배치 시뮬레이터를 새 탭에서 열기">전시 시뮬레이터 ↗</button>
   <button data-v="press">기사 등록</button>
   <button data-v="stats">방문통계</button>
   <button data-v="feecalc">수수료계산</button>
@@ -4990,6 +4991,8 @@ function goSection(v){
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
 $('#brandHome').onclick=()=>goSection('home');
+// 전시 시뮬레이터: 같은 사이트의 별도 페이지라 로그인 세션을 그대로 이어받는다
+$('#navSimulator').onclick=()=>window.open('simulator.html','_blank');
 $('#homeCards').onclick=e=>{const c=e.target.closest('[data-go]'); if(c) goSection(c.dataset.go);};
 $('#homeAddWork').onclick=()=>{ goSection('works'); $('#btnAdd').click(); };
 $('#homeAddVideo').onclick=()=>{ goSection('homevideos'); $('#btnHvAdd').click(); };

@@ -29,3 +29,6 @@ const SCALE = 2.2;            // 작품을 화면에서 보기 좋게 실제 크
 const LOCAL_IMG = new Set(['HD-2025-001', 'HD-2025-002', 'HD-2025-004', 'HD-2026-001', 'HD-2026-002', 'HD-2026-003', 'HD-2026-004', 'HD-2026-005', 'HD-2026-006', 'HD-2026-007', 'HD-2026-008', 'HD-2026-009', 'HD-2026-010', 'HD-2026-011', 'HD-2026-012']);
 const workImg = w => LOCAL_IMG.has(w.id) ? `img/${w.id}.webp` : `${SITE}/${w.thumb}`;
 const TOY_ID = 'HD-2026-012';
+// 첫 방(법과 권리) 작품 먼저 불러오기(작품관 점검): 다른 그림을 부르기 전에 첫 방 작품을 높은 우선순위로 먼저 받아 둔다(첫 작품이 맨 앞)
+//   뒤에서 같은 주소를 TextureLoader로 부르면 받아 둔 그림을 다시 쓴다(crossOrigin을 같게)
+for (const w of WORKS_INDEX.filter(w => w.id !== TOY_ID && !['pov', 'territory', 'n-th-derivative'].includes(w.series_key)).sort((a, b) => (b.id === 'HD-2026-001') - (a.id === 'HD-2026-001'))) { const im = new Image(); im.crossOrigin = 'anonymous'; im.fetchPriority = 'high'; im.src = workImg(w); }

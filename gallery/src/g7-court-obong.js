@@ -187,7 +187,7 @@ const OB = ROOMS.obong, OB_STOP = OB.z0 + 2.15 + 1.3;   // 발자국이 멈추�
     // 단 너머를 눌러도 발자국은 단 앞에서 멈추고 그림 쪽을 바라본다
     if (walkTo && walkTo.x > OB.x0 && walkTo.x < OB.x1 && walkTo.z < OB_STOP && walkTo.z > OB.z0 - 1) { walkTo.z = OB_STOP; walkTo.faceTo = 0; }
   });
-  stampMark('obong', 0, -19.9);
+  stampMark('obong', 4.4, -22.7, .6);   // 조개 도장: 얼빵해달 앞, 작게(작가님)
   // 나가는 문 안내: 툇마루 반자(3.4 m) 바로 위, 어두운 벽이라 밝은 글자
   doorSign('중정 · 출구 라운지', 'COURTYARD · EXIT', 0, RING + .38, OB.z1 - .16, 0, -1, 3.4, 'center', '#ddd6cc', '#b08a4a');
   // 입구 왼쪽 벽 소개글: 홈페이지 IP 페이지 글 그대로, 누르면 뜨는 창의 글을 벽에 전부(영문·제목·두 문단). 오른쪽(그림 벽 쪽)에 홈페이지 원래 일러스트

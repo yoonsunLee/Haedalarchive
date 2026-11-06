@@ -40,9 +40,9 @@ const lawUnits = units.filter(u => ROOM_OF(u.works[0]) === 'law'), restUnits = u
 const INTERIORS = [];
 // 바닥 화살표 하나: [x, z, yaw](yaw 0 = 북쪽을 가리킴, +π/2 = 서쪽). 길이 약 0.6 m, 남색 반투명
 const arrowT = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(w * .5, h * .04); g.lineTo(w * .96, h * .5); g.lineTo(w * .7, h * .5); g.lineTo(w * .7, h * .9); g.lineTo(w * .3, h * .9); g.lineTo(w * .3, h * .5); g.lineTo(w * .04, h * .5); g.closePath(); g.fill(); /* 머리가 크고 몸통이 짧은 굵은 화살표(작가님 예시) */ });
-const arrowM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0x3c3c3c, transparent: true, opacity: .94, depthWrite: false, toneMapped: false });   // 짙은 먹색(작가님 예시)
-const arrowLightM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0xe8e2d6, transparent: true, opacity: .7, depthWrite: false, toneMapped: false });   // 어두운 방(룸3·룸4)은 옅은 상아색
-function floorArrows(list, y = .046, mat = arrowM) { for (const [x, z, yaw] of list) { const grp = new THREE.Group(), m = new THREE.Mesh(new THREE.PlaneGeometry(.85, .85), mat); m.rotation.x = -Math.PI / 2; m.renderOrder = 2; grp.add(m); grp.position.set(x, y, z); grp.rotation.y = yaw; scene.add(grp); } }
+const arrowM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0x77726c, alphaTest: .5, toneMapped: false });   // 옅은 먹색, 비치지 않게 불투명(작가님)
+const arrowLightM = new THREE.MeshBasicMaterial({ map: arrowT, color: 0xd8d2c6, alphaTest: .5, toneMapped: false });   /* 어두운 방도 비치지 않게 */   // 어두운 방(룸3·룸4)은 옅은 상아색
+function floorArrows(list, y = .046, mat = arrowM) { for (const [x, z, yaw] of list) { const grp = new THREE.Group(), m = new THREE.Mesh(new THREE.PlaneGeometry(.6, .6), mat);   /* 0.6 m(전문가 자문) */ m.rotation.x = -Math.PI / 2; m.renderOrder = 2; grp.add(m); grp.position.set(x, y, z); grp.rotation.y = yaw; scene.add(grp); } }
 // 이어 붙이기(작가님 결정: 가상공간이라 장면을 실제 길로 다 잇지 않는다). 장면은 떨어진 섬이고, 통로 끝 문과 다음 장면의 첫 문을 똑같이 만들어 두면
 // 문을 지나는 순간 관람객(과 카메라·발자국)을 다음 섬의 같은 자리로 옮긴다. a·b: [x, z, yaw] = 문 가운데와 앞으로 지나가는 방향(yaw 0 = 북쪽), w: 문 폭
 const LINKS = {}, PORTALS = [];
@@ -84,7 +84,7 @@ function putWork(w, ww, hh, x, cy, z, [nx, nz], [dx, dz], light, where, capAt) {
   const info = { kind: D.en || w.title_en || w.id, title: w.title, meta: D.medium || `${w.year} · ${w.size} cm`, body: (D.body || []).join('\n\n'), ex: D.ex, img: workImg(w), id: w.id,
     links: [[`${SITE}/works/w/${w.id}/`, '작품 페이지'], [`${SITE}/contact/`, '작품 문의', true]], where, focus: focusFrom(x, cy, z, nx, nz, Math.max(2.4, hh * 1.6)) };
   pickable(g, info); pickable(lb, info);
-  workFocus.set(w.id, info); workPlaced.push({ w, info, at: [x, cy, z, nx, nz] });
+  workFocus.set(w.id, info); workPlaced.push({ w, info, at: [x, cy, z, nx, nz], ww, hh, d: [dx, dz] });
 }
 function hang(list, slots, extra = []) {
   const fill = slots.map(s => ({ s, items: [], used: 0 }));
@@ -155,20 +155,20 @@ interior('law', [[C1.x0, C1.x1, C1.z0 - .2, C1.z1 + .3], [R1.x0, R1.x1, R1.z0, R
   boxMM(C1.x0 - .15, C1.x1 + .15, C1.h, C1.h + .1, C1.z0 + .2, C1.z1, W);
   ceiling(DOORX - .3, DOORX + .3, C1.z0 + .2, C1.z1, C1.h - .005, M.hanjiCeil, .6);
   boxMM(DOORX - 1.25, DOORX + 1.25, C1.h, 3.1, 9.25, 9.55, M.plaster);   // 작가소개 문 위(문 높이 3.1과 통로 천장 2.6 사이)
-  boxMM(DOORX - 1.25, DOORX + 1.25, 0, .045, 9.36, 9.44, M.brass);        // 바닥이 바뀌는 선의 놋쇠 띠
   // 정면 가벽: 문틀에서 6 m
-  boxMM(DOORX - 1.6, DOORX + 1.6, 0, 3.0, R1_GABLE - .3, R1_GABLE, W, T2); solid(DOORX - 1.6, DOORX + 1.6, R1_GABLE - .3, R1_GABLE);
+  // 가벽은 없앴다(작가님 결정, A안): 첫 작품은 맞은편 북쪽 벽 한가운데, 통로 축 끝에 정면으로
   // 빛: 방은 고르게 밝게, 통로는 한지 띠 아래
   for (const x of [DOORX - 3, DOORX + 3]) { const l = new THREE.PointLight(0xfff6ea, 7, 10, 1.2); l.position.set(x, R1.h - .4, R1.z0 + 5); scene.add(l); }
   const lc = new THREE.PointLight(0xfff3df, 2.2, 6, 1.4); lc.position.set(DOORX, C1.h - .3, (C1.z0 + C1.z1) / 2); scene.add(lc);
   // 바닥 화살표: 보는 차례(작가님: 이케아처럼, 크기는 그 절반쯤, 빼곡하지 않게). 들어와 첫 작품 → 오른쪽(동쪽) 벽 → 가벽 뒤 → 왼쪽(서쪽) 벽 → 룸2 문
-  floorArrows([[-15.4, 1.4, -Math.PI / 4], [-15.2, -3.4, Math.PI / 2], [-21.4, -0.6, Math.PI * .75]]);
-  // 걸기: 가벽 → 오른쪽(동쪽) 벽 → 왼쪽(서쪽) 벽 → 가벽 뒤 북쪽 벽
+  floorArrows([[-13.0, -1.0, 0], [-21.4, -1.0, Math.PI]]);   /* 동쪽 벽 따라 → 서쪽 벽 따라 룸2 문으로(입구 화살표는 뺌, 작가님) */
+  // 걸기: 북쪽 벽 한가운데(첫 작품) → 오른쪽(동쪽) 벽 → 왼쪽(서쪽) 벽 → 북쪽 벽 양옆
   hang(lawUnits, [
-    { name: '룸1 법과 권리 · 정면 가벽', o: [DOORX - 1.6, R1_GABLE + .02], d: [1, 0], n: [0, 1], len: 3.2 },
+    { name: '룸1 법과 권리 · 북쪽 벽 가운데', o: [DOORX - 1.6, R1.z0 + .02], d: [1, 0], n: [0, 1], len: 3.2 },
     { name: '룸1 법과 권리 · 동쪽 벽', o: [R1.x1 - .02, R1.z0 + 1.0], d: [0, 1], n: [-1, 0], len: 8.0, rev: true },
     { name: '룸1 법과 권리 · 서쪽 벽', o: [R1.x0 + .02, 1.4], d: [0, -1], n: [1, 0], len: 6.8, rev: true },   // 남쪽 끝은 룸2로 가는 문
-    { name: '룸1 법과 권리 · 북쪽 벽', o: [R1.x0 + 1.0, R1.z0 + .02], d: [1, 0], n: [0, 1], len: 10.0, rev: true },   // 가벽 뒤: 작품이 늘면 채운다
+    { name: '룸1 법과 권리 · 북쪽 벽 동쪽', o: [DOORX + 1.8, R1.z0 + .02], d: [1, 0], n: [0, 1], len: R1.x1 - .8 - (DOORX + 1.8) },
+    { name: '룸1 법과 권리 · 북쪽 벽 서쪽', o: [R1.x0 + .8, R1.z0 + .02], d: [1, 0], n: [0, 1], len: DOORX - 1.8 - (R1.x0 + .8) },   // 작품이 늘면 채운다
   ]);
 });
 
@@ -303,13 +303,20 @@ interior('pov', [[C2.x0, R1.x0 + .3, C2.z0, C2.z1], [C2.x0, C2.bx1, R2.z1 - .3, 
   }
   for (const x of [rcx - 2.5, rcx + 2.5]) { const l = new THREE.PointLight(0xfff8ec, 6.5, 10, 1.2); l.position.set(x, R2.h - .4, rcz); scene.add(l); }
   // 작품: 벽마다 한 점(오른쪽 벽부터 한 바퀴). 벽면 d는 보는 사람의 오른쪽
-  floorArrows([[-28.7, -4.4, 0], [-27.2, -10.4, Math.PI / 2], [-32.9, -10.7, 0]], .05);   // 룸2: 동 → 북 → 서 벽, 북서쪽 문으로
+  floorArrows([[-28.7, -5.5, 0], [-27.2, -10.4, Math.PI / 2], [-32.9, -10.7, 0]], .05);   // 룸2: 동 → 북 → 서 벽, 북서쪽 문으로
   hang(povUnits, [
     { name: '룸2 POV · 동쪽 벽', o: [R2.x1 - .02, -8.2], d: [0, 1], n: [-1, 0], len: 3.2 },
     { name: '룸2 POV · 북쪽 벽', o: [rcx - 1.3, R2.z0 + .02], d: [1, 0], n: [0, 1], len: 3.8 },
     { name: '룸2 POV · 서쪽 벽', o: [R2.x0 + .02, -5.6], d: [0, -1], n: [1, 0], len: 3.2 },
     { name: '룸2 POV · 남쪽 벽', o: [dl - .3, R2.z1 - .02], d: [-1, 0], n: [0, -1], len: dl - .3 - (R2.x0 + .3) },
   ]);
+  {   /* 작은 작품 뒤 민무늬 판(작가님 결정 A): 조개 벽지에 묻히지 않게 작품과 캡션 뒤에 벽에서 2 cm 나온 상아색 판 */
+    const pm = std({ color: 0xf3eee3, roughness: .9 }), dep = .02;
+    for (const p of workPlaced.filter(p => p.info.where && String(p.info.where).startsWith('룸2'))) {
+      const [x, cy, z, nx, nz] = p.at, hw = p.ww / 2 + .5, top = cy + p.hh / 2 + .3, bot = cy - p.hh / 2 - .55, h = top - bot, off = dep / 2 - .015;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(hw * 2, h, dep), pm); place(m, x + nx * off, bot + h / 2, z + nz * off, nx, nz);
+    }
+  }
   // 은박 말풍선: 천장 아래 떠다니다 다가가면 밀려나고, 누르면 툭 밀리며 돈다. 넷에는 작품 글의 한 문장을 그대로
   const envT = canvasTex(512, 256, (g, w, h) => {
     const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#ffffff'); gr.addColorStop(.38, '#d9dbdd'); gr.addColorStop(.48, '#5d6166'); gr.addColorStop(.52, '#e8c95a'); gr.addColorStop(.7, '#c9b46a'); gr.addColorStop(.85, '#8a8780'); gr.addColorStop(1, '#efe9e0');
@@ -521,7 +528,7 @@ interior('space', [[C3.ax0, C3.ax1, C3.zn, C3.z0 + .3], [C3.bx0, C3.ax1, C3.zn, 
   // 작품: 북서 → 남동 → 남서 → 서 → 북 → 북동. 면마다 위에서 비스듬히 비추는 빛
   const slot = (k) => { const f = face(k), n = [-f.nx, -f.nz], d = [-f.nz, f.nx], len = OCT_SIDE - .5; return { light: true, name: '룸3 우주조약 · ' + ['남', '남동', '동', '북동', '북', '북서', '서', '남서'][k] + '쪽 면', o: [f.cx - d[0] * len / 2 + n[0] * .22, f.cz - d[1] * len / 2 + n[1] * .22], d, n, len }; };   // 벽 안쪽 면(.2) 앞
   const spaceUnits = units.filter(u => ROOM_OF(u.works[0]) === 'territory').flatMap(u => u.works.map((w, k) => ({ key: '#' + w.id, series: false, works: [w], sizes: [u.sizes[k]], width: u.sizes[k][0] + CAP_SPACE })));
-  floorArrows([[-38.8, -21.2, 0], [-42.4, -26.6, -Math.PI / 4], [-35.6, -24.8, -Math.PI / 2]], .09, arrowLightM);   // 룸3: 들어와 왼쪽으로 돌아 동쪽 문으로(물 위)
+  floorArrows([[-38.8, -21.7, .47], [-42.4, -26.6, -Math.PI / 4],   /* 첫 화살표는 「우주조약」 쪽으로 */ [-35.6, -24.8, -Math.PI / 2]], .09, arrowLightM);   // 룸3: 들어와 왼쪽으로 돌아 동쪽 문으로(물 위)
   hang(spaceUnits, [5, 1, 7, 6, 4, 3].map(slot));
   for (const P of workPlaced) if (P.info.where && P.info.where.startsWith('룸3')) {   // 빛은 걸린 작품 한가운데로(작가님 지적)
     const [x, y, z, nx, nz] = P.at, sp = new THREE.SpotLight(0xfff3e2, 26, 9, .3, .55, 1.4);
@@ -706,7 +713,7 @@ interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R
   const NS = .6 * SCALE, ND = .25 * SCALE, GAP = 2.5;
   const nicheS = (r) => (Math.max(r[0], r[1]) > 45 ? 1.5 : 1) * NS;
   const nCY = HANG_CY;   // 벽감 가운데 높이 = 작품 가운데 높이 1.5 m(작가님 결정)
-  floorArrows([[-25.4, -21.3, -Math.PI / 2], [-17.4, -20.2, Math.PI], [-15.8, -17.0, Math.PI]], .05, arrowLightM);   // 룸4: 서쪽 문에서 동쪽으로, 남쪽 벽 동쪽 끝 문으로
+  floorArrows([[-24.4, -21.3, -Math.PI / 2], [-17.4, -20.2, Math.PI], [-15.8, -17.0, Math.PI]], .05, arrowLightM);   // 룸4: 서쪽 문에서 동쪽으로, 남쪽 벽 동쪽 끝 문으로
   {   // 천장 가까이 가끔 유성이 떨어진다(작가님: 우주를 표현한 방)
     const mt = canvasTex(256, 8, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,250,235,1)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
     const met = new THREE.Mesh(new THREE.PlaneGeometry(1.8, .035), new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide })); met.visible = false; scene.add(met);
@@ -732,7 +739,7 @@ interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R
       boxMM(cx - S / 2 - e, cx + S / 2 + e, ny + S / 2, ny + S / 2 + e, z0, z1, nicheM); boxMM(cx - S / 2 - e, cx + S / 2 + e, ny - S / 2 - e, ny - S / 2, z0, z1, nicheM);
       boxMM(cx - S / 2 - e, cx - S / 2, ny - S / 2, ny + S / 2, z0, z1, nicheM); boxMM(cx + S / 2, cx + S / 2 + e, ny - S / 2, ny + S / 2, z0, z1, nicheM);
       // 숨긴 빛: 벽감 윗면 안쪽 앞에서 비스듬히 작품으로
-      const sp = new THREE.SpotLight(0xfff0dc, 4.2, S * 1.9, .62, .95, 1.3); sp.position.set(cx, ny + S / 2 - .04, zf - nz * .07); sp.target.position.set(cx, cy, zb);   // 빛은 작품 한가운데로 scene.add(sp, sp.target);
+      const sp = new THREE.SpotLight(0xfff0dc, 7.5, S * 2.2, .62, .9, 1.2);   /* 벽감 속 작품이 어둡지 않게(전문가 자문) */ sp.position.set(cx, ny + S / 2 - .04, zf - nz * .07); sp.target.position.set(cx, cy, zb);   // 빛은 작품 한가운데로 scene.add(sp, sp.target);
       const dX = nz > 0 ? 1 : -1;
       putWork(o.w, ww, hh, cx, cy, zb + nz * .005, [0, nz], [dX, 0], true, '룸4 N차적 저작물 · ' + (nz > 0 ? '북쪽' : '남쪽') + ' 벽 벽감 ' + (i + 1),
         [cx + dX * (S / 2 + .04 - (CAP_W - .08) * .72 / 2), zf + nz * .012, ny - S / 2 - .06 - CAP_H * .72 / 2, true]);   // 캡션은 벽감 아래, 오른쪽 끝을 벽감 바깥선에 맞춰 오른쪽 맞춤(작가님)
@@ -744,6 +751,10 @@ interior('nth', [[C4.x0 - .1, R4.x0 + .3, -26.3, -19.9], [R4.x0, R4.x1, R4.z0, R
   wallHoles('x', R4.z0 - T, R4.z0, R4.x0 - T, R4.x1 + T, R4.h, nh, navyM);
   const sh = south.length ? place4(south, R4.z1, -1) : [];
   wallHoles('x', R4.z1, R4.z1 + T, R4.x0 - T, R4.x1 + T, R4.h, [...sh, [xo0, xo1, 0, 2.6]], navyM);
+  {   /* 나가는 문 둘레에 가는 상아색 문틀: 남색 벽이 우주와 같은 색이라 문 구멍이 허공에 뜬 판처럼 보이던 것(점검) */
+    const fm = new THREE.MeshBasicMaterial({ color: 0xd8d2c6, toneMapped: false }), FW = .045, fz = R4.z1 - .004;
+    boxMM(xo0 - FW, xo0, 0, 2.6 + FW, fz - .01, fz, fm); boxMM(xo1, xo1 + FW, 0, 2.6 + FW, fz - .01, fz, fm); boxMM(xo0 - FW, xo1 + FW, 2.6, 2.6 + FW, fz - .01, fz, fm);
+  }
   // 방은 거의 어둡게: 남색 벽이 겨우 드러날 만큼
   { const l = new THREE.PointLight(0x8a9cd0, .9, 12, 1.2); l.position.set((R4.x0 + R4.x1) / 2, R4.h - .4, (R4.z0 + R4.z1) / 2); scene.add(l); }
   // 별먼지: 작품의 반짝이는 가루처럼 아주 작게 떠다니고, 다가가면 비켜 난다

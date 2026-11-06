@@ -31,7 +31,7 @@ const view = { yaw: 0, pitch: -.2, dist: 3.6 };
 const WALK_K = 2;   // 시험용으로 걸음 2배(작가님). 완성되면 1로 되돌린다
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const PLACES = {
-  outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [DOORX, R1_GABLE + 3.8], yaw: 0 },   // 법과 권리: 첫 작품 정면
+  outside: { pos: [0, 31], yaw: 0 }, lobby: { pos: [0, 17.2], yaw: 0 }, artist: { pos: [-12.8, 14.2], yaw: Math.PI / 2 }, works: { pos: [DOORX, R1.z0 + 4.6], yaw: 0 },   // 법과 권리: 첫 작품 정면
   court: { pos: [0, 6.6], yaw: 0 }, ip: { pos: [11.4, -4.5], yaw: -Math.PI / 2 }, obong: { pos: [0, -13.5], yaw: 0 }, lounge: { pos: [12.6, 13.8], yaw: -Math.PI / 2 },
 };
 let walkTo = null, focus = null;   // focus: 작품을 보는 동안 카메라가 따로 선다

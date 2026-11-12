@@ -2716,12 +2716,61 @@ function renderExList(){
   if(exFormOpen && !suppressDialogHistoryPop) history.back();
   exFormOpen=false;
   $('#exBody').innerHTML=exListHtml();
+  $('#exBody').insertAdjacentHTML('beforeend','<div id="cvComp"></div>');
+  renderCvComp();
   $('#btnExAdd').onclick=()=>renderExForm({},true);
   document.querySelectorAll('#exBody [data-exedit]').forEach(b=>{
     const open=()=>{ const r=exRows.find(x=>String(x.id)===b.dataset.exedit); if(r)renderExForm(r,false); };
     b.onclick=open;
     b.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } };
   });
+}
+/* ---------- CV '공모전 선정'(COMPETITIONS) ----------
+   전시가 아니라 따로 적는 짧은 목록이라 전시 표가 아닌 site_settings 'cv_competitions' = [{date, ko, en}] 에 둔다(2026-11-12).
+   발행(publish_sb.py)이 site-settings.json 으로 내보내고 CV 페이지가 적은 차례 그대로 싣는다. 비우면 CV 에서 구역째 빠진다. */
+let CV_COMP=null, CV_COMP_DIRTY=false;
+async function renderCvComp(){
+  const box=$('#cvComp'); if(!box) return;
+  if(CV_COMP===null){
+    box.innerHTML='<div class="hint" style="margin-top:28px">CV 공모전 목록을 불러오는 중…</div>';
+    try{
+      const q=await sb.from('site_settings').select('value').eq('key','cv_competitions');
+      if(q.error) throw q.error;
+      const v=(q.data&&q.data[0]&&q.data[0].value)||[];
+      CV_COMP=(Array.isArray(v)?v:[]).map(c=>({date:String(c.date||''), ko:String(c.ko||''), en:String(c.en||'')}));
+    }catch(e){ box.innerHTML='<div class="hint" style="margin-top:28px">CV 공모전 목록을 불러오지 못했습니다: '+esc(e.message||e)+'</div>'; return; }
+  }
+  const row=(c,i)=>`<tr>
+      <td><input data-cc="date" data-i="${i}" value="${esc(c.date)}" placeholder="2025" style="width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;background:var(--card);color:var(--ink);box-sizing:border-box"></td>
+      <td><input data-cc="ko" data-i="${i}" value="${esc(c.ko)}" placeholder="예: 세종시문화관광재단 한글콘텐츠 공모전 선정" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;background:var(--card);color:var(--ink);box-sizing:border-box"></td>
+      <td><input data-cc="en" data-i="${i}" value="${esc(c.en)}" placeholder="비우면 한글이 나옵니다" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font:inherit;background:var(--card);color:var(--ink);box-sizing:border-box"></td>
+      <td style="white-space:nowrap"><button class="wp-mini" data-ccmv="-1" data-i="${i}" title="위로"${i?'':' disabled'}>↑</button>
+        <button class="wp-mini" data-ccmv="1" data-i="${i}" title="아래로"${i<CV_COMP.length-1?'':' disabled'}>↓</button>
+        <button class="wp-mini" data-ccdel="${i}" title="빼기">✕</button></td></tr>`;
+  box.innerHTML=`<div style="margin-top:32px;padding-top:20px;border-top:1px solid var(--line)">
+    <h3 style="margin:0 0 4px">CV · 공모전 선정 <small class="hint">COMPETITIONS</small></h3>
+    <p class="hint" style="margin:0 0 10px">홈페이지 CV 의 <b>COMPETITIONS</b> 구역에 적은 차례 그대로 나옵니다. 비우면 그 구역이 빠집니다.
+      저장한 뒤 <b>🚀 홈페이지에 반영</b>을 눌러야 나갑니다.</p>
+    ${CV_COMP.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th>날짜</th><th>한글</th><th>영문</th><th></th></tr></thead><tbody>${CV_COMP.map(row).join('')}</tbody></table>`:'<p class="hint">아직 없습니다.</p>'}
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn" id="ccAdd">＋ 줄 추가</button>
+      <button class="btn primary" id="ccSave"${CV_COMP_DIRTY?'':' disabled'}>저장</button>
+    </div></div>`;
+  const dirty=()=>{ CV_COMP_DIRTY=true; const b=$('#ccSave'); if(b) b.disabled=false; };
+  box.querySelectorAll('[data-cc]').forEach(inp=>inp.oninput=()=>{ CV_COMP[+inp.dataset.i][inp.dataset.cc]=inp.value; dirty(); });
+  box.querySelectorAll('[data-ccmv]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, j=i+(+b.dataset.ccmv);
+    if(j<0||j>=CV_COMP.length) return; [CV_COMP[i],CV_COMP[j]]=[CV_COMP[j],CV_COMP[i]]; CV_COMP_DIRTY=true; renderCvComp(); });
+  box.querySelectorAll('[data-ccdel]').forEach(b=>b.onclick=()=>{ CV_COMP.splice(+b.dataset.ccdel,1); CV_COMP_DIRTY=true; renderCvComp(); });
+  $('#ccAdd').onclick=()=>{ CV_COMP.push({date:'',ko:'',en:''}); CV_COMP_DIRTY=true; renderCvComp(); };
+  $('#ccSave').onclick=async()=>{
+    const value=CV_COMP.map(c=>({date:c.date.trim(), ko:c.ko.trim(), en:c.en.trim()})).filter(c=>c.ko||c.en);
+    const btn=$('#ccSave'); btn.disabled=true; btn.textContent='저장 중…';
+    try{
+      const q=await sb.from('site_settings').upsert({key:'cv_competitions', value, updated_at:new Date().toISOString()},{onConflict:'key'});
+      if(q.error) throw q.error;
+      CV_COMP=value; CV_COMP_DIRTY=false; toast('CV 공모전 목록을 저장했습니다 — 🚀 홈페이지에 반영을 눌러야 나갑니다'); renderCvComp();
+    }catch(e){ toast('저장 실패: '+(e.message||e)); btn.disabled=false; btn.textContent='저장'; }
+  };
 }
 /* 삭제는 목록이 아니라 수정 화면 왼쪽 아래에 둔다 — 기사·홈 영상과 같은 자리 */
 async function deleteExhibition(r){

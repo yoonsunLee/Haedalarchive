@@ -53,7 +53,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 .menu-list button:hover{background:#f3f0ea}
 
 /* layout */
-.layout{flex:1;display:grid;grid-template-columns:264px minmax(0,1fr) 304px;min-height:0}
+.layout{flex:1;display:grid;--lw:264px;--rw:304px;grid-template-columns:var(--lw) minmax(0,1fr) var(--rw);min-height:0}
+.layout>.library{grid-column:1}.layout>.center{grid-column:2}.layout>.inspector{grid-column:3}
+.layout.no-lib{--lw:0px}.layout.no-lib .library{display:none}
+.layout.no-insp{--rw:0px}.layout.no-insp .inspector{display:none}
+.panel-tg{flex:none;padding:5px 8px;color:var(--muted)}
+.panel-tg:hover{color:var(--ink)}
 .library,.inspector{background:var(--panel);overflow:auto;min-height:0}
 .library{border-right:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:10px}
 .inspector{border-left:1px solid var(--line);padding:16px 16px 40px}
@@ -78,6 +83,14 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 .canvas{flex:1;overflow:auto;background:var(--canvas);position:relative;min-height:0}
 .stage{display:flex;justify-content:center;align-items:center;gap:56px;padding:48px 48px 60px 72px;min-width:max-content;min-height:100%}
 .stage.elev{padding-top:72px}
+.stage.off{display:none}
+[hidden]{display:none!important}
+#three{position:absolute;inset:0;overflow:hidden;background:#e9e6e0}
+#three canvas{display:block;touch-action:none;cursor:grab}
+#three canvas:active{cursor:grabbing}
+.three-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center;line-height:1.7}
+.three-tip{position:absolute;pointer-events:none;background:rgba(38,41,45,.92);color:#fff;font-size:12px;padding:4px 8px;border-radius:5px;white-space:nowrap;transform:translate(12px,12px);z-index:2}
+.three-tip small{opacity:.7;margin-left:6px}
 .elev-row{display:flex;align-items:flex-end;gap:56px}
 .wall-wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;flex:none}
 .wall-caption{position:absolute;bottom:calc(100% + 10px);left:0;border:1px solid transparent;background:transparent;padding:3px 8px;border-radius:5px;white-space:nowrap;text-align:left;color:var(--muted)}
@@ -269,12 +282,14 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#26292d;color:#fff;padding:9px 14px;border-radius:8px;font-size:12.5px;opacity:0;pointer-events:none;transition:.2s;z-index:60}
 .toast.show{opacity:1;transform:translateX(-50%)}
 
-@media (max-width:1180px){.layout{grid-template-columns:230px minmax(0,1fr) 280px}}
+@media (max-width:1180px){.layout{--lw:230px;--rw:280px}}
 @media (max-width:900px){
   body{overflow:auto;height:auto}
   .layout{grid-template-columns:1fr;grid-template-rows:auto 72vh auto}
-  .library{border-right:0;border-bottom:1px solid var(--line);max-height:260px}
-  .inspector{border-left:0;border-top:1px solid var(--line)}
+  .library{border-right:0;border-bottom:1px solid var(--line);max-height:260px;grid-row:1}
+  .center{grid-row:2}
+  .layout>.library,.layout>.center,.layout>.inspector{grid-column:1}
+  .inspector{border-left:0;border-top:1px solid var(--line);grid-row:3}
   .modal-body{grid-template-columns:1fr}
   .hint{display:none}
 }
@@ -319,11 +334,21 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
 
   <section class="center">
     <div class="toolbar">
-      <div class="seg" id="viewSeg"><button data-v="wall">벽 편집</button><button data-v="elev">전개도</button></div>
+      <button class="btn sm ghost panel-tg" id="libToggle"></button>
+      <div class="seg" id="viewSeg"><button data-v="wall">벽 편집</button><button data-v="elev">전개도</button><button data-v="3d">3D</button></div>
       <div class="tabs" id="wallTabs"></div>
       <button class="btn sm" id="addWallBtn">+ 벽 추가</button>
+      <button class="btn sm ghost panel-tg" id="inspToggle"></button>
     </div>
-    <div class="toolbar sub">
+    <div class="toolbar sub" id="tb3d" hidden>
+      <div class="seg" id="mode3d"><button data-m="orbit">위에서 돌려보기</button><button data-m="walk">걸어 보기</button></div>
+      <button class="btn sm" id="reset3d">처음 시점</button>
+      <span class="vsep"></span>
+      <button class="btn sm" id="png3d">이 화면 PNG 저장</button>
+      <span class="vsep"></span>
+      <span>벽이 이어지는 방식은 벽을 고른 뒤 오른쪽 <b>3D 배치</b>에서 바꿔요</span>
+    </div>
+    <div class="toolbar sub" id="tb2d">
       <button class="btn sm ghost" id="zoomOut" aria-label="축소">−</button>
       <span class="zoom-label num" id="zoomLabel">100%</span>
       <button class="btn sm ghost" id="zoomIn" aria-label="확대">+</button>
@@ -336,8 +361,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent-soft);bor
       <label>스냅 <select id="optSnap"><option value="0">끄기</option><option value="1">1cm</option><option value="5">5cm</option><option value="10">10cm</option></select></label>
       <label>중심 기준선 <input type="number" id="optEye" min="0" step="1"> cm</label>
     </div>
-    <div class="canvas" id="canvas"><div class="stage" id="stage"></div></div>
-    <div class="hint">드래그로 이동 · <kbd>Shift</kbd>+클릭 여러 개 선택 · 방향키 1cm (<kbd>Shift</kbd> 10cm) · <kbd>Alt</kbd> 누른 채 드래그하면 정렬 가이드 끔 · <kbd>Delete</kbd> 벽에서 내리기 · <kbd>Ctrl</kbd>+휠 확대</div>
+    <div class="canvas" id="canvas"><div class="stage" id="stage"></div><div id="three" hidden></div></div>
+    <div class="hint" id="hint3d" hidden></div>
+    <div class="hint" id="hint2d">드래그로 이동 · <kbd>Shift</kbd>+클릭 여러 개 선택 · 방향키 1cm (<kbd>Shift</kbd> 10cm) · <kbd>Alt</kbd> 누른 채 드래그하면 정렬 가이드 끔 · <kbd>Delete</kbd> 벽에서 내리기 · <kbd>Ctrl</kbd>+휠 확대</div>
   </section>
 
   <aside class="inspector" id="inspector"></aside>
@@ -739,7 +765,7 @@ function renderTabs(){
   const t=$('#wallTabs');t.innerHTML='';
   S.walls.forEach(w=>{
     const b=el('button','tab'+(w.id===U.activeWallId?' active':''),`${esc(w.name)}<small>${fmtN(w.width/100)}m</small>`);
-    b.onclick=()=>{U.activeWallId=w.id;U.view='wall';setSel(null);renderAll();saveSoon();};
+    b.onclick=()=>{U.activeWallId=w.id;setSel(null);if(U.view==='3d'){renderAll();focus3DWall(w.id);return;}U.view='wall';renderAll();saveSoon();};
     t.appendChild(b);
   });
   $('#viewSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===U.view));
@@ -747,6 +773,9 @@ function renderTabs(){
 let lastScale=1;
 function renderStage(){
   const canvas=$('#canvas'),stage=$('#stage');stage.innerHTML='';
+  const is3=U.view==='3d';
+  $('#three').hidden=!is3;$('#tb3d').hidden=!is3;$('#tb2d').hidden=is3;$('#hint3d').hidden=!is3;$('#hint2d').hidden=is3;
+  if(is3){stage.className='stage off';render3D();return;}
   const cw=canvas.clientWidth,ch=canvas.clientHeight;
   if(U.view==='wall'){
     const w=activeWall();
@@ -1103,7 +1132,8 @@ function inspObs(o){
   <label class="field"><span>종류</span><select id="oType">${Object.entries(OBSTACLES).map(([k,v])=>`<option value="${k}" ${k===o.type?'selected':''}>${v.name}</option>`).join('')}</select></label>
   ${o.type==='pedestal'?`<span class="m-label">모양</span><div class="seg" id="oShape" style="margin-bottom:10px"><button data-sh="square" class="${(o.shape||'square')==='square'?'active':''}">사각 기둥 ▯</button><button data-sh="round" class="${o.shape==='round'?'active':''}">원기둥 ◯</button></div>`:''}
   <div class="grid2"><label class="field"><span>${o.type==='pedestal'&&o.shape==='round'?'지름':'가로'}</span>${unitInput('oW',fmtN(o.w),{min:1})}</label><label class="field"><span>${o.type==='pedestal'||o.type==='table'?'높이':'세로'}</span>${unitInput('oH',fmtN(o.h),{min:1})}</label>
-  ${(o.type==='pedestal'&&o.shape!=='round')||o.type==='table'?`<label class="field"><span>깊이</span>${unitInput('oD',fmtN(o.d??30),{min:1})}</label><span></span>`:''}
+  ${(o.type==='pedestal'&&o.shape!=='round')||o.type==='table'?`<label class="field"><span>깊이</span>${unitInput('oD',fmtN(o.d??30),{min:1})}</label>`:''}
+  ${o.type==='pedestal'||o.type==='table'?`<label class="field"><span>벽에서 띄운 거리 (3D)</span>${unitInput('oOff',fmtN(o.off??50),{min:0})}</label>${o.shape==='round'&&o.type==='pedestal'?'<span></span>':''}`:''}
   <label class="field"><span>벽 왼쪽 끝 → 왼쪽</span>${unitInput('oX',fmtN(o.x))}</label><label class="field"><span>바닥 → 아래</span>${unitInput('oFy',fmtN(o.fy))}</label></div>
   <p class="note">${o.type==='table'?`벽 앞에 놓는 테이블이에요 (${fmtN(o.w)} × ${fmtN(o.d??60)} × 높이 ${fmtN(o.h)}cm). 정면에서 본 상판과 다리로 그려지고, 뒤에 걸린 작품을 가리면 빨간 테두리로 알려줘요.`:o.type==='pedestal'?`벽 앞에 놓는 전시대예요 (${o.shape==='round'?`지름 ${fmtN(o.w)}`:`${fmtN(o.w)} × ${fmtN(o.d??30)}`} × 높이 ${fmtN(o.h)}cm). 정면에서 본 모습으로 그려지고, 뒤에 걸린 작품을 가리면 빨간 테두리로 알려줘요.`:'작품이 장애물과 겹치면 빨간 테두리로 알려줘요.'}</p></div>
   <div class="sec"><div class="btn-row"><button class="btn sm" id="oDup">복제</button><button class="btn sm danger" id="oDel">삭제</button></div></div>`;
@@ -1112,7 +1142,7 @@ function inspObs(o){
   $('#oType').addEventListener('change',e=>{record();o.type=e.target.value;const t=OBSTACLES[o.type];
     if(t.d&&(o.d==null||t.shape&&!o.shape)){if(t.shape)o.shape=t.shape;o.d=t.d;o.w=t.w;o.h=t.h;o.fy=0;if(o.label==='기타'||Object.values(OBSTACLES).some(v=>v.name===o.label))o.label=t.name;}
     renderAll();saveSoon();});
-  bindNum('oD',v=>o.d=r1(v),{min:1});
+  bindNum('oD',v=>o.d=r1(v),{min:1});bindNum('oOff',v=>o.off=r1(v),{min:0});
   const shp=$('#oShape');if(shp)shp.addEventListener('click',e=>{const b=e.target.closest('[data-sh]');if(!b||b.dataset.sh===o.shape)return;record();o.shape=b.dataset.sh;if(o.shape==='round')o.d=o.w;renderAll();saveSoon();});
   $('#oDup').onclick=()=>{record();const c={...o,id:uid('o'),x:r1(o.x+o.w+10)};S.obstacles.push(c);setSel('obs',[c.id]);renderAll();saveSoon();};
   $('#oDel').onclick=()=>{record();S.obstacles=S.obstacles.filter(x=>x!==o);setSel(null);renderAll();saveSoon();};
@@ -1125,6 +1155,11 @@ function inspWall(w){
     <label class="field"><span>벽 이름</span><input id="wName" placeholder="예: 입구 정면 벽"></label>
     <div class="grid2"><label class="field"><span>가로 길이</span>${unitInput('wW',fmtN(w.width),{step:10,min:30})}</label><label class="field"><span>높이</span>${unitInput('wH',fmtN(w.height),{step:10,min:50})}</label></div>
     <p class="note num">${fmtN(w.width/100)}m × ${fmtN(w.height/100)}m · 실제 위치와 크기는 모두 cm로 계산돼요.</p>
+    ${idx>0?`<span class="m-label">3D 배치 · '${esc(S.walls[idx-1].name)}'에 이어지는 방식</span>
+    <div class="seg" id="wTurnSeg" style="margin-bottom:8px">${[['90','안쪽 90°'],['0','일직선'],['-90','바깥 90°']].map(([v,t])=>`<button data-t="${v}" class="${String(w.turn??90)===v?'active':''}">${t}</button>`).join('')}</div>
+    <div class="grid2"><label class="field"><span>꺾는 각도</span>${unitInput('wTurn',fmtN(w.turn??90),{step:5,unit:'°'})}</label><label class="field"><span>앞 벽과 띄우기</span>${unitInput('wGap',fmtN(w.gap||0),{step:10,min:0})}</label></div>
+    <p class="note" style="margin-top:0">입구처럼 앞 벽과의 사이가 비어 있으면 '띄우기'에 그 너비를 넣어요.</p>`
+    :`<p class="note" style="margin-top:0">3D에서는 이 벽이 기준이고, 다음 벽들이 순서대로 이어 붙어요.</p>`}
     <span class="m-label">벽 색</span>
     <div class="swatches" style="margin-bottom:12px">${WALL_COLORS.map(c=>`<button class="sw ${w.color===c?'active':''}" data-wc="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<input type="color" id="wColor" value="${w.color}"></div>
     <div class="btn-row"><button class="btn sm" id="wLeft" ${idx===0?'disabled':''}>← 앞으로</button><button class="btn sm" id="wRight" ${idx===S.walls.length-1?'disabled':''}>뒤로 →</button><button class="btn sm" id="wDup">벽 복제</button><button class="btn sm danger" id="wDel" ${S.walls.length<2?'disabled':''}>벽 삭제</button></div>
@@ -1148,6 +1183,8 @@ function inspWall(w){
   bindNum('cW',v=>S.caption.w=r1(v),{min:2});bindNum('cH',v=>S.caption.h=r1(v),{min:2});bindNum('cGap',v=>S.caption.gap=r1(v),{min:0});
   bindCapPicker('wCap',()=>artsOn(w.id));
   bindNum('wW',v=>w.width=r1(v),{min:30});bindNum('wH',v=>w.height=r1(v),{min:50});
+  bindNum('wTurn',v=>w.turn=clamp(r1(v),-180,180));bindNum('wGap',v=>w.gap=r1(v),{min:0});
+  const ts=$('#wTurnSeg');if(ts)ts.addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;record();w.turn=Number(b.dataset.t);renderAll();saveSoon();});
   insp.querySelectorAll('[data-wc]').forEach(b=>b.addEventListener('click',()=>{record();w.color=b.dataset.wc;renderAll();saveSoon();}));
   $('#wColor').addEventListener('change',e=>{record();w.color=e.target.value;renderAll();saveSoon();});
   const move=d=>{record();const i=S.walls.indexOf(w);const j=i+d;[S.walls[i],S.walls[j]]=[S.walls[j],S.walls[i]];renderAll();saveSoon();};
@@ -1636,7 +1673,7 @@ $('#viewSeg').addEventListener('click',e=>{const b=e.target.closest('[data-v]');
 $('#addWallBtn').onclick=()=>{record();const last=S.walls[S.walls.length-1];const w=newWall(S.walls.length+1,last?.height);if(last)w.color=last.color;S.walls.push(w);U.activeWallId=w.id;U.view='wall';setSel(null);renderAll();saveSoon();toast(`'${w.name}'을 추가했어요. 오른쪽에서 크기를 맞춰 주세요.`);};
 const setZoom=z=>{U.zoom=clamp(z,0.25,6);renderStage();};
 $('#zoomIn').onclick=()=>setZoom(U.zoom*1.25);$('#zoomOut').onclick=()=>setZoom(U.zoom/1.25);$('#zoomFit').onclick=()=>setZoom(1);
-$('#canvas').addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();setZoom(U.zoom*(e.deltaY<0?1.1:1/1.1));},{passive:false});
+$('#canvas').addEventListener('wheel',e=>{if(U.view==='3d'||!(e.ctrlKey||e.metaKey))return;e.preventDefault();setZoom(U.zoom*(e.deltaY<0?1.1:1/1.1));},{passive:false});
 $('#optGrid').onchange=e=>{S.grid=e.target.checked;renderStage();saveSoon();};
 $('#optDims').onchange=e=>{S.showDims=e.target.checked;renderStage();saveSoon();};
 $('#optLabels').onchange=e=>{S.caption.show=e.target.checked;renderAll();saveSoon();};
@@ -1674,6 +1711,7 @@ document.addEventListener('keydown',e=>{
   }
   if(typing)return;
   if(e.key==='Escape'){setSel(null);renderAll();return;}
+  if(U.view==='3d')return; // 3D는 보기 전용 — 방향키·WASD는 걷기에 씀
   const pool=sel.kind==='art'?S.artworks:sel.kind==='obs'?S.obstacles:null;
   if(!pool)return;
   const items=pool.filter(x=>sel.ids.includes(x.id)&&x.wallId);
@@ -1685,6 +1723,263 @@ document.addEventListener('keydown',e=>{
     renderAll();saveSoon();}
 });
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(renderStage,80);});
+
+/* ───────── 3D 보기 (보기 전용) ─────────
+   벽은 순서대로 이어 붙는다: 벽마다 앞 벽 끝에서 turn°(+는 방 안쪽) 꺾고 gap cm 띄운 뒤 시작.
+   좌표: cm, y 위쪽. 벽의 앞면 법선 n 쪽이 방 안. */
+const THREE_SRC='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+const WALL_T=12,EYE_H=160;
+const V3={renderer:null,scene:null,cam:null,group:null,tip:null,mode:'orbit',orbit:null,walk:null,bounds:null,pickables:[],keys:new Set(),raf:0,last:0,loading:null,gen:0};
+function load3D(){
+  if(window.THREE)return Promise.resolve();
+  if(!V3.loading)V3.loading=new Promise((res,rej)=>{const s=document.createElement('script');s.src=THREE_SRC;s.onload=res;s.onerror=()=>{V3.loading=null;s.remove();rej(new Error('three'));};document.head.appendChild(s);});
+  return V3.loading;
+}
+function planWalls(){
+  let p=[0,0],d=[1,0];const out=[];
+  S.walls.forEach((w,i)=>{
+    if(i>0){const th=(w.turn??90)*Math.PI/180,n=[-d[1],d[0]];
+      d=[d[0]*Math.cos(th)+n[0]*Math.sin(th),d[1]*Math.cos(th)+n[1]*Math.sin(th)];
+      const g=w.gap||0;p=[p[0]+d[0]*g,p[1]+d[1]*g];}
+    out.push({w,p:p.slice(),d:d.slice(),n:[-d[1],d[0]]});
+    p=[p[0]+d[0]*w.width,p[1]+d[1]*w.width];
+  });
+  return out;
+}
+/* 벽 기준 좌표(x: 벽 왼쪽 끝부터, y: 바닥부터, off: 벽 앞으로)에 놓기 */
+function put3(o,pw,x,y,off){o.position.set(pw.p[0]+pw.d[0]*x+pw.n[0]*off,y,pw.p[1]+pw.d[1]*x+pw.n[1]*off);o.rotation.y=Math.atan2(-pw.d[1],pw.d[0]);}
+function pick3(m,data){m.userData=data;V3.pickables.push(m);}
+function render3D(){
+  const host=$('#three');
+  if(!window.THREE){
+    host.innerHTML='<div class="three-msg">3D 화면을 준비하는 중…</div>';
+    load3D().then(()=>{if(U.view==='3d')render3D();}).catch(()=>{host.innerHTML='<div class="three-msg">3D 도구를 불러오지 못했어요.<br>인터넷 연결을 확인한 뒤 다시 3D를 눌러 주세요.</div>';});
+    return;
+  }
+  if(!V3.renderer)init3D(host);
+  setHint3D();
+  $('#mode3d').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.m===V3.mode));
+  const gen=++V3.gen;
+  ensureImages().then(()=>{if(U.view!=='3d'||gen!==V3.gen)return;resize3D();build3D();draw3D();start3D();});
+}
+function init3D(host){
+  host.innerHTML='';
+  const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+  host.appendChild(r.domElement);V3.renderer=r;
+  V3.tip=el('div','three-tip');V3.tip.hidden=true;host.appendChild(V3.tip);
+  const sc=new THREE.Scene();sc.background=new THREE.Color('#e9e6e0');V3.scene=sc;
+  V3.cam=new THREE.PerspectiveCamera(50,1,1,300000);
+  sc.add(new THREE.HemisphereLight(0xffffff,0xbdb8b0,1.0));
+  const dl=new THREE.DirectionalLight(0xffffff,0.3);dl.position.set(300,1000,600);sc.add(dl);
+  bind3DInput(r.domElement);
+}
+function resize3D(){
+  const host=$('#three'),w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
+  V3.renderer.setSize(w,h);V3.cam.aspect=w/h;V3.cam.updateProjectionMatrix();
+}
+function clear3D(){
+  if(!V3.group)return;V3.scene.remove(V3.group);
+  V3.group.traverse(o=>{if(o.geometry)o.geometry.dispose();(Array.isArray(o.material)?o.material:o.material?[o.material]:[]).forEach(m=>{if(m.map)m.map.dispose();m.dispose();});});
+  V3.group=null;
+}
+function artTexture(a){
+  const ow=outerW(a),oh=outerH(a),k=clamp(1024/Math.max(ow,oh),1,8);
+  const cv=document.createElement('canvas');cv.width=Math.max(2,Math.round(ow*k));cv.height=Math.max(2,Math.round(oh*k));
+  const ctx=cv.getContext('2d'),f=(a.frame||0)*k;
+  if(a.frame){ctx.fillStyle=a.frameColor||'#1d1d1d';ctx.fillRect(0,0,cv.width,cv.height);}
+  drawArtImage(ctx,a,f,f,cv.width-2*f,cv.height-2*f);
+  const t=new THREE.CanvasTexture(cv);t.anisotropy=8;return t;
+}
+function capTexture(a){
+  const C=S.caption,k=clamp(320/C.w,8,40),o=capOffset(a);
+  const cv=document.createElement('canvas');cv.width=Math.round(C.w*k);cv.height=Math.round(C.h*k);
+  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  drawCaption(ctx,a,-o.x*k,-o.y*k,k);
+  const t=new THREE.CanvasTexture(cv);t.anisotropy=8;return t;
+}
+const lamb=c=>new THREE.MeshLambertMaterial({color:c});
+function build3D(){
+  clear3D();const g=new THREE.Group();V3.group=g;V3.pickables=[];
+  const PW=planWalls();
+  let x0=Infinity,x1=-Infinity,z0=Infinity,z1=-Infinity,maxH=0;
+  const grow=(x,z)=>{x0=Math.min(x0,x);x1=Math.max(x1,x);z0=Math.min(z0,z);z1=Math.max(z1,z);};
+  PW.forEach(pw=>{const L=pw.w.width,ex=pw.p[0]+pw.d[0]*L,ez=pw.p[1]+pw.d[1]*L;
+    grow(pw.p[0],pw.p[1]);grow(ex,ez);grow(pw.p[0]+pw.n[0]*300,pw.p[1]+pw.n[1]*300);grow(ex+pw.n[0]*300,ez+pw.n[1]*300);maxH=Math.max(maxH,pw.w.height);});
+  x0-=WALL_T;x1+=WALL_T;z0-=WALL_T;z1+=WALL_T;
+  V3.bounds={cx:(x0+x1)/2,cz:(z0+z1)/2,size:Math.max(x1-x0,z1-z0),maxH};
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),lamb('#6f6c68'));
+  floor.rotation.x=-Math.PI/2;floor.position.set(V3.bounds.cx,0,V3.bounds.cz);g.add(floor);
+  const selArt=new Set(sel.kind==='art'?sel.ids:[]),selObs=new Set(sel.kind==='obs'?sel.ids:[]);
+  const accent='#2f6f73';
+  PW.forEach((pw,i)=>{
+    const w=pw.w,next=PW[i+1];
+    const ext=next&&!(next.w.gap>0)&&(next.w.turn??90)>0?WALL_T:0; // 안쪽 모서리 빈틈 메우기
+    const wm=new THREE.Mesh(new THREE.BoxGeometry(w.width+ext,w.height,WALL_T),lamb(w.color));
+    put3(wm,pw,(w.width+ext)/2,w.height/2,-WALL_T/2);g.add(wm);pick3(wm,{wallId:w.id});
+    obsOn(w.id).forEach(o=>{
+      const cx=o.x+o.w/2,data={obsId:o.id,wallId:w.id};
+      if(selObs.has(o.id)){const hl=new THREE.Mesh(new THREE.PlaneGeometry(o.w+4,o.h+4),new THREE.MeshBasicMaterial({color:accent}));put3(hl,pw,cx,o.fy+o.h/2,0.15);g.add(hl);}
+      if(o.type==='pedestal'||o.type==='table'){furn3D(g,pw,o,data);return;}
+      if(o.type==='pillar'){const dp=o.d||30;const m=new THREE.Mesh(new THREE.BoxGeometry(o.w,o.h,dp),lamb(new THREE.Color(w.color).multiplyScalar(0.96)));put3(m,pw,cx,o.fy+o.h/2,dp/2);g.add(m);pick3(m,data);return;}
+      const col={door:'#b3a999',window:'#b9d0de',outlet:'#d9d6d0',switch:'#d9d6d0',vent:'#c6c3bc'}[o.type]||'#cfc8bd';
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(o.w,o.h),lamb(col));put3(m,pw,cx,o.fy+o.h/2,0.3);g.add(m);pick3(m,data);
+    });
+    artsOn(w.id).forEach(a=>{
+      const ow=outerW(a),oh=outerH(a),dp=a.frame?4:3,data={artId:a.id,wallId:w.id};
+      const side=lamb(a.frame?(a.frameColor||'#1d1d1d'):isPh(a)?(a.canvasColor||'#ffffff'):'#efede8');
+      const m=new THREE.Mesh(new THREE.BoxGeometry(ow,oh,dp),[side,side,side,side,new THREE.MeshBasicMaterial({map:artTexture(a)}),side]);
+      put3(m,pw,a.x+ow/2,a.fy+oh/2,dp/2);g.add(m);pick3(m,data);
+      if(selArt.has(a.id)){const hl=new THREE.Mesh(new THREE.PlaneGeometry(ow+5,oh+5),new THREE.MeshBasicMaterial({color:accent}));put3(hl,pw,a.x+ow/2,a.fy+oh/2,0.15);g.add(hl);}
+      if(S.caption.show&&capPos(a)!=='none'){
+        const C=S.caption,o=capOffset(a),cs=lamb('#f4f3f0');
+        const cb=new THREE.Mesh(new THREE.BoxGeometry(C.w,C.h,0.4),[cs,cs,cs,cs,new THREE.MeshBasicMaterial({map:capTexture(a)}),cs]);
+        put3(cb,pw,a.x+o.x+C.w/2,a.fy+oh-o.y-C.h/2,0.2);g.add(cb);pick3(cb,data);
+      }
+    });
+  });
+  V3.scene.add(g);
+  if(!V3.orbit)reset3DView();
+}
+function furn3D(g,pw,o,data){
+  const off=o.off??50,cx=o.x+o.w/2;
+  if(o.type==='pedestal'){
+    const round=o.shape==='round',d=round?o.w:(o.d??30);
+    const m=new THREE.Mesh(round?new THREE.CylinderGeometry(o.w/2,o.w/2,o.h,48):new THREE.BoxGeometry(o.w,o.h,d),lamb('#f8f7f3'));
+    put3(m,pw,cx,o.fy+o.h/2,off+d/2);g.add(m);pick3(m,data);return;
+  }
+  const d=o.d??60,top=4,leg=4,ins=3,mat=lamb('#d8d0c2'),grp=new THREE.Group();
+  const t=new THREE.Mesh(new THREE.BoxGeometry(o.w,top,d),mat);t.position.y=o.h-top/2;grp.add(t);pick3(t,data);
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{const l=new THREE.Mesh(new THREE.BoxGeometry(leg,o.h-top,leg),mat);l.position.set(sx*(o.w/2-ins-leg/2),(o.h-top)/2,sz*(d/2-ins-leg/2));grp.add(l);pick3(l,data);});
+  put3(grp,pw,cx,o.fy,off+d/2);g.add(grp);
+}
+function reset3DView(){
+  const B=V3.bounds;if(!B)return;
+  V3.orbit={tx:B.cx,ty:Math.min(110,B.maxH/2),tz:B.cz,r:B.size*1.25+250,th:-0.45,ph:0.95};
+  V3.walk={x:B.cx,z:B.cz,yaw:0,pitch:0};
+  const pw=planWalls()[0];if(pw){const L=pw.w.width;V3.walk={x:pw.p[0]+pw.d[0]*L/2+pw.n[0]*Math.min(450,Math.max(200,L*0.7)),z:pw.p[1]+pw.d[1]*L/2+pw.n[1]*Math.min(450,Math.max(200,L*0.7)),yaw:Math.atan2(pw.n[0],pw.n[1]),pitch:0};}
+}
+function focus3DWall(id){
+  const pw=planWalls().find(p=>p.w.id===id);if(!pw||!V3.orbit)return;
+  const L=pw.w.width,mx=pw.p[0]+pw.d[0]*L/2,mz=pw.p[1]+pw.d[1]*L/2,face=Math.atan2(pw.n[0],pw.n[1]);
+  if(V3.mode==='walk'){const dist=clamp(L*0.7,200,450);V3.walk={x:mx+pw.n[0]*dist,z:mz+pw.n[1]*dist,yaw:face,pitch:0};}
+  else Object.assign(V3.orbit,{tx:mx,ty:pw.w.height/2,tz:mz,th:face,ph:1.2,r:Math.max(L,pw.w.height)*1.15+150});
+  draw3D();
+}
+function draw3D(){
+  if(!V3.renderer||!V3.orbit||U.view!=='3d')return;
+  const c=V3.cam;
+  if(V3.mode==='orbit'){const o=V3.orbit,s=Math.sin(o.ph);c.position.set(o.tx+o.r*s*Math.sin(o.th),o.ty+o.r*Math.cos(o.ph),o.tz+o.r*s*Math.cos(o.th));c.lookAt(o.tx,o.ty,o.tz);}
+  else{const w=V3.walk;c.rotation.order='YXZ';c.position.set(w.x,EYE_H,w.z);c.rotation.set(w.pitch,w.yaw,0);}
+  V3.renderer.render(V3.scene,c);
+}
+function walkStep(f,s){const w=V3.walk,y=w.yaw;w.x+=-Math.sin(y)*f+Math.cos(y)*s;w.z+=-Math.cos(y)*f-Math.sin(y)*s;}
+function start3D(){
+  if(V3.raf)return;V3.last=performance.now();
+  const tick=t=>{
+    if(U.view!=='3d'){V3.raf=0;V3.keys.clear();return;}
+    V3.raf=requestAnimationFrame(tick);
+    const dt=Math.min(0.05,(t-V3.last)/1000);V3.last=t;
+    if(V3.mode!=='walk'||!V3.keys.size)return;
+    const K=V3.keys,sp=(K.has('shift')?380:160)*dt;let f=0,s=0;
+    if(K.has('w')||K.has('arrowup'))f+=sp;if(K.has('s')||K.has('arrowdown'))f-=sp;
+    if(K.has('d'))s+=sp;if(K.has('a'))s-=sp;
+    if(K.has('arrowleft')||K.has('q'))V3.walk.yaw+=1.5*dt;if(K.has('arrowright')||K.has('e'))V3.walk.yaw-=1.5*dt;
+    walkStep(f,s);draw3D();
+  };
+  V3.raf=requestAnimationFrame(tick);
+}
+function setMode3D(m){
+  V3.mode=m;V3.cam.fov=m==='walk'?65:50;V3.cam.updateProjectionMatrix();
+  $('#mode3d').querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
+  setHint3D();draw3D();
+}
+function setHint3D(){
+  $('#hint3d').innerHTML=V3.mode==='walk'
+    ?'드래그로 둘러보기 · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 <kbd>↑</kbd><kbd>↓</kbd> 이동 · <kbd>←</kbd><kbd>→</kbd> 돌기 · <kbd>Shift</kbd> 빨리 · 휠 앞뒤 · 작품 클릭 = 정보, 더블클릭 = 그 벽 편집'
+    :'드래그로 돌리기 · 오른쪽 드래그(또는 <kbd>Shift</kbd>+드래그) 옮기기 · 휠 확대/축소 · 위 벽 탭을 누르면 그 벽 앞으로 · 작품 클릭 = 정보, 더블클릭 = 그 벽 편집';
+}
+function hit3D(e){
+  const cv=V3.renderer.domElement,r=cv.getBoundingClientRect();
+  const v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  const rc=new THREE.Raycaster();rc.setFromCamera(v,V3.cam);
+  const h=rc.intersectObjects(V3.pickables,false)[0];return h?h.object.userData:null;
+}
+function bind3DInput(cv){
+  let drag=null;
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);V3.tip.hidden=true;drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,pan:e.button===2||e.shiftKey,moved:false};});
+  cv.addEventListener('pointermove',e=>{
+    if(!drag){
+      const h=hit3D(e),it=h&&(h.artId?artById(h.artId):h.obsId?obsById(h.obsId):null);
+      if(it){const r=$('#three').getBoundingClientRect();V3.tip.innerHTML=h.artId?`${esc(it.title||'무제')}<small>${esc(sizeLabel(it))}</small>`:esc(it.label);V3.tip.style.left=(e.clientX-r.left)+'px';V3.tip.style.top=(e.clientY-r.top)+'px';V3.tip.hidden=false;cv.style.cursor='pointer';}
+      else{V3.tip.hidden=true;cv.style.cursor='';}
+      return;
+    }
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
+    if(Math.abs(e.clientX-drag.sx)+Math.abs(e.clientY-drag.sy)>4)drag.moved=true;
+    if(V3.mode==='orbit'){const o=V3.orbit;
+      if(drag.pan){const k=o.r/cv.clientHeight*1.1,rx=Math.cos(o.th),rz=-Math.sin(o.th),fx=-Math.sin(o.th),fz=-Math.cos(o.th);
+        o.tx+=(-dx*rx+dy*fx)*k;o.tz+=(-dx*rz+dy*fz)*k;}
+      else{o.th-=dx*0.006;o.ph=clamp(o.ph-dy*0.006,0.08,1.52);}
+    }else{const w=V3.walk;w.yaw+=dx*0.004;w.pitch=clamp(w.pitch+dy*0.004,-1.2,1.2);}
+    draw3D();
+  });
+  const end=e=>{if(!drag)return;const d=drag;drag=null;if(!d.moved&&e.button===0)click3D(e);};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',()=>{drag=null;});
+  cv.addEventListener('pointerleave',()=>{if(!drag)V3.tip.hidden=true;});
+  cv.addEventListener('dblclick',e=>{
+    const h=hit3D(e);if(!h||!h.wallId)return;
+    U.activeWallId=h.wallId;U.view='wall';U.zoom=1;
+    if(h.artId)setSel('art',[h.artId]);else if(h.obsId)setSel('obs',[h.obsId]);else setSel(null);
+    renderAll();saveSoon();
+  });
+  cv.addEventListener('wheel',e=>{e.preventDefault();
+    if(V3.mode==='orbit')V3.orbit.r=clamp(V3.orbit.r*(e.deltaY>0?1.12:1/1.12),60,V3.bounds.size*6+3000);
+    else walkStep(e.deltaY>0?-40:40,0);
+    draw3D();},{passive:false});
+}
+function click3D(e){
+  const h=hit3D(e);
+  if(h&&h.artId){U.activeWallId=h.wallId;setSel('art',[h.artId]);}
+  else if(h&&h.obsId){U.activeWallId=h.wallId;setSel('obs',[h.obsId]);}
+  else if(h&&h.wallId){U.activeWallId=h.wallId;setSel(null);}
+  else{if(!sel.kind)return;setSel(null);}
+  renderAll();
+}
+$('#mode3d').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b&&V3.renderer)setMode3D(b.dataset.m);});
+$('#reset3d').onclick=()=>{reset3DView();draw3D();};
+$('#png3d').onclick=()=>{if(!V3.renderer)return;draw3D();V3.renderer.domElement.toBlob(b=>{if(b)download(`${safeName(S.title)}_3D_${today()}.png`,b);});};
+window.addEventListener('keydown',e=>{
+  if(U.view!=='3d'||M||AP||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;
+  const k=e.key.toLowerCase();
+  if(['w','a','s','d','q','e','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){if(k!=='shift')e.preventDefault();if(V3.mode==='walk'||k==='shift')V3.keys.add(k);}
+});
+window.addEventListener('keyup',e=>V3.keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur',()=>V3.keys.clear());
+
+/* 양옆 패널 접기 — 이 브라우저에만 기억 (Ctrl+[ / Ctrl+]) */
+const PANELS={lib:true,insp:true};
+try{Object.assign(PANELS,JSON.parse(localStorage.getItem('hadal-sim-panels')||'{}'));}catch(e){}
+function applyPanels(save){
+  const L=$('.layout');
+  L.classList.toggle('no-lib',!PANELS.lib);L.classList.toggle('no-insp',!PANELS.insp);
+  const lt=$('#libToggle'),it=$('#inspToggle');
+  lt.textContent=PANELS.lib?'«':'작품 »';lt.title=PANELS.lib?'작품 목록 접기 (Ctrl+[)':'작품 목록 펼치기 (Ctrl+[)';
+  it.textContent=PANELS.insp?'»':'« 설정';it.title=PANELS.insp?'설정 패널 접기 (Ctrl+])':'설정 패널 펼치기 (Ctrl+])';
+  lt.setAttribute('aria-expanded',PANELS.lib);it.setAttribute('aria-expanded',PANELS.insp);
+  if(save){try{localStorage.setItem('hadal-sim-panels',JSON.stringify(PANELS));}catch(e){}renderStage();}
+}
+function togglePanel(k){PANELS[k]=!PANELS[k];applyPanels(true);}
+$('#libToggle').onclick=()=>togglePanel('lib');
+$('#inspToggle').onclick=()=>togglePanel('insp');
+window.addEventListener('keydown',e=>{
+  if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+  if(e.key==='['){e.preventDefault();togglePanel('lib');}
+  else if(e.key===']'){e.preventDefault();togglePanel('insp');}
+});
+applyPanels(false);
 
 // 아카이브 저장소에 simulator.html로 들어가 있을 때만 관리 화면으로 돌아가는 링크를 보여준다
 if(/\/simulator(\.html)?$/.test(location.pathname)){const b=$('#backArchive');b.hidden=false;b.style.textDecoration='none';}

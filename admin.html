@@ -4521,7 +4521,7 @@ $('#btnPubPreview').onclick=()=>{ $('#dlgPublish').close(); openPreview(pvPageFo
    agg 한 줄: [항목, k1, k2, 국가, 들어온 곳, 기기, 언어, 수, 합(초)] / daily 한 줄: [날짜, 항목, 국가, 들어온 곳, 기기, 언어, 수] */
 const STATS_API='https://shinhaedalapi.mycafe24.com/stats/';
 var ST={data:null, from:'', to:'', preset:'30', f:{cc:'', src:'', dev:''}, home:null, homeAt:0, err:null, ins:null, insAt:0, geo:null, geoAt:0};
-const ST_BTN={hero_work:'히어로 작품 보기', hero_pause:'히어로 정지·재생', all_works:'모든 작품 보기', about_teaser:'작가 소개 보기',
+const ST_BTN={gallery_enter:'갤러리 들어가기', hero_work:'히어로 작품 보기', hero_pause:'히어로 정지·재생', all_works:'모든 작품 보기', about_teaser:'작가 소개 보기',
   ip_teaser:'얼빵해달 배너', ex_poster:'전시 포스터 보기', open_work:'작품 열기', wm_large:'크게 보기', wm_video:'영상 재생',
   wm_photo:'상세 사진 넘김', wm_step:'이전·다음', wm_series:'같은 시리즈', wm_share:'공유', wm_copy:'링크 복사', wm_docent:'도슨트',
   wm_ask:'이 작품 문의', wp_viewer:'작품 페이지 → 작품 보기', wp_back:'작품 페이지 → 목록', press_ex:'Press 전시 작품 보기',
@@ -4532,7 +4532,7 @@ const ST_BTN={hero_work:'히어로 작품 보기', hero_pause:'히어로 정지�
 const ST_SRC={direct:'직접·앱', instagram:'인스타그램', threads:'스레드', kakao:'카카오톡', facebook:'페이스북', x:'X(트위터)', naver:'네이버',
   naver_blog:'네이버 블로그', google:'구글', daum:'다음', bing:'빙', search:'기타 검색', idus:'아이디어스', youtube:'유튜브', other:'기타 사이트'};
 const ST_DEV={m:'모바일', t:'태블릿', d:'PC'};
-const ST_ZONE={recent:'Recent works', about:'작가 소개', ip:'얼빵해달 배너', note:'작가 노트', credentials:'학력', exhibitions:'전시 이력',
+const ST_ZONE={gallery:'갤러리 줄', recent:'Recent works', about:'작가 소개', ip:'얼빵해달 배너', note:'작가 노트', credentials:'학력', exhibitions:'전시 이력',
   intro:'첫 화면', story:'스토리', forest:'숲길', pool:'수영장', identity:'이름', toy:'아트토이', friends:'친구들(일월오봉단)', licensing:'라이선싱'};
 const ST_REGION=(typeof Intl!=='undefined'&&Intl.DisplayNames)?new Intl.DisplayNames(['ko'],{type:'region'}):null;
 function stCountry(cc){ if(!cc||cc==='--') return '알 수 없음'; try{ return ST_REGION?ST_REGION.of(cc):cc; }catch(e){ return cc; } }
@@ -4544,7 +4544,7 @@ function stSrc(s){
 function stPage(k){
   const m=String(k||'').match(/^\/works\/w\/([^/]+)\/$/);
   if(m) return '작품 페이지 '+m[1];
-  return {'/':'홈', '/works/':'Works', '/about/':'About', '/cv/':'CV', '/ip/':'IP', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/copyright/':'저작권 안내', '/privacy/history/':'처리방침 지난 판', '/404/':'없는 페이지(404)', '/other/':'기타'}[k]||k;
+  return {'/':'홈', '/works/':'Works', '/about/':'About', '/cv/':'CV', '/ip/':'IP', '/gallery/':'갤러리', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/copyright/':'저작권 안내', '/privacy/history/':'처리방침 지난 판', '/404/':'없는 페이지(404)', '/other/':'기타'}[k]||k;
 }
 function stWork(no){ return rows.find(r=>String(r.no)===String(no)); }
 function stN(v){ return (v||0).toLocaleString('ko-KR'); }
@@ -4875,7 +4875,7 @@ function drawStats(){
   const clv=stSum(agg,'clickv',r=>r[1]+'|'+r[2]);
   const btns=stTop(clk,500).map(([k,o])=>{ const [n,t]=k.split('|'); const w=stWork(t);
     const OUT={brand_shop:'Brand Shop(아이디어스)', instagram:'인스타그램', threads:'스레드', youtube:'유튜브', other:'기타 사이트'};
-    let tgt=t; if(n==='menu') tgt=OUT[t]||stPage(t); else if(n==='out') tgt=OUT[t]||t; else if(n==='lang') tgt=t==='en'?'영문으로':'국문으로'; else if(n==='filter') tgt=t==='all'?'전체 작품':(((exRows||[]).find(x=>x.id===t)||{}).title||t); else if(n==='contact_type') tgt=t; else if(w) tgt=w.title+' ('+t+')'; else if(/^(recent|all|selected):/.test(t)){ const [where,no]=t.split(':'); const ww=stWork(no); tgt={recent:'홈 Recent',all:'All works',selected:'Selected'}[where]+' · '+(ww?ww.title:no); }
+    let tgt=t; if(n==='menu') tgt=OUT[t]||stPage(t); else if(n==='out') tgt=OUT[t]||t; else if(n==='lang') tgt=t==='en'?'영문으로':'국문으로'; else if(n==='filter') tgt=t==='all'?'전체 작품':(((exRows||[]).find(x=>x.id===t)||{}).title||t); else if(n==='contact_type') tgt=t; else if(n==='gallery_enter') tgt={lobby:'로비로',works:'작품관으로',ip:'IP관으로'}[t]||t; else if(w) tgt=w.title+' ('+t+')'; else if(/^(recent|all|selected):/.test(t)){ const [where,no]=t.split(':'); const ww=stWork(no); tgt={recent:'홈 Recent',all:'All works',selected:'Selected'}[where]+' · '+(ww?ww.title:no); }
     return [ST_BTN[n]||n, tgt||'—', o.n, (clv.get(k)||{n:0}).n]; });
   html+=stTable('buttons','버튼별','누른 방문 수: 한 방문에서 여러 번 눌러도 1 — "몇 명쯤 눌렀는지"에 가장 가까운 숫자',
     ['버튼','대상','클릭 수','누른 방문 수'], btns);

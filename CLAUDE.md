@@ -28,6 +28,7 @@
   새 페이지가 생기면 `hosting/stats/collect.php` 의 받을 페이지 목록에도 더한다(→ 사용자가 카페24에 다시 올려야 함).
 - 홈 첫 화면 규칙(Recent works / Upcoming exhibition / Now on view, 전시별 예고 기간, Recent 점수 2~6, 작품 순서)은
   홈페이지 index.html 의 판정과 같아야 한다. 한쪽을 고치면 다른 쪽도 확인한다.
+  3D 갤러리의 홍보 포스터·현수막(홈페이지 gallery/index.html 의 PROMOS)도 같은 판정을 쓴다.
 - 미리보기(👁)는 홈페이지를 iframe(`?pv=1`)으로 띄우고 `assets/preview.js` 가 반영 전 데이터로 바꿔 끼운다.
 
 ## 확인하는 법

@@ -506,6 +506,32 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .imgupload{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
 .imgpreview{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line)}
 .media-manager{display:flex; flex-direction:column; gap:8px; margin-bottom:8px}
+/* 공간 연출(작품 편집 칸 + 배경 관리 창) */
+.rv-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; margin:6px 0}
+.rv-card{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)} .rv-card.off .rv-scene{opacity:.55}
+.rv-scene{position:relative; background:#f3f1ec} .rv-scene canvas{display:block; width:100%; height:auto; touch-action:none}
+.rv-tag{position:absolute; left:6px; top:6px; background:rgba(255,255,255,.92); border-radius:20px; padding:0 8px; font-size:.74rem}
+.rv-pill{font-size:.68rem; border-radius:20px; padding:0 6px; background:#eef3f8; color:var(--accent2)} .rv-pill.apt{background:#f3ece2; color:var(--nfs)}
+.rv-stale,.rv-adj{position:absolute; right:6px; top:6px; background:#fff3d6; color:#8a6d3b; border-radius:20px; padding:0 8px; font-size:.72rem}
+.rv-adj{background:#e7f0fa; color:var(--accent2); top:auto; bottom:6px}
+.rv-bar{display:flex; align-items:center; gap:6px; padding:6px 8px; border-top:1px solid var(--line); flex-wrap:wrap}
+.rv-bar .btn{padding:3px 8px; font-size:.78rem} .rv-bar select{max-width:140px; font-size:.78rem; padding:2px 4px} .rv-move.on{background:var(--accent2); color:#fff}
+.rv-ck{display:inline-flex; align-items:center; gap:4px; font-size:.8rem; white-space:nowrap} .rv-ck input{width:auto}
+.rv-more{margin-top:8px; border-top:1px dashed var(--line); padding-top:8px; font-size:.84rem}
+.rv-thumbs{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+.rv-th{width:104px; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--card); padding:0; cursor:pointer; font-size:.7rem; text-align:center}
+.rv-th img{display:block; width:100%; aspect-ratio:3/2; object-fit:cover; background:#eee} .rv-th span{display:block; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.rv-th.cur{outline:2px solid var(--accent2)} .rv-th.no{opacity:.4; cursor:not-allowed}
+.rv-foot{display:flex; align-items:center; gap:8px; margin-top:8px}
+#dlgRoomBg{max-width:1120px}
+.rb-grid{display:grid; grid-template-columns:230px 1fr; gap:14px} @media(max-width:760px){.rb-grid{grid-template-columns:1fr}}
+.rb-list{display:flex; flex-direction:column; gap:6px} .rb-up{text-align:center; cursor:pointer}
+.rb-it{display:flex; gap:8px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:5px; background:var(--card); text-align:left; font-size:.78rem; cursor:pointer}
+.rb-it img{width:58px; height:39px; object-fit:cover; border-radius:4px; background:#eee; flex:none} .rb-it.on{outline:2px solid var(--accent2)}
+.rb-it i{font-style:normal; font-size:.72rem} .rb-it i.ok{color:var(--avail)} .rb-it i.no{color:var(--sold)}
+.rb-stage canvas{display:block; width:100%; height:auto; border-radius:8px; touch-action:none; cursor:crosshair; background:#f3f1ec}
+.rb-modes,.rb-meta{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; font-size:.82rem}
+.rb-steps{display:grid; gap:4px; margin-top:8px; font-size:.82rem} .rb-steps input[type=number]{width:72px} .rb-steps b{margin-right:4px}
 .mm-row{display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--bg)}
 .mm-row.dragging{opacity:.4}
 .mm-drag{cursor:grab; color:var(--sub); font-size:1rem; padding:6px 2px; user-select:none; touch-action:none}
@@ -608,6 +634,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <input type="search" id="q" placeholder="작품명·소장자·재료·비고 검색…">
   <button class="btn" id="btnFilters" aria-expanded="false">⚙ 필터·정렬</button>
   <button class="btn" id="btnReload" title="새로고침">↻</button>
+  <button class="btn" id="btnRoomBg" title="공간 연출(View in a room)에 쓸 배경을 올리고 기준을 정해요">🖼 배경 관리</button>
+  <button class="btn" id="btnRoomBulk" title="공간 연출이 없는 작품에 배경 2장씩 자동으로 만들어요">공간 연출 일괄 적용</button>
   <button class="btn primary" id="btnAdd">＋ 작품 등록</button>
 </div>
 <div class="filterbar" id="filterBar">
@@ -953,6 +981,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </div>
   <div class="formfoot"><span id="spCount" class="hint" style="margin-right:auto"></span><button type="button" class="btn" id="spCancel">취소</button><button type="button" class="btn primary" id="spGo">불러오기</button></div>
 </dialog>
+<dialog id="dlgRoomBg" aria-label="공간 연출 배경 관리">
+  <div class="dlghead"><h2>🖼 공간 연출 배경 관리</h2><button class="btn" id="rbClose">✕</button></div>
+  <div class="dlgbody" id="rbBody"></div>
+</dialog>
 <dialog id="dlgPressEdit">
   <div class="dlghead"><h2 id="peTitle">기사 등록</h2><button class="btn" id="btnClosePressEdit">✕</button></div>
   <form id="pressEditForm" method="dialog">
@@ -1197,8 +1229,10 @@ async function saveWorkToDb(rec, neu, cur){
 async function savePhotosAndMedia(workId){
   if(!workId) return;
   var keepPhotoIds=PHOTO_ROWS.filter(function(p){return p.id}).map(function(p){return p.id});
-  var delPhotos=await sb.from('work_photos').delete().eq('work_id', workId)
+  var delQ=sb.from('work_photos').delete().eq('work_id', workId)
     .not('id', 'in', '(' + (keepPhotoIds.length?keepPhotoIds.join(','):'00000000-0000-0000-0000-000000000000') + ')');
+  if(ROOM.ready) delQ=delQ.is('room_bg', null);   // 공간 연출 이미지는 「공간 연출」 칸(roomSave)이 따로 다룬다
+  var delPhotos=await delQ;
   if(delPhotos.error) throw delPhotos.error;
   for(var i=0;i<PHOTO_ROWS.length;i++){
     var p=PHOTO_ROWS[i];
@@ -2024,6 +2058,10 @@ function openEdit(r,neu){
        <input type="file" id="fPhotoFiles" accept="image/*" multiple style="width:auto;margin-top:8px">`,
       '작품 상세 화면의 작은 사진 줄에 나옵니다. 끌어서 순서를 바꾸고, 하나씩 노출을 끌 수 있습니다.'+
        MORE('대표 이미지는요', '여기에 사진을 더해도 목록에 보이는 대표 이미지는 그대로입니다. 대표 이미지는 위 <b>이미지</b> 칸에서 바꿉니다.'))+
+    F('공간 연출',
+      `<div id="roomManager" class="media-manager"><div class="hint">불러오는 중…</div></div>`,
+      '홈페이지 작품 팝업 사진 줄에 「공간 연출 — 실제 크기 비율로 합성한 이미지예요」 설명과 함께 나옵니다. 처음엔 크기에 맞는 배경 2장(고급 1 + 아파트 1)을 자동으로 골라요.'+
+       MORE('언제 다시 만들어지나요', '작품 사진·크기·배경 기준·위치가 바뀌면 작품을 <b>저장</b>할 때 다시 만들어요. 배경은 「작품 관리」 위 <b>🖼 배경 관리</b>에서 올리고 기준을 정합니다.'))+
     F('영상 · 인스타그램 링크',
       `<div id="mediaLinkManager" class="media-manager"></div>
        <button type="button" id="addMediaLink" class="btn-add-row">+ 영상/링크 추가</button>`,
@@ -2117,6 +2155,8 @@ function openEdit(r,neu){
     renderPhotoManager();
     renderMediaManager();
   });
+  roomOpen(workIdForMedia);   // 공간 연출 칸
+  { let tm=null; ['size','image'].forEach(n=>{ const el=document.querySelector('#eBody [name="'+n+'"]'); if(el) el.addEventListener('input', ()=>{ clearTimeout(tm); tm=setTimeout(()=>{ if(!ROOM.rows.length&&!ROOM.cleared) roomAuto(); roomRenderPanel(); }, 500); }); }); }
   $('#fPhotoFiles').onchange=()=>{ uploadPhotoFiles($('#fPhotoFiles').files); $('#fPhotoFiles').value=''; };
   $('#addMediaLink').onclick=()=>{
     MEDIA_ROWS.push({ id:null, platform:'youtube', url:'', thumb_file:'', title_ko:'', title_en:'', duration_seconds:'', is_public:true, sort_order:MEDIA_ROWS.length });
@@ -2154,12 +2194,311 @@ async function signedUrlFor(ref){
   return '';
 }
 
+/* ---------- 공간 연출(View in a room) — 2026-11 ----------
+   배경(room_backgrounds) 벽에 작품 사진을 실제 cm 크기로 걸어 합성하고, 상세 사진(work_photos, room_bg 표시)으로 저장한다.
+   홈페이지 발행은 상세 사진을 그대로 읽으므로 팝업 사진 줄에 함께 나온다(설명: ROOM_CAP).
+   표는 supabase/schema/room_views_2026-11.sql. 표가 없으면 칸·버튼은 안내만 보인다.
+   배경 기준: px_per_cm(가구 폭으로 잰 1 cm 의 px) · line_y/line_cm(기준선과 그 높이) · gap_cm(작품 아랫변 ~ 기준선, 0 이면 빈 벽: 가운데 145 cm) · zone(걸 수 있는 벽 범위) */
+const ROOM={ready:null, bgs:[], img:{}, rows:[], removed:[], cleared:false, adjust:-1, ed:null};
+const ROOM_CAP={ko:'공간 연출 — 실제 크기 비율로 합성한 이미지예요', en:'View in a room — Composite image shown at actual scale'};
+const ROOM_EYE=145, ROOM_TIER={lux:'고급', apt:'아파트'};
+async function roomInit(force){
+  if(ROOM.ready!==null && !force) return ROOM.ready;
+  const res=await sb.from('room_backgrounds').select('*').order('sort_order').order('created_at');
+  if(res.error){ ROOM.ready=false; ROOM.bgs=[]; return false; }
+  ROOM.ready=true; ROOM.bgs=res.data||[]; return true;
+}
+const roomBg=id=>ROOM.bgs.find(b=>b.id===id);
+function roomCalibrated(b){ return !!(b && b.image_file && +b.px_per_cm>0 && b.line_y!=null && b.line_cm!=null && b.zone && +b.zone.w>0 && +b.zone.h>0); }
+/* '45 × 45', 'A1 (59.4 × 84.1)', '10 × 9 × 6' → {w,h,d} cm */
+function roomSize(text){
+  const s=String(text||''), p=s.match(/\(([^)]*)\)/), t=(p&&/[×xX*]/.test(p[1]))?p[1]:s;
+  const m=t.match(/(\d+(?:\.\d+)?)\s*[×xX*]\s*(\d+(?:\.\d+)?)(?:\s*[×xX*]\s*(\d+(?:\.\d+)?))?/);
+  return m?{w:+m[1], h:+m[2], d:m[3]?+m[3]:0}:null;
+}
+const roomFlat=sz=>sz && !(sz.d>4);   // 벽에 거는 판(두께 4 cm 이하)만. 아트토이 같은 입체 작품은 만들지 않는다
+function roomLoadImg(src){
+  if(!src) return Promise.reject(new Error('그림 주소가 없어요'));
+  if(ROOM.img[src]) return ROOM.img[src];
+  return ROOM.img[src]=new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous';
+    i.onload=()=>res(i); i.onerror=()=>{ delete ROOM.img[src]; rej(new Error('그림을 불러오지 못했어요')); }; i.src=src; });
+}
+/* 작품 사진: 저장소(sb:) 원본을 쓴다. 예전 드라이브 사진은 그림판에 올릴 수 없어 홈페이지에 발행된 사진을 쓴다(공개 작품만) */
+async function roomArtUrl(ref, no){
+  const v=String(ref||'').trim();
+  if(v.indexOf('sb:')===0) return await signedUrlFor(v);
+  return no?'https://shinhaedal.com/assets/works/'+encodeURIComponent(no)+'/large.webp':'';
+}
+function roomFits(b, sz){ if(!roomCalibrated(b)||!roomFlat(sz)) return false; const s=+b.px_per_cm; return sz.w*s<=+b.zone.w && sz.h*s<=+b.zone.h; }
+/* 걸 자리(배경 px). 가구 위: 아랫변 = 기준선 + gap. 빈 벽(gap 0): 가운데 = 바닥에서 145 cm. 벽 범위 안으로 맞춘 뒤 옮긴 거리(cm)를 더한다 */
+function roomPlace(b, sz, dx, dy){
+  const s=+b.px_per_cm, z=b.zone, w=sz.w*s, h=sz.h*s, ly=+b.line_y, lc=+b.line_cm, gap=+b.gap_cm||0;
+  let top=gap>0 ? ly-gap*s-h : ly-(ROOM_EYE-lc)*s-h/2;
+  top=Math.min(Math.max(top, +z.y), +z.y+ +z.h-h);
+  return { x:+z.x+ +z.w/2-w/2+(+dx||0)*s, y:top-(+dy||0)*s, w, h, s };
+}
+function roomPick(sz, n, exclude){
+  const ok=ROOM.bgs.filter(b=>b.is_active!==false && roomFits(b, sz) && !(exclude||[]).includes(b.id)), out=[];
+  const one=a=>a.length?a[Math.floor(Math.random()*a.length)]:null;
+  const l=one(ok.filter(b=>b.tier!=='apt')); if(l) out.push(l);              // 1순위 고급 하나
+  const a=one(ok.filter(b=>b.tier==='apt')); if(a && out.length<n) out.push(a); // 2순위 아파트 하나
+  while(out.length<n){ const r=one(ok.filter(b=>!out.includes(b))); if(!r) break; out.push(r); }
+  return out.slice(0, n);
+}
+/* 합성: 배경 → 그림자 → 작품(실제 비율, 가운데 기준으로 잘라 맞춤) → 가는 테두리 → 벽빛을 아주 살짝 */
+async function roomRender(b, art, sz, dx, dy, maxW){
+  const bgImg=await roomLoadImg(await signedUrlFor(b.image_file));
+  const W=bgImg.naturalWidth, H=bgImg.naturalHeight, k=maxW?Math.min(1, maxW/W):1;
+  const c=document.createElement('canvas'); c.width=Math.round(W*k); c.height=Math.round(H*k);
+  const g=c.getContext('2d'); g.drawImage(bgImg, 0, 0, c.width, c.height);
+  const ip=(b.img_w&&b.img_w!==W)?W/b.img_w:1;   // 기준을 잰 크기와 그림 크기가 다르면 맞춘다
+  const p=roomPlace(b, sz, dx, dy), s=p.s*ip*k, x=p.x*ip*k, y=p.y*ip*k, w=p.w*ip*k, h=p.h*ip*k;
+  // 벽 범위의 평균색(작품에 아주 살짝 입혀 같은 빛 아래 있는 것처럼)
+  const z=b.zone, sx=Math.max(0,Math.round(+z.x*ip*k)), sy=Math.max(0,Math.round(+z.y*ip*k));
+  let wall=[240,236,228];
+  try{ const d=g.getImageData(sx, sy, Math.max(1,Math.min(c.width-sx, Math.round(+z.w*ip*k))), Math.max(1,Math.min(c.height-sy, Math.round(+z.h*ip*k)))).data;
+    let r=0,gg=0,bb=0,n=0; for(let i=0;i<d.length;i+=4*37){ r+=d[i]; gg+=d[i+1]; bb+=d[i+2]; n++; } if(n) wall=[r/n,gg/n,bb/n]; }catch(e){}
+  g.save(); g.shadowColor='rgba(20,14,10,.34)'; g.shadowBlur=Math.max(4,3.2*s); g.shadowOffsetX=.5*s; g.shadowOffsetY=1.8*s;
+  g.fillStyle='#17120f'; g.fillRect(x, y, w, h); g.restore();
+  const aw=art.naturalWidth, ah=art.naturalHeight, want=w/h, have=aw/ah;
+  let cx=0, cy=0, cw=aw, ch=ah; if(have>want){ cw=ah*want; cx=(aw-cw)/2; } else { ch=aw/want; cy=(ah-ch)/2; }
+  g.drawImage(art, cx, cy, cw, ch, x, y, w, h);
+  g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=Math.max(1, .15*s); g.strokeRect(x+.5, y+.5, w-1, h-1);
+  const mx=Math.max(...wall)||1; g.save(); g.globalCompositeOperation='multiply';
+  g.fillStyle='rgba('+wall.map(v=>Math.round(v/mx*255)).join(',')+',.5)'; g.fillRect(x, y, w, h); g.restore();
+  return c;
+}
+function roomForm(){ const q=n=>{ const el=document.querySelector('#eBody [name="'+n+'"]'); return el?el.value.trim():''; };
+  return { image:q('image'), size:q('size'), no:q('no'), title:q('title_ko')||q('title') }; }
+const roomKey=(f,b,r)=>[f.image, f.size, b.id, b.updated_at||'', (+r.dx||0).toFixed(1), (+r.dy||0).toFixed(1)].join('|');
+
+/* 작품 편집의 「공간 연출」 칸 */
+async function roomOpen(workId){
+  ROOM.rows=[]; ROOM.removed=[]; ROOM.cleared=false; ROOM.adjust=-1;
+  const box=$('#roomManager'); if(!box) return;
+  if(!await roomInit()){ box.innerHTML='<div class="hint">아직 쓸 수 없어요 — Supabase 에서 <b>supabase/schema/room_views_2026-11.sql</b> 을 한 번 실행해야 합니다.</div>'; return; }
+  if(workId){
+    const res=await sb.from('work_photos').select('*').eq('work_id', workId).not('room_bg', 'is', null).order('sort_order');
+    ROOM.rows=(res.data||[]).map(r=>({ id:r.id, bg:r.room_bg, dx:+r.room_dx_cm||0, dy:+r.room_dy_cm||0, key:r.room_key||'', is_public:r.is_public!==false, image_file:r.image_file }));
+  }
+  if(!ROOM.rows.length) roomAuto();
+  roomRenderPanel();
+}
+function roomAuto(){
+  const sz=roomSize(roomForm().size); if(!sz) return;
+  ROOM.rows=roomPick(sz, 2).map(b=>({ id:null, bg:b.id, dx:0, dy:0, key:'', is_public:true }));
+}
+function roomRenderPanel(){
+  const box=$('#roomManager'); if(!box||!ROOM.ready) return;
+  const f=roomForm(), sz=roomSize(f.size), ready=ROOM.bgs.filter(b=>b.is_active!==false&&roomCalibrated(b));
+  let note='';
+  if(!ready.length) note='배경이 아직 없어요. 위 「작품 관리」의 <b>🖼 배경 관리</b>에서 배경을 올리고 기준을 정해 주세요.';
+  else if(!sz) note='크기(cm)를 「45 × 45」처럼 넣으면 실제 크기로 걸어요.';
+  else if(!roomFlat(sz)) note='입체 작품(두께 '+sz.d+' cm)이라 공간 연출을 만들지 않아요.';
+  else if(!f.image) note='대표 이미지를 올리면 만들어요.';
+  const cards=ROOM.rows.map((r,i)=>{ const b=roomBg(r.bg)||{}; const stale=r.id && b.id && r.key!==roomKey(f,b,r);
+    const opts=ready.filter(o=>o.id===r.bg||(sz&&roomFits(o,sz))).map(o=>`<option value="${esc(o.id)}"${o.id===r.bg?' selected':''}>${esc(o.name||o.id)}</option>`).join('');
+    return `<div class="rv-card${r.is_public?'':' off'}">
+      <div class="rv-scene"><canvas id="rvCv${i}" data-i="${i}"></canvas>
+        <span class="rv-tag">${esc(b.name||'(지운 배경)')} <span class="rv-pill ${b.tier==='apt'?'apt':''}">${ROOM_TIER[b.tier]||''}</span></span>
+        ${stale?'<span class="rv-stale">저장하면 다시 만들어요</span>':''}${ROOM.adjust===i?'<span class="rv-adj">작품을 끌어서 옮기세요</span>':''}</div>
+      <div class="rv-bar"><label class="rv-ck"><input type="checkbox" class="rv-pub" data-i="${i}"${r.is_public?' checked':''}> 홈페이지에 올리기</label><span style="flex:1"></span>
+        <select class="rv-bg" data-i="${i}" title="다른 배경">${opts}</select>
+        <button type="button" class="btn rv-move${ROOM.adjust===i?' on':''}" data-i="${i}">위치 조정</button>
+        ${(r.dx||r.dy)?`<button type="button" class="btn rv-reset" data-i="${i}" title="기본 자리로">↺</button>`:''}
+        <button type="button" class="btn rv-del" data-i="${i}" title="이 장 빼기">빼기</button></div></div>`; }).join('');
+  const used=new Set(ROOM.rows.map(r=>r.bg));
+  const thumbs=ready.map(b=>{ const fit=sz&&roomFits(b,sz);
+    return `<button type="button" class="rv-th${used.has(b.id)?' cur':''}${fit?'':' no'}" data-bg="${esc(b.id)}"${fit?'':' disabled title="벽이 좁아 이 작품이 들어가지 않아요"'}><img data-ref="${esc(b.image_file)}" alt=""><span>${esc(b.name||b.id)}</span></button>`; }).join('');
+  box.innerHTML=(note?`<div class="hint">${note}</div>`:'')+
+    (ROOM.rows.length?`<div class="rv-grid">${cards}</div>`:(note?'':'<div class="hint">고른 배경이 없어요. 아래에서 고르거나 「두 장 다시 랜덤」을 누르세요.</div>'))+
+    (ready.length&&sz&&roomFlat(sz)?`<div class="rv-more"><b>다른 배경도 적용해 보기</b> <span class="hint">— 누르면 한 장 더해져요(처음엔 올리지 않음). 마음에 들면 「홈페이지에 올리기」를 켜세요</span><div class="rv-thumbs">${thumbs}</div>
+      <div class="rv-foot"><button type="button" class="btn" id="rvRandom">🎲 두 장 다시 랜덤</button><span class="hint" style="margin-left:auto">작품을 저장할 때 이미지도 함께 만들어 저장해요</span></div></div>`:'');
+  box.querySelectorAll('.rv-th img').forEach(im=>signedUrlFor(im.dataset.ref).then(u=>{ if(u) im.src=u; }));
+  box.querySelectorAll('.rv-pub').forEach(el=>el.onchange=()=>{ ROOM.rows[+el.dataset.i].is_public=el.checked; el.closest('.rv-card').classList.toggle('off', !el.checked); });
+  box.querySelectorAll('.rv-bg').forEach(el=>el.onchange=()=>{ const r=ROOM.rows[+el.dataset.i]; r.bg=el.value; r.dx=r.dy=0; roomRenderPanel(); });
+  box.querySelectorAll('.rv-move').forEach(el=>el.onclick=()=>{ ROOM.adjust=ROOM.adjust===+el.dataset.i?-1:+el.dataset.i; roomRenderPanel(); });
+  box.querySelectorAll('.rv-reset').forEach(el=>el.onclick=()=>{ const r=ROOM.rows[+el.dataset.i]; r.dx=r.dy=0; roomRenderPanel(); });
+  box.querySelectorAll('.rv-del').forEach(el=>el.onclick=()=>{ const r=ROOM.rows.splice(+el.dataset.i,1)[0]; if(r&&r.id) ROOM.removed.push(r.id); if(!ROOM.rows.length) ROOM.cleared=true; ROOM.adjust=-1; roomRenderPanel(); });
+  box.querySelectorAll('.rv-th:not([disabled])').forEach(el=>el.onclick=()=>{ ROOM.rows.push({ id:null, bg:el.dataset.bg, dx:0, dy:0, key:'', is_public:false }); roomRenderPanel(); });
+  const rnd=$('#rvRandom'); if(rnd) rnd.onclick=()=>{ ROOM.rows.forEach(r=>{ if(r.id) ROOM.removed.push(r.id); }); ROOM.cleared=false; ROOM.adjust=-1; roomAuto(); roomRenderPanel(); };
+  ROOM.rows.forEach((r,i)=>roomDrawCard(i));
+}
+async function roomDrawCard(i){
+  const cv=document.getElementById('rvCv'+i), r=ROOM.rows[i]; if(!cv||!r) return;
+  const b=roomBg(r.bg), f=roomForm(), sz=roomSize(f.size); if(!b||!sz) return;
+  try{
+    const art=await roomLoadImg(await roomArtUrl(f.image, f.no));
+    const c=await roomRender(b, art, sz, r.dx, r.dy, 720);
+    cv.width=c.width; cv.height=c.height; cv.getContext('2d').drawImage(c, 0, 0);
+    if(ROOM.adjust===i) roomWireDrag(cv, i, b, c.width);
+  }catch(e){ const g=cv.getContext('2d'); cv.width=720; cv.height=480; g.fillStyle='#f3f1ec'; g.fillRect(0,0,720,480); g.fillStyle='#8a8f98'; g.font='16px sans-serif'; g.fillText(e.message, 24, 40); }
+}
+function roomWireDrag(cv, i, b, drawnW){
+  let last=null;
+  cv.onpointerdown=e=>{ last=[e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove=async e=>{ if(!last) return; const r=ROOM.rows[i];
+    const pxPerCm=+b.px_per_cm*(drawnW/((b.img_w)||drawnW))*(cv.clientWidth/drawnW);   // 화면 1 px 이 몇 cm 인지
+    r.dx+=(e.clientX-last[0])/pxPerCm; r.dy-=(e.clientY-last[1])/pxPerCm; last=[e.clientX, e.clientY];
+    if(!cv._busy){ cv._busy=true; await roomDrawCard(i); cv._busy=false; } };
+  cv.onpointerup=cv.onpointercancel=()=>{ last=null; roomRenderPanel(); };
+}
+/* 저장: 바뀐 장만 다시 만들어 올린다. 작품 저장이 끝난 뒤 부르며, 실패해도 작품 저장은 그대로 둔다 */
+async function roomSave(workId, f){
+  if(!ROOM.ready||!workId) return;
+  f=f||roomForm();
+  const sz=roomSize(f.size);
+  if(!ROOM.rows.length && !ROOM.cleared) roomAuto();
+  for(const id of ROOM.removed){ const d=await sb.from('work_photos').delete().eq('id', id); if(d.error) throw d.error; }
+  ROOM.removed=[];
+  if(!sz||!roomFlat(sz)||!f.image) return;
+  let art=null;
+  for(let i=0;i<ROOM.rows.length;i++){
+    const r=ROOM.rows[i], b=roomBg(r.bg); if(!b) continue;
+    const key=roomKey(f,b,r), base={ sort_order:100+i, is_public:!!r.is_public, caption_ko:ROOM_CAP.ko, caption_en:ROOM_CAP.en,
+      alt_text:(f.title?f.title+' — ':'')+'공간 연출 합성 이미지', room_bg:b.id, room_dx_cm:+(+r.dx||0).toFixed(1), room_dy_cm:+(+r.dy||0).toFixed(1) };
+    if(r.id && r.key===key){ const u=await sb.from('work_photos').update(base).eq('id', r.id); if(u.error) throw u.error; continue; }
+    art=art||await roomLoadImg(await roomArtUrl(f.image, f.no));
+    const c=await roomRender(b, art, sz, r.dx, r.dy, 2000);
+    const blob=await new Promise(res=>c.toBlob(res, 'image/jpeg', .9));
+    const path=(f.no||'artwork')+'/room-'+b.id+'-'+Date.now()+'.jpg';
+    const up=await sb.storage.from('artwork-masters').upload(path, blob, { contentType:'image/jpeg', upsert:false }); if(up.error) throw up.error;
+    const row=Object.assign({ work_id:workId, image_file:'sb:'+path, room_key:key }, base);
+    const q=r.id?await sb.from('work_photos').update(row).eq('id', r.id):await sb.from('work_photos').insert(row).select('id').single();
+    if(q.error) throw q.error; if(!r.id) r.id=q.data.id; r.key=key;
+  }
+}
+/* 「공간 연출 일괄 적용」: 공간 연출이 하나도 없는 작품마다 배경 2장을 자동으로 골라 만든다 */
+async function roomBulk(){
+  if(!await roomInit(true)){ alert('먼저 Supabase 에서 supabase/schema/room_views_2026-11.sql 을 실행해 주세요.'); return; }
+  if(!ROOM.bgs.some(b=>b.is_active!==false&&roomCalibrated(b))){ alert('기준을 정한 배경이 없어요. 「🖼 배경 관리」에서 먼저 배경을 올려 주세요.'); return; }
+  const have=await sb.from('work_photos').select('work_id').not('room_bg', 'is', null); if(have.error){ toast('불러오기 실패: '+have.error.message); return; }
+  const done=new Set((have.data||[]).map(r=>r.work_id));
+  const todo=rows.filter(r=>r._id && !done.has(r._id) && r.image && roomFlat(roomSize(r.size)) && roomPick(roomSize(r.size), 1).length);
+  if(!todo.length){ toast('새로 만들 작품이 없어요(모두 공간 연출이 있거나, 크기·사진이 없거나, 입체 작품이에요)'); return; }
+  if(!confirm('공간 연출이 없는 작품 '+todo.length+'점에 배경 2장씩 자동으로 만들어 넣을까요?\n(둘 다 「홈페이지에 올리기」로 들어가고, 작품마다 나중에 바꿀 수 있어요. 홈페이지에는 「홈페이지에 반영」 뒤에 나와요)')) return;
+  let ok=0, fail=0;
+  for(const r of todo){
+    toast('공간 연출 만드는 중… '+(ok+fail+1)+'/'+todo.length+' · '+(r.title||r.no));
+    ROOM.rows=roomPick(roomSize(r.size), 2).map(b=>({ id:null, bg:b.id, dx:0, dy:0, key:'', is_public:true })); ROOM.removed=[]; ROOM.cleared=false;
+    try{ await roomSave(r._id, { image:r.image, size:r.size, no:r.no, title:r.title }); ok++; }catch(e){ console.warn('공간 연출 실패', r.no, e); fail++; }
+  }
+  ROOM.rows=[];
+  toast('✅ 공간 연출 '+ok+'점 완료'+(fail?' · 실패 '+fail+'점(콘솔 참고)':'')+' — 홈페이지에는 「홈페이지에 반영」 뒤에 나와요');
+}
+
+/* 「🖼 배경 관리」 창: 배경 올리기 + 기준 정하기(① 가구 폭 ② 기준선 ③ 벽 범위) */
+async function roomBgOpen(){
+  const dlg=$('#dlgRoomBg');
+  if(!await roomInit(true)){ $('#rbBody').innerHTML='<p class="hint" style="padding:8px 0">아직 쓸 수 없어요 — Supabase SQL Editor 에서 <b>supabase/schema/room_views_2026-11.sql</b> 을 한 번 실행한 뒤 다시 열어 주세요.</p>'; dlg.showModal(); return; }
+  ROOM.ed=null; roomBgList(); dlg.showModal();
+  if(ROOM.bgs.length) roomBgEdit(ROOM.bgs[0].id);
+}
+function roomBgList(){
+  const cur=ROOM.ed&&ROOM.ed.b.id;
+  $('#rbBody').innerHTML=`<div class="rb-grid"><div class="rb-list">
+      <label class="btn primary rb-up">＋ 배경 올리기<input type="file" id="rbFile" accept="image/*" multiple hidden></label>
+      ${ROOM.bgs.map(b=>`<button type="button" class="rb-it${b.id===cur?' on':''}" data-id="${esc(b.id)}"><img data-ref="${esc(b.image_file)}" alt="">
+        <span><b>${esc(b.name||b.id)}</b><br>${roomCalibrated(b)?'<i class="ok">● 기준 설정됨</i>':'<i class="no">● 기준 설정 필요</i>'} · ${ROOM_TIER[b.tier]||''}${b.is_active===false?' · 쓰지 않음':''}</span></button>`).join('')||'<p class="hint">GPT 로 만든 배경을 올려 주세요.</p>'}
+    </div><div id="rbEd" class="rb-ed"><p class="hint">왼쪽에서 배경을 고르세요.</p></div></div>`;
+  $('#rbBody').querySelectorAll('.rb-it img').forEach(im=>signedUrlFor(im.dataset.ref).then(u=>{ if(u) im.src=u; }));
+  $('#rbBody').querySelectorAll('.rb-it').forEach(el=>el.onclick=()=>roomBgEdit(el.dataset.id));
+  $('#rbFile').onchange=e=>roomBgUpload([...e.target.files]);
+  if(cur) roomBgEditor();
+}
+async function roomBgUpload(files){
+  for(const file of files){
+    try{
+      toast('배경 올리는 중… '+file.name);
+      const jpeg=await compressToJpeg(file, 2400);
+      const im=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=jpeg; });
+      const id='bg-'+Date.now(), ref=await uploadJpegToStorage(jpeg, 'rooms/'+id+'.jpg');
+      const name=file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim();
+      const tier=/^K|apt|아파트/i.test(file.name)?'apt':'lux';
+      const ins=await sb.from('room_backgrounds').insert({ id, name, tier, image_file:ref, img_w:im.naturalWidth, img_h:im.naturalHeight, sort_order:ROOM.bgs.length }).select('*').single();
+      if(ins.error) throw ins.error; ROOM.bgs.push(ins.data); ROOM.ed={ b:ins.data };
+    }catch(e){ toast('배경 올리기 실패: '+(e.message||e)); }
+  }
+  toast('✅ 배경을 올렸어요 — 오른쪽에서 기준 세 가지를 정해 주세요'); roomBgList();
+}
+function roomBgEdit(id){ const b=roomBg(id); if(!b) return; ROOM.ed={ b:JSON.parse(JSON.stringify(b)), mode:'', pts:[], test:'' }; roomBgList(); }
+function roomBgEditor(){
+  const e=ROOM.ed, b=e.b, eye=!(+b.gap_cm>0);
+  const works=rows.filter(r=>r.image && roomFlat(roomSize(r.size)));
+  $('#rbEd').innerHTML=`<div class="rb-stage"><canvas id="rbCv"></canvas></div>
+    <div class="rb-modes"><button type="button" class="btn${e.mode==='meas'?' primary':''}" data-m="meas">① 크기 기준</button><button type="button" class="btn${e.mode==='line'?' primary':''}" data-m="line">② 기준선</button><button type="button" class="btn${e.mode==='zone'?' primary':''}" data-m="zone">③ 벽 범위</button>
+      <span class="hint" id="rbHelp">${({meas:'가구(소파·침대·콘솔) 왼쪽 끝과 오른쪽 끝을 차례로 누르세요',line:'가구 윗선(등받이·헤드보드·상판)을 한 번 누르세요. 가구가 없으면 바닥선을 누르고 높이 0',zone:'작품을 걸 수 있는 빈 벽을 끌어서 사각형으로 정하세요'})[e.mode]||'단추를 누르고 그림 위에서 정하세요'}</span></div>
+    <div class="rb-steps">
+      <div><b>① 크기 기준</b> 가구 실제 폭 <input id="rbMeasCm" type="number" value="${esc(b.meas_cm??'')}" placeholder="220"> cm <span class="hint">${+b.px_per_cm>0?'→ 1 cm = '+(+b.px_per_cm).toFixed(2)+' px':''}</span></div>
+      <div><b>② 기준선</b> 바닥에서 <input id="rbLineCm" type="number" value="${esc(b.line_cm??'')}" placeholder="80"> cm ·
+        작품 아랫변까지 <input id="rbGap" type="number" value="${eye?'':esc(b.gap_cm)}" placeholder="22"${eye?' disabled':''}> cm
+        <label class="rv-ck"><input type="checkbox" id="rbEye"${eye?' checked':''}> 가구 없는 빈 벽(작품 가운데 ${ROOM_EYE} cm)</label></div>
+      <div><b>③ 벽 범위</b> ${b.zone?Math.round(b.zone.w/(+b.px_per_cm||1))+' × '+Math.round(b.zone.h/(+b.px_per_cm||1))+' cm':'<span class="hint">아직 없음</span>'}</div>
+    </div>
+    <div class="rb-meta">이름 <input id="rbName" value="${esc(b.name||'')}" style="width:180px"> 구분 <select id="rbTier"><option value="lux"${b.tier!=='apt'?' selected':''}>1순위 · 고급</option><option value="apt"${b.tier==='apt'?' selected':''}>2순위 · 아파트</option></select>
+      <label class="rv-ck"><input type="checkbox" id="rbActive"${b.is_active!==false?' checked':''}> 자동 선택에 쓰기</label></div>
+    <div class="rb-meta">시험 작품 <select id="rbTest"><option value="">— 고르면 그림 위에 걸어 봐요 —</option>${works.map(r=>`<option value="${esc(r.no)}"${e.test===r.no?' selected':''}>${esc(r.title||r.no)} · ${esc(r.size)}</option>`).join('')}</select>
+      <span style="flex:1"></span><button type="button" class="btn primary" id="rbSave">저장</button></div>`;
+  const num=v=>v===''||v==null?null:+v, recalc=()=>{ b.meas_cm=num($('#rbMeasCm').value); b.px_per_cm=(b.meas_px&&b.meas_cm)?b.meas_px/b.meas_cm:b.px_per_cm; roomBgDraw(); };
+  $('#rbMeasCm').oninput=recalc;
+  $('#rbLineCm').oninput=()=>{ b.line_cm=num($('#rbLineCm').value); roomBgDraw(); };
+  $('#rbGap').oninput=()=>{ b.gap_cm=num($('#rbGap').value)||0; roomBgDraw(); };
+  $('#rbEye').onchange=()=>{ b.gap_cm=$('#rbEye').checked?0:(num($('#rbGap').value)||22); roomBgEditor(); };
+  $('#rbName').oninput=()=>b.name=$('#rbName').value; $('#rbTier').onchange=()=>b.tier=$('#rbTier').value; $('#rbActive').onchange=()=>b.is_active=$('#rbActive').checked;
+  $('#rbTest').onchange=()=>{ e.test=$('#rbTest').value; roomBgDraw(); };
+  $('#rbEd').querySelectorAll('[data-m]').forEach(el=>el.onclick=()=>{ e.mode=e.mode===el.dataset.m?'':el.dataset.m; e.pts=[]; roomBgEditor(); });
+  $('#rbSave').onclick=roomBgSave;
+  roomBgWire(); roomBgDraw();
+}
+async function roomBgDraw(){
+  const e=ROOM.ed, b=e.b, cv=$('#rbCv'); if(!cv) return;
+  let base;
+  try{
+    const t=e.test&&rows.find(r=>r.no===e.test);
+    if(t && roomCalibrated(b)){ const art=await roomLoadImg(await roomArtUrl(t.image, t.no)); base=await roomRender(b, art, roomSize(t.size), 0, 0); }
+    else { const im=await roomLoadImg(await signedUrlFor(b.image_file)); base=document.createElement('canvas'); base.width=im.naturalWidth; base.height=im.naturalHeight; base.getContext('2d').drawImage(im,0,0); }
+  }catch(err){ toast(err.message); return; }
+  cv.width=base.width; cv.height=base.height; const g=cv.getContext('2d'); g.drawImage(base,0,0);
+  const L=Math.max(2, cv.width/600);
+  if(b.zone){ g.setLineDash([8*L,6*L]); g.strokeStyle='#2e6da4'; g.lineWidth=2*L; g.strokeRect(b.zone.x, b.zone.y, b.zone.w, b.zone.h); g.setLineDash([]); g.fillStyle='rgba(46,109,164,.07)'; g.fillRect(b.zone.x, b.zone.y, b.zone.w, b.zone.h); }
+  if(b.line_y!=null){ g.strokeStyle='#b0453a'; g.lineWidth=2*L; g.beginPath(); g.moveTo(0,b.line_y); g.lineTo(cv.width,b.line_y); g.stroke();
+    g.fillStyle='#b0453a'; g.font=(13*L)+'px sans-serif'; g.fillText('기준선 '+(b.line_cm??'?')+' cm', 8*L, b.line_y-6*L); }
+  const pts=e.pts.length?e.pts:(b.meas_pts||[]);
+  pts.forEach(p=>{ g.fillStyle='#e8a33a'; g.beginPath(); g.arc(p[0],p[1],6*L,0,7); g.fill(); });
+  if(pts.length===2){ g.strokeStyle='#e8a33a'; g.lineWidth=2*L; g.beginPath(); g.moveTo(pts[0][0],pts[0][1]); g.lineTo(pts[1][0],pts[1][1]); g.stroke(); }
+  if(e.drag){ g.strokeStyle='#2e6da4'; g.lineWidth=2*L; g.strokeRect(e.drag.x, e.drag.y, e.drag.w, e.drag.h); }
+}
+function roomBgWire(){
+  const e=ROOM.ed, b=e.b, cv=$('#rbCv');
+  const at=ev=>{ const r=cv.getBoundingClientRect(); return [(ev.clientX-r.left)*cv.width/r.width, (ev.clientY-r.top)*cv.height/r.height]; };
+  let start=null;
+  cv.onpointerdown=ev=>{ const p=at(ev);
+    if(e.mode==='meas'){ e.pts.push(p); if(e.pts.length===2){ b.meas_px=Math.abs(e.pts[1][0]-e.pts[0][0]); b.meas_pts=e.pts.slice(); if(b.meas_cm) b.px_per_cm=b.meas_px/b.meas_cm; e.pts=[]; e.mode=''; roomBgEditor(); return; } roomBgDraw(); }
+    else if(e.mode==='line'){ b.line_y=p[1]; e.mode=''; roomBgEditor(); }
+    else if(e.mode==='zone'){ start=p; cv.setPointerCapture(ev.pointerId); } };
+  cv.onpointermove=ev=>{ if(!start) return; const p=at(ev); e.drag={ x:Math.min(start[0],p[0]), y:Math.min(start[1],p[1]), w:Math.abs(p[0]-start[0]), h:Math.abs(p[1]-start[1]) }; roomBgDraw(); };
+  cv.onpointerup=()=>{ if(!start) return; start=null; if(e.drag&&e.drag.w>10&&e.drag.h>10){ b.zone={ x:Math.round(e.drag.x), y:Math.round(e.drag.y), w:Math.round(e.drag.w), h:Math.round(e.drag.h) }; } e.drag=null; e.mode=''; roomBgEditor(); };
+}
+async function roomBgSave(){
+  const b=ROOM.ed.b;
+  const row={ name:b.name||null, tier:b.tier==='apt'?'apt':'lux', meas_px:b.meas_px??null, meas_cm:b.meas_cm??null,
+    px_per_cm:(b.meas_px&&b.meas_cm)?b.meas_px/b.meas_cm:(b.px_per_cm??null), line_y:b.line_y??null, line_cm:b.line_cm??null,
+    gap_cm:+b.gap_cm||0, zone:b.zone||null, is_active:b.is_active!==false, updated_at:new Date().toISOString() };
+  const res=await sb.from('room_backgrounds').update(row).eq('id', b.id).select('*').single();
+  if(res.error){ toast('저장 실패: '+res.error.message); return; }
+  const i=ROOM.bgs.findIndex(x=>x.id===b.id); ROOM.bgs[i]=res.data; ROOM.ed.b=JSON.parse(JSON.stringify(res.data));
+  toast(roomCalibrated(res.data)?'✅ 저장했어요 — 이 배경을 쓰는 작품은 다음에 작품을 저장할 때 다시 만들어져요':'저장했어요 — 아직 정하지 않은 기준이 있어요(①·②·③ 모두 필요)');
+  roomBgList();
+}
+
+$('#btnRoomBg').onclick=roomBgOpen; $('#btnRoomBulk').onclick=roomBulk; $('#rbClose').onclick=()=>$('#dlgRoomBg').close();
+
 /* ---------- 상세 사진(여러 장) 관리 ---------- */
 async function loadPhotoRows(workId){
   if(!workId){ PHOTO_ROWS=[]; return; }
   const res=await sb.from('work_photos').select('*').eq('work_id', workId).order('sort_order');
   if(res.error){ console.warn('상세사진을 불러오지 못했습니다', res.error); PHOTO_ROWS=[]; return; }
-  PHOTO_ROWS=(res.data||[]).map(r=>({ id:r.id, image_file:r.image_file, sort_order:r.sort_order,
+  PHOTO_ROWS=(res.data||[]).filter(r=>!r.room_bg).map(r=>({ id:r.id, image_file:r.image_file, sort_order:r.sort_order,
     caption_ko:r.caption_ko||'', caption_en:r.caption_en||'', alt_text:r.alt_text||'', is_public:r.is_public!==false, _preview:null }));
 }
 async function renderPhotoManager(){
@@ -2372,6 +2711,8 @@ $('#editForm').onsubmit=async e=>{
   try{
     const savedWorkId=await saveWorkToDb(rec, isNew, current);
     await savePhotosAndMedia(savedWorkId);
+    try{ if(ROOM.ready){ toast('공간 연출 이미지 만드는 중…'); await roomSave(savedWorkId); } }
+    catch(re){ console.warn('공간 연출', re); alert('작품은 저장됐지만 공간 연출 이미지를 만들지 못했어요: '+(re.message||re)+'\n다시 열어 저장하면 이어서 만들어요.'); }
     if(isNew)markNew(rec);
     toast(isNew?'작품이 등록되었습니다':'저장되었습니다');
     dlgEdit.close();

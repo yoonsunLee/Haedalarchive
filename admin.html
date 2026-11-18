@@ -800,9 +800,13 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
   <section id="vSim" hidden>
     <div class="toolbar" style="padding:0 0 10px; gap:8px; flex-wrap:wrap; align-items:center">
-      <button class="btn primary" id="simPickBtn">＋ 작품 불러오기</button>
+      <select id="simEx" style="max-width:340px" title="참가한 전시"><option value="">전시 고르기…</option></select>
+      <button class="btn" id="simExLoad" title="고른 전시의 출품작을 불러와요. 저장해 둔 배치가 있으면 그 배치로 열려요">전시 불러오기</button>
+      <button class="btn primary" id="simExSave" title="시뮬레이터에 지금 열린 배치를 고른 전시의 기록으로 저장해요">💾 이 전시 배치 저장</button>
+      <span style="width:1px;height:22px;background:var(--line)"></span>
+      <button class="btn" id="simPickBtn">＋ 작품 불러오기</button>
       <button class="btn" id="simOldBtn" hidden title="예전 해달 시뮬레이터(이 브라우저)에 저장된 전시를 새 시뮬레이터로 옮겨요">예전 전시 옮기기</button>
-      <span class="hint">고른 작품을 실제 크기(cm)·사진으로 새 전시에 걸어요. 전시는 이 브라우저에 자동 저장되고, 시뮬레이터의 「내 전시」에서 다시 열 수 있어요.</span>
+      <span class="hint" id="simExNote">전시를 고르고 「전시 불러오기」를 누르면 출품작이 실제 크기로 걸려요. 꾸민 뒤 「💾 이 전시 배치 저장」을 누르면 그 전시의 기록으로 남아요(다른 컴퓨터에서도 열림).</span>
     </div>
     <iframe id="simFrame" title="전시 시뮬레이터" style="display:block; width:100%; height:calc(100vh - 150px); min-height:560px; border:1px solid var(--line); border-radius:12px; background:#fff"></iframe>
   </section>
@@ -5075,7 +5079,7 @@ $('#brandHome').onclick=()=>goSection('home');
    사본의 CSP 는 그림을 data: 주소로만 받으므로 사진은 canvas 로 data URL(jpeg)로 바꿔 넘긴다.
    예전 해달 시뮬레이터(simulator.html, IndexedDB 'hadal-exhibit')에 남은 전시는 「예전 전시 옮기기」로 새 전시로 연다. */
 const SIM={loaded:false, sel:new Set()};
-function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simCheckOld(); }
+function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simCheckOld(); simExInit(); }
 function simReady(){
   return new Promise((res,rej)=>{ const f=$('#simFrame'); let n=0;
     const t=setInterval(()=>{ let w=null; try{ w=f.contentWindow; }catch(e){}
@@ -5116,7 +5120,7 @@ function simBuild(items, opt){
   let x=(wall.width-total)/2; const images={};
   const artworks=items.map((it,i)=>{ const r=it.r, sz=it.sz||{w:50,h:50,d:0}, on=hang.includes(it), imgId=it.img?'i'+i:null;
     if(it.img) images[imgId]=it.img.url;
-    const a={ id:'a'+(i+1), wallId:on?'w1':null, imageId:imgId, title:r.title||r.no||'무제', year:String(r.year||''), medium:r.material||'',
+    const a={ id:'a'+(i+1), wallId:on?'w1':null, imageId:imgId, hdWork:r._id||'', title:r.title||r.no||'무제', year:String(r.year||''), medium:r.material||'',
       price:(opt.price && r.price && /^\d+$/.test(String(r.price)))?Number(r.price).toLocaleString('ko-KR')+'원':'', note:r.no||'',
       sizeType:'C', sizeNo:'', sizeText:r.size||'', w:sz.w, h:sz.h, frame:0, frameColor:'#2a2622', canvasColor:'#ffffff', canvasText:'', fit:'cover', rot:0,
       x:on?Math.round(x):0, fy:Math.max(20, 145-sz.h/2), iw:it.img?it.img.iw:null, ih:it.img?it.img.ih:null };
@@ -5157,6 +5161,92 @@ $('#spGo').onclick=async()=>{
     toast('✅ '+items.length+'점을 새 전시로 불러왔어요'+(miss?' · 사진을 못 가져온 '+miss+'점은 빈 캔버스':''));
   }catch(e){ toast('불러오기 실패: '+(e.message||e)); }
   finally{ btn.disabled=false; btn.textContent='불러오기'; }
+};
+
+/* 전시별 배치 아카이브: 참가한 전시마다 시뮬레이터 배치를 Supabase exhibition_layouts 에 저장(supabase/schema/exhibition_layouts_2026-11.sql).
+   state = 시뮬레이터 상태(사진 빼고), images = {사진id: {work:작품 uuid} | {file:'sb:layouts/…'}} — 작품 사진은 작품 자료에서 다시 불러온다.
+   나중에 홈페이지에 전시 구성을 보여 줄 때 이 표를 읽는다 */
+async function simExInit(){
+  const [x, l, k]=await Promise.all([
+    sb.from('exhibitions').select('*').is('deleted_at', null),
+    sb.from('exhibition_layouts').select('exhibition_id, saved_at'),
+    sb.from('exhibition_works').select('*')]);
+  SIM.ex=(x.data||[]).sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
+  SIM.layoutsReady=!l.error; SIM.saved={}; (l.data||[]).forEach(r=>SIM.saved[r.exhibition_id]=r.saved_at);
+  SIM.links=k.data||[];
+  const cur=$('#simEx').value||(SIM.cur&&SIM.cur.id)||'';
+  $('#simEx').innerHTML='<option value="">전시 고르기…</option>'+SIM.ex.map(e=>{ const n=SIM.links.filter(l=>l.exhibition_id===e.id).length;
+    return `<option value="${esc(e.id)}">${esc(String(e.start_date||'').slice(0,7))} · ${esc(e.title_ko||e.exhibition_no||'')} (${n}점)${SIM.saved[e.id]?' · 저장됨':''}</option>`; }).join('');
+  $('#simEx').value=cur;
+  if(!SIM.layoutsReady) $('#simExNote').innerHTML='전시별 배치 저장을 쓰려면 Supabase 에서 <b>supabase/schema/exhibition_layouts_2026-11.sql</b> 을 한 번 실행해 주세요. (불러오기는 지금도 돼요)';
+}
+async function simUrlData(src){
+  const im=await new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+  const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight; c.getContext('2d').drawImage(im,0,0);
+  return c.toDataURL('image/jpeg', .9);
+}
+async function simFromSaved(row){
+  const images={}, src=row.images||{}, missing=new Set();
+  for(const [id,s] of Object.entries(src)){
+    try{
+      if(s&&s.work){ const r=rows.find(x=>x._id===s.work); const im=r&&await simImageData(r); if(im) images[id]=im.url; else missing.add(id); }
+      else if(s&&s.file){ images[id]=await simUrlData(await signedUrlFor(s.file)); }
+    }catch(e){ missing.add(id); }
+  }
+  const state=JSON.parse(JSON.stringify(row.state));
+  (state.artworks||[]).forEach(a=>{ if(a.imageId && !images[a.imageId]){ a.imageId=null; a.placeholder=true; a.showSize=true; } });
+  return { app:'exhibit-sim', version:1, state, images };
+}
+$('#simExLoad').onclick=async()=>{
+  const ex=SIM.ex&&SIM.ex.find(e=>e.id===$('#simEx').value); if(!ex){ toast('전시를 먼저 고르세요'); return; }
+  if(!rows.length){ toast('작품 목록을 불러오는 중이에요. 잠시 뒤 다시 눌러 주세요'); return; }
+  const btn=$('#simExLoad'); btn.disabled=true; btn.textContent='불러오는 중…';
+  try{
+    let data=null, from='new';
+    if(SIM.layoutsReady){ const q=await sb.from('exhibition_layouts').select('*').eq('exhibition_id', ex.id).maybeSingle(); if(q.data&&q.data.state){ data=await simFromSaved(q.data); from='saved'; } }
+    if(!data){
+      const links=SIM.links.filter(l=>l.exhibition_id===ex.id).sort((a,b)=>(a.display_order??0)-(b.display_order??0));
+      const picked=links.map(l=>rows.find(r=>r._id===l.work_id)).filter(Boolean), items=[];
+      for(let i=0;i<picked.length;i++){ btn.textContent='사진 준비 중… '+(i+1)+'/'+picked.length; items.push({ r:picked[i], sz:simSize(picked[i].size), img:await simImageData(picked[i]) }); }
+      data=simBuild(items, { hang:true, price:false, title:ex.title_ko||'' });
+    }
+    data.state.title=ex.title_ko||data.state.title||''; data.state.artist=data.state.artist||'신해달';
+    await simLoad(data); SIM.cur={ id:ex.id, title:ex.title_ko };
+    $('#simExNote').textContent=from==='saved'
+      ?'「'+(ex.title_ko||'')+'」 저장된 배치('+new Date(SIM.saved[ex.id]).toLocaleString('ko-KR')+')를 열었어요. 고친 뒤 다시 저장하면 덮어써요.'
+      :'「'+(ex.title_ko||'')+'」 출품작 '+data.state.artworks.length+'점을 벽 1에 걸었어요. 배치를 꾸민 뒤 「💾 이 전시 배치 저장」을 누르세요.';
+  }catch(e){ toast('전시 불러오기 실패: '+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent='전시 불러오기'; }
+};
+$('#simExSave').onclick=async()=>{
+  if(!SIM.layoutsReady){ alert('먼저 Supabase 에서 supabase/schema/exhibition_layouts_2026-11.sql 을 실행해 주세요.'); return; }
+  const ex=SIM.ex&&SIM.ex.find(e=>e.id===$('#simEx').value); if(!ex){ toast('저장할 전시를 위에서 고르세요'); return; }
+  if(!confirm('시뮬레이터에 지금 열린 배치를\n「'+(ex.title_ko||'')+'」 전시 기록으로 저장할까요?'+(SIM.saved[ex.id]?'\n(이미 저장된 배치를 덮어써요)':''))) return;
+  const btn=$('#simExSave'); btn.disabled=true; btn.textContent='저장 중…';
+  try{
+    const w=await simReady(); let blob=null; const od=w.download, ot=w.toast;
+    w.download=(n,b)=>{ blob=b; }; w.toast=()=>{};   // 시뮬레이터의 「파일로 저장」을 빌려 지금 상태를 받는다(파일로 내려받지 않게 잠깐 바꿔 끼움)
+    try{ w.saveProjectFile(); }finally{ w.download=od; w.toast=ot; }
+    if(!blob) throw new Error('시뮬레이터 상태를 읽지 못했어요');
+    const proj=JSON.parse(await blob.text()), st=proj.state||{};
+    const prevQ=await sb.from('exhibition_layouts').select('images').eq('exhibition_id', ex.id).maybeSingle(), prev=(prevQ.data&&prevQ.data.images)||{};
+    const artOf={}; (st.artworks||[]).forEach(a=>{ if(a.imageId) artOf[a.imageId]=a; });
+    const map={};
+    for(const [id,url] of Object.entries(proj.images||{})){
+      const a=artOf[id], wid=a&&(a.hdWork||((rows.find(r=>r.no&&r.no===a.note)||{})._id));
+      if(wid){ map[id]={ work:wid }; continue; }
+      if(prev[id]&&prev[id].file){ map[id]=prev[id]; continue; }   // 벽 사진 등은 한 번 올린 것을 다시 쓴다
+      const b=await (await fetch(url)).blob(), ext=b.type==='image/png'?'png':'jpg', path='layouts/'+ex.id+'/'+id+'-'+Date.now()+'.'+ext;
+      const up=await sb.storage.from('artwork-masters').upload(path, b, { contentType:b.type||'image/jpeg', upsert:false }); if(up.error) throw up.error;
+      map[id]={ file:'sb:'+path };
+    }
+    let who=null; try{ const u=await sb.auth.getUser(); who=u.data&&u.data.user&&u.data.user.email||null; }catch(e){}
+    const now=new Date().toISOString();
+    const q=await sb.from('exhibition_layouts').upsert({ exhibition_id:ex.id, state:st, images:map, saved_at:now, saved_by:who }); if(q.error) throw q.error;
+    SIM.saved[ex.id]=now; SIM.cur={ id:ex.id, title:ex.title_ko }; await simExInit();
+    toast('✅ 「'+(ex.title_ko||'')+'」 배치를 저장했어요 · 벽 '+(st.walls||[]).length+'개 · 작품 '+(st.artworks||[]).filter(a=>a.wallId).length+'점');
+  }catch(e){ toast('저장 실패: '+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent='💾 이 전시 배치 저장'; }
 };
 /* 예전 해달 시뮬레이터(simulator.html)에 남은 전시: IndexedDB 'hadal-exhibit' kv 'project' = {S,U}, images = {id: data URL} */
 async function simOldRead(){

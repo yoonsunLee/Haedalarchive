@@ -2406,6 +2406,22 @@ function roomBgList(){
   $('#rbFile').onchange=e=>roomBgUpload([...e.target.files]);
   if(cur) roomBgEditor();
 }
+/* 공간 연출 배경 12장(2026-11-18 GPT, room-backgrounds 가지)의 기준을 그림에서 재 둔 값. 같은 이름 파일을 올리면 자동으로 채운다(배경 관리에서 고칠 수 있음).
+   가구 폭·높이는 GPT 그림이 프롬프트 치수와 조금씩 달라 폭과 높이를 함께 보고 맞췄다. gap 0 = 가구 없는 빈 벽(작품 가운데 145 cm) */
+const ROOM_PRESETS={
+  'L1-hotel-suite':{name:'L1 호텔 스위트 침실', tier:'lux', meas_px:560, meas_cm:186.7, px_per_cm:3.0, line_y:482, line_cm:110.0, gap_cm:18, zone:{x:240,y:115,w:1180,h:350}},
+  'L1-hotel-suite-2':{name:'L1 호텔 스위트 침실 2', tier:'lux', meas_px:788, meas_cm:202.1, px_per_cm:3.9, line_y:521, line_cm:101.0, gap_cm:18, zone:{x:110,y:10,w:1400,h:495}},
+  'L2-hotel-lounge':{name:'L2 호텔 라운지', tier:'lux', meas_px:962, meas_cm:267.2, px_per_cm:3.6, line_y:633, line_cm:66.4, gap_cm:22, zone:{x:190,y:30,w:1130,h:585}},
+  'L3-gallery-living':{name:'L3 갤러리풍 거실', tier:'lux', meas_px:1065, meas_cm:226.6, px_per_cm:4.7, line_y:560, line_cm:75.5, gap_cm:22, zone:{x:200,y:20,w:1140,h:525}},
+  'L4-dining':{name:'L4 다이닝룸', tier:'lux', meas_px:940, meas_cm:191.8, px_per_cm:4.9, line_y:613, line_cm:70.4, gap_cm:25, zone:{x:150,y:20,w:1300,h:575}},
+  'L5-foyer':{name:'L5 현관 포이어', tier:'lux', meas_px:629, meas_cm:166.0, px_per_cm:3.79, line_y:662, line_cm:79.9, gap_cm:25, zone:{x:100,y:20,w:1350,h:625}},
+  'L5-foyer-2':{name:'L5 현관 포이어 2', tier:'lux', meas_px:443, meas_cm:144.8, px_per_cm:3.06, line_y:720, line_cm:80.1, gap_cm:25, zone:{x:120,y:20,w:1300,h:685}},
+  'L6-library':{name:'L6 서재 라운지', tier:'lux', meas_px:380, meas_cm:100.0, px_per_cm:3.8, line_y:845, line_cm:0.0, gap_cm:0, zone:{x:130,y:30,w:900,h:770}},
+  'K1-apt-living':{name:'K1 아파트 거실', tier:'apt', meas_px:960, meas_cm:218.2, px_per_cm:4.4, line_y:563, line_cm:69.8, gap_cm:22, zone:{x:230,y:90,w:1030,h:455}},
+  'K2-apt-bedroom':{name:'K2 아파트 침실', tier:'apt', meas_px:542, meas_cm:159.9, px_per_cm:3.39, line_y:500, line_cm:84.1, gap_cm:18, zone:{x:200,y:40,w:1280,h:440}},
+  'K3-apt-dining':{name:'K3 아파트 다이닝', tier:'apt', meas_px:350, meas_cm:100.0, px_per_cm:3.5, line_y:828, line_cm:0.0, gap_cm:0, zone:{x:170,y:80,w:1270,h:520}},
+  'K4-apt-hallway':{name:'K4 아파트 복도·현관', tier:'apt', meas_px:463, meas_cm:110.2, px_per_cm:4.2, line_y:617, line_cm:77.6, gap_cm:25, zone:{x:120,y:50,w:1260,h:550}},
+};
 async function roomBgUpload(files){
   for(const file of files){
     try{
@@ -2415,7 +2431,8 @@ async function roomBgUpload(files){
       const id='bg-'+Date.now(), ref=await uploadJpegToStorage(jpeg, 'rooms/'+id+'.jpg');
       const name=file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim();
       const tier=/^K|apt|아파트/i.test(file.name)?'apt':'lux';
-      const ins=await sb.from('room_backgrounds').insert({ id, name, tier, image_file:ref, img_w:im.naturalWidth, img_h:im.naturalHeight, sort_order:ROOM.bgs.length }).select('*').single();
+      const base=file.name.replace(/\.[a-z0-9]+$/i, ''), pre=ROOM_PRESETS[base]&&im.naturalWidth===1536?ROOM_PRESETS[base]:null;   // 미리 잰 기준(같은 크기일 때만)
+      const ins=await sb.from('room_backgrounds').insert(Object.assign({ id, name, tier, image_file:ref, img_w:im.naturalWidth, img_h:im.naturalHeight, sort_order:ROOM.bgs.length }, pre||{})).select('*').single();
       if(ins.error) throw ins.error; ROOM.bgs.push(ins.data); ROOM.ed={ b:ins.data };
     }catch(e){ toast('배경 올리기 실패: '+(e.message||e)); }
   }

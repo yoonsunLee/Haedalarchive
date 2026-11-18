@@ -21,6 +21,7 @@
   작품 편집의 「공간 연출」 칸(자동 2장 = 고급 1 + 아파트 1, 장마다 올리기·배경 바꾸기·위치 조정). 작품 사진을 실제 cm 크기로 배경에 합성해
   상세 사진(work_photos, room_bg 표시)으로 저장 → 발행·팝업은 그대로. 상세 사진 칸은 room_bg 행을 건드리지 않는다. 표: supabase/schema/room_views_2026-11.sql.
   배경은 GPT 로 만든 정면 사진(벽에 그림·글씨 없음). 작품은 언제나 실제 사진을 코드로 올린다(GPT 에 작품 합성 맡기지 않음).
+  배경 12장 원본은 `room-backgrounds` 가지(1536×1024 PNG). 같은 이름으로 올리면 admin 의 ROOM_PRESETS(미리 잰 기준)가 자동으로 채워진다.
 - 3D 갤러리는 홈페이지 저장소 `yoonsunLee/shinhaedal` 의 `gallery/index.html` 이 원본·최신본이다(그쪽 CLAUDE.md '갤러리').
 - `hosting/` = 카페24(국내 웹호스팅)에 올리는 PHP. **저장소에 올려도 자동 배포되지 않는다** — 사용자가 FTP 로 직접 올린다.
   - `contact.php`: Contact 폼 접수 → 작가 메일 발송(저장 안 함). `config.php` 는 저장소에 없다(`config.sample.php` 참고).

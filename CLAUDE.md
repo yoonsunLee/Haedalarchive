@@ -13,6 +13,10 @@
   「작품 불러오기」(작품 고르기 → 실제 cm·사진(data URL, 사본 CSP 가 data: 만 받음)으로 프로젝트 JSON → `iframe.contentWindow.loadProjectFile`, 새 전시로 열림, 입체 작품은 목록에만),
   「예전 전시 옮기기」(예전 `simulator.html` 의 IndexedDB 'hadal-exhibit' → 새 전시). 저장은 사본이 IndexedDB 'exhibit-sim' 에 알아서 한다.
   예전 `simulator.html`(해달판)은 메뉴에서 뺐고 파일만 남겨 둔다(옛 자료 보관용).
+  전시별 배치 아카이브: 「전시 불러오기」(전시 고르기 → 저장된 배치가 있으면 그것, 없으면 출품작(exhibition_works 순서)을 벽 1에) ·
+  「💾 이 전시 배치 저장」(사본의 saveProjectFile 을 빌려 상태를 받음 — download/toast 를 잠깐 바꿔 끼움) → Supabase exhibition_layouts
+  (supabase/schema/exhibition_layouts_2026-11.sql: state = 시뮬레이터 상태(사진 뺌), images = {사진id: {work:uuid}|{file:'sb:layouts/…'}}).
+  작품 자리에는 hdWork(작품 uuid)를 실어 둔다. 나중에 홈페이지에 전시 구성을 보여 줄 때 이 표를 읽는다(발행 스크립트에 아직 없음).
 - 3D 갤러리는 홈페이지 저장소 `yoonsunLee/shinhaedal` 의 `gallery/index.html` 이 원본·최신본이다(그쪽 CLAUDE.md '갤러리').
 - `hosting/` = 카페24(국내 웹호스팅)에 올리는 PHP. **저장소에 올려도 자동 배포되지 않는다** — 사용자가 FTP 로 직접 올린다.
   - `contact.php`: Contact 폼 접수 → 작가 메일 발송(저장 안 함). `config.php` 는 저장소에 없다(`config.sample.php` 참고).

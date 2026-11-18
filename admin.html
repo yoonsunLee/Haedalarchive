@@ -2421,6 +2421,15 @@ const ROOM_PRESETS={
   'K2-apt-bedroom':{name:'K2 아파트 침실', tier:'apt', meas_px:542, meas_cm:159.9, px_per_cm:3.39, line_y:500, line_cm:84.1, gap_cm:18, zone:{x:200,y:40,w:1280,h:440}},
   'K3-apt-dining':{name:'K3 아파트 다이닝', tier:'apt', meas_px:350, meas_cm:100.0, px_per_cm:3.5, line_y:828, line_cm:0.0, gap_cm:0, zone:{x:170,y:80,w:1270,h:520}},
   'K4-apt-hallway':{name:'K4 아파트 복도·현관', tier:'apt', meas_px:463, meas_cm:110.2, px_per_cm:4.2, line_y:617, line_cm:77.6, gap_cm:25, zone:{x:120,y:50,w:1260,h:550}},
+  // 2차(2026-11-19): 벽 색·재질·빛을 서로 다르게. 낮은 벤치(L9·L11)는 가구 위가 아니라 빈 벽처럼 가운데 145 cm
+  'L7-navy-lounge-evening':{name:'L7 남색 벽 라운지 · 저녁', tier:'lux', meas_px:1045, meas_cm:227.2, px_per_cm:4.6, line_y:598, line_cm:71.1, gap_cm:22, zone:{x:160,y:40,w:1220,h:535}},
+  'L8-walnut-panel-study':{name:'L8 월넛 판벽 서재', tier:'lux', meas_px:770, meas_cm:213.9, px_per_cm:3.6, line_y:682, line_cm:64.7, gap_cm:25, zone:{x:120,y:40,w:1300,h:615}},
+  'L9-concrete-loft':{name:'L9 콘크리트 로프트', tier:'lux', meas_px:795, meas_cm:227.1, px_per_cm:3.5, line_y:875, line_cm:0.0, gap_cm:0, zone:{x:120,y:110,w:1100,h:640}},
+  'L10-hanok-maru':{name:'L10 한옥 대청마루', tier:'lux', meas_px:439, meas_cm:107.1, px_per_cm:4.1, line_y:672, line_cm:56.1, gap_cm:25, zone:{x:240,y:150,w:1140,h:500}},
+  'L11-marble-lobby':{name:'L11 대리석 호텔 로비', tier:'lux', meas_px:982, meas_cm:261.9, px_per_cm:3.75, line_y:865, line_cm:0.0, gap_cm:0, zone:{x:210,y:40,w:1120,h:670}},
+  'K5-sage-living-evening':{name:'K5 회녹색 거실 · 저녁', tier:'apt', meas_px:960, meas_cm:208.7, px_per_cm:4.6, line_y:580, line_cm:75.0, gap_cm:22, zone:{x:200,y:60,w:1140,h:500}},
+  'K6-dark-cabinet-dining':{name:'K6 짙은 나무장 다이닝', tier:'apt', meas_px:892, meas_cm:193.9, px_per_cm:4.6, line_y:690, line_cm:55.4, gap_cm:25, zone:{x:200,y:40,w:900,h:630}},
+  'K7-small-study-room':{name:'K7 작은 서재방', tier:'apt', meas_px:577, meas_cm:144.2, px_per_cm:4.0, line_y:657, line_cm:65.8, gap_cm:25, zone:{x:160,y:40,w:1340,h:595}},
 };
 async function roomBgUpload(files){
   for(const file of files){

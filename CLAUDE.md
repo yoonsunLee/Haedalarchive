@@ -7,10 +7,12 @@
   데이터 원본은 Supabase(Postgres + Storage), 로그인해야 읽고 쓴다(RLS, 2단계 인증).
 - "🚀 홈페이지에 반영" → Supabase Edge Function(`supabase/functions/publish`) → 공개 홈페이지 저장소
   `yoonsunLee/shinhaedal` 의 발행 워크플로가 data/*.json·이미지를 굽는다. 어드민에서 고쳐도 반영 버튼(또는 매일 자동 발행) 전에는 사이트에 안 나간다.
-- `simulator.html` = 전시 시뮬레이터(어드민 왼쪽 메뉴 '전시 시뮬레이터 ↗'로 새 탭). **이 저장소의 파일이 원본이자 최신본이다(작가 결정 2026-11-14).**
-  예전엔 작가 PC의 `exhibition proto/index.html` 이 원본이었지만 이제 PC 쪽은 예전 판 — PC 파일로 덮어쓰지 않는다. 고칠 때는 여기서 직접 고친다.
-  로그인 없이도 '홈페이지 공개 작품'으로 열린다(shinhaedal.com 정적 JSON). 3D는 three.js r128(cdnjs)을 처음 누를 때 불러온다.
-  확인: `<script>` 를 뽑아 `node --check`, 화면은 Playwright로 열어 보기 단추(#viewSeg) 3D까지(여기선 cdnjs 가 막혀 three.min.js 를 npm 사본으로 route).
+- 전시 시뮬레이터(2026-11-18~): 왼쪽 메뉴 「전시 시뮬레이터」 = 어드민 안 화면(vSim). studio MEOT 시뮬레이터 사본 `tools/exhibition-sim/index.html` 을
+  같은 출처 iframe 으로 띄운다. **사본은 고치지 않는다**(script 가 CSP sha256 해시에 묶여 한 글자만 바꿔도 멈춤). 원본(github.com/studio-meot/exhibition-simulator)이
+  바뀌면 통째로 다시 복사하고 맨 위 주석의 커밋 번호만 바꾼다. 해달 쪽 기능은 admin.html 이 맡는다:
+  「작품 불러오기」(작품 고르기 → 실제 cm·사진(data URL, 사본 CSP 가 data: 만 받음)으로 프로젝트 JSON → `iframe.contentWindow.loadProjectFile`, 새 전시로 열림, 입체 작품은 목록에만),
+  「예전 전시 옮기기」(예전 `simulator.html` 의 IndexedDB 'hadal-exhibit' → 새 전시). 저장은 사본이 IndexedDB 'exhibit-sim' 에 알아서 한다.
+  예전 `simulator.html`(해달판)은 메뉴에서 뺐고 파일만 남겨 둔다(옛 자료 보관용).
 - 3D 갤러리는 홈페이지 저장소 `yoonsunLee/shinhaedal` 의 `gallery/index.html` 이 원본·최신본이다(그쪽 CLAUDE.md '갤러리').
 - `hosting/` = 카페24(국내 웹호스팅)에 올리는 PHP. **저장소에 올려도 자동 배포되지 않는다** — 사용자가 FTP 로 직접 올린다.
   - `contact.php`: Contact 폼 접수 → 작가 메일 발송(저장 안 함). `config.php` 는 저장소에 없다(`config.sample.php` 참고).

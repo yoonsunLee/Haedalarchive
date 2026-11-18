@@ -586,7 +586,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="workspage">Works 운영</button>
   <button data-v="works">작품 관리</button>
   <button data-v="exhibitions">전시 관리</button>
-  <button type="button" id="navSimulator" title="전시벽 배치 시뮬레이터를 새 탭에서 열기">전시 시뮬레이터 ↗</button>
+  <button data-v="sim" title="등록된 작품을 실제 크기로 벽에 걸어 보고 3D로 보기">전시 시뮬레이터</button>
   <button data-v="press">기사 등록</button>
   <button data-v="stats">방문통계</button>
   <button data-v="feecalc">수수료계산</button>
@@ -798,6 +798,15 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </div>
   </section>
 
+  <section id="vSim" hidden>
+    <div class="toolbar" style="padding:0 0 10px; gap:8px; flex-wrap:wrap; align-items:center">
+      <button class="btn primary" id="simPickBtn">＋ 작품 불러오기</button>
+      <button class="btn" id="simOldBtn" hidden title="예전 해달 시뮬레이터(이 브라우저)에 저장된 전시를 새 시뮬레이터로 옮겨요">예전 전시 옮기기</button>
+      <span class="hint">고른 작품을 실제 크기(cm)·사진으로 새 전시에 걸어요. 전시는 이 브라우저에 자동 저장되고, 시뮬레이터의 「내 전시」에서 다시 열 수 있어요.</span>
+    </div>
+    <iframe id="simFrame" title="전시 시뮬레이터" style="display:block; width:100%; height:calc(100vh - 150px); min-height:560px; border:1px solid var(--line); border-radius:12px; background:#fff"></iframe>
+  </section>
+
   <section id="vSettings" hidden>
     <div class="settings-box">
       <h3>🚀 홈페이지에 반영</h3>
@@ -923,6 +932,23 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   </form>
 </dialog>
 
+<dialog id="dlgSimPick" aria-label="시뮬레이터에 작품 불러오기" style="max-width:760px">
+  <div class="dlghead"><h2>전시 시뮬레이터에 작품 불러오기</h2><button class="btn" id="spClose">✕</button></div>
+  <div class="dlgbody">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px">
+      <input type="search" id="spQ" placeholder="작품명·번호 검색…" style="flex:1 1 200px">
+      <button type="button" class="btn" id="spAll">보이는 것 모두</button><button type="button" class="btn" id="spNone">선택 해제</button>
+    </div>
+    <div id="spList" style="max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:8px"></div>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:10px; font-size:.88rem">
+      <label>전시 제목 <input id="spTitle" placeholder="(선택)" style="width:200px"></label>
+      <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="spHang" checked style="width:auto"> 벽 1에 바로 걸기</label>
+      <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="spPrice" style="width:auto"> 가격 넣기</label>
+    </div>
+    <p class="hint" style="margin-top:6px">사진은 저장소 원본(없으면 홈페이지 사진)을 씁니다. 사진을 못 가져온 작품은 크기만 있는 빈 캔버스로, 입체 작품은 벽에 걸지 않고 목록에만 넣어요. 새 전시로 열리고, 지금 전시는 「내 전시」에 그대로 남아요.</p>
+  </div>
+  <div class="formfoot"><span id="spCount" class="hint" style="margin-right:auto"></span><button type="button" class="btn" id="spCancel">취소</button><button type="button" class="btn primary" id="spGo">불러오기</button></div>
+</dialog>
 <dialog id="dlgPressEdit">
   <div class="dlghead"><h2 id="peTitle">기사 등록</h2><button class="btn" id="btnClosePressEdit">✕</button></div>
   <form id="pressEditForm" method="dialog">
@@ -5021,10 +5047,11 @@ function goSection(v){
   $('#vActivity').hidden=section!=='activity';
   $('#vStats').hidden=section!=='stats';
   $('#vSettings').hidden=section!=='settings';
+  $('#vSim').hidden=section!=='sim';
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
   const TITLES={stats:'방문통계', home:'신해달 어드민', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
-                press:'기사 등록', feecalc:'수수료계산', activity:'작업기록', settings:'운영메모'};
+                press:'기사 등록', feecalc:'수수료계산', activity:'작업기록', settings:'운영메모', sim:'전시 시뮬레이터'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 어드민';
   $('#cnt').hidden=section!=='works';
   if(section==='works')render();
@@ -5036,12 +5063,119 @@ function goSection(v){
   if(section==='home')renderHome();
   if(section==='activity'){ loadTrash(); loadActivityLog(); }
   if(section==='stats') openStats();
+  if(section==='sim') simOpen();
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.sidebar button[data-v]').forEach(b=>b.onclick=()=>goSection(b.dataset.v));
 $('#brandHome').onclick=()=>goSection('home');
-// 전시 시뮬레이터: 같은 사이트의 별도 페이지라 로그인 세션을 그대로 이어받는다
-$('#navSimulator').onclick=()=>window.open('simulator.html','_blank');
+
+/* ---------- 전시 시뮬레이터 ----------
+   studio MEOT 시뮬레이터 사본(tools/exhibition-sim/index.html, 고치지 않음)을 같은 출처 iframe 으로 띄우고,
+   어드민이 작품 자료(실제 cm·사진)를 프로젝트 파일 형식으로 만들어 loadProjectFile 로 넘긴다.
+   사본의 CSP 는 그림을 data: 주소로만 받으므로 사진은 canvas 로 data URL(jpeg)로 바꿔 넘긴다.
+   예전 해달 시뮬레이터(simulator.html, IndexedDB 'hadal-exhibit')에 남은 전시는 「예전 전시 옮기기」로 새 전시로 연다. */
+const SIM={loaded:false, sel:new Set()};
+function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simCheckOld(); }
+function simReady(){
+  return new Promise((res,rej)=>{ const f=$('#simFrame'); let n=0;
+    const t=setInterval(()=>{ let w=null; try{ w=f.contentWindow; }catch(e){}
+      if(w && typeof w.loadProjectFile==='function' && w.document.readyState==='complete'){ clearInterval(t); setTimeout(()=>res(w), 600); }   // 자동 저장소(IndexedDB)가 열릴 틈
+      else if(++n>150){ clearInterval(t); rej(new Error('시뮬레이터가 열리지 않았어요')); } }, 100); });
+}
+async function simLoad(data){
+  const w=await simReady();
+  await w.loadProjectFile(new w.File([JSON.stringify(data)], 'p.json', { type:'application/json' }));
+}
+/* '45 × 45', 'A1 (59.4 × 84.1)', '10 × 9 × 6 cm' → {w,h,d} */
+function simSize(text){
+  const s=String(text||''), p=s.match(/\(([^)]*)\)/), t=(p&&/[×xX*]/.test(p[1]))?p[1]:s;
+  const m=t.match(/(\d+(?:\.\d+)?)\s*[×xX*]\s*(\d+(?:\.\d+)?)(?:\s*[×xX*]\s*(\d+(?:\.\d+)?))?/);
+  return m?{w:+m[1], h:+m[2], d:m[3]?+m[3]:0}:null;
+}
+async function simImageData(r){
+  const tries=[], v=String(r.image||'').trim();
+  if(v.indexOf('sb:')===0) tries.push(await signedUrlFor(v));
+  if(r.no) tries.push('https://shinhaedal.com/assets/works/'+encodeURIComponent(r.no)+'/large.webp');   // 홈페이지 사진(공개 작품)
+  const u=imgUrl(r,false); if(u && !tries.includes(u)) tries.push(u);
+  for(const src of tries){ if(!src) continue;
+    try{
+      const im=await new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+      const sc=Math.min(1, 1600/Math.max(im.naturalWidth, im.naturalHeight)), c=document.createElement('canvas');
+      c.width=Math.round(im.naturalWidth*sc); c.height=Math.round(im.naturalHeight*sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      return { url:c.toDataURL('image/jpeg', .88), iw:c.width, ih:c.height };
+    }catch(e){}
+  }
+  return null;
+}
+function simBuild(items, opt){
+  const flat=it=>it.sz && !(it.sz.d>4), GAP=60, MARGIN=80;
+  const hang=opt.hang?items.filter(flat):[];
+  const total=hang.reduce((a,it)=>a+it.sz.w, 0)+GAP*Math.max(0, hang.length-1);
+  const tall=Math.max(0, ...hang.map(it=>145+it.sz.h/2));
+  const wall={ id:'w1', name:'벽 1', width:Math.max(600, Math.ceil((total+MARGIN*2)/50)*50), height:Math.max(300, Math.ceil((tall+40)/50)*50), color:'#f6f4ef', turn:90, gap:0 };
+  let x=(wall.width-total)/2; const images={};
+  const artworks=items.map((it,i)=>{ const r=it.r, sz=it.sz||{w:50,h:50,d:0}, on=hang.includes(it), imgId=it.img?'i'+i:null;
+    if(it.img) images[imgId]=it.img.url;
+    const a={ id:'a'+(i+1), wallId:on?'w1':null, imageId:imgId, title:r.title||r.no||'무제', year:String(r.year||''), medium:r.material||'',
+      price:(opt.price && r.price && /^\d+$/.test(String(r.price)))?Number(r.price).toLocaleString('ko-KR')+'원':'', note:r.no||'',
+      sizeType:'C', sizeNo:'', sizeText:r.size||'', w:sz.w, h:sz.h, frame:0, frameColor:'#2a2622', canvasColor:'#ffffff', canvasText:'', fit:'cover', rot:0,
+      x:on?Math.round(x):0, fy:Math.max(20, 145-sz.h/2), iw:it.img?it.img.iw:null, ih:it.img?it.img.ih:null };
+    if(!it.img){ a.placeholder=true; a.showSize=true; }
+    if(on) x+=sz.w+GAP;
+    return a; });
+  return { app:'exhibit-sim', version:1, images, state:{ title:opt.title||'', artist:'신해달', unit:'cm', eyeLine:145, snap:5, grid:false, showDims:false, showLabels:true,
+    caption:{ show:true, w:10, h:6, gap:5, price:!!opt.price }, walls:[wall], artworks, obstacles:[] } };
+}
+function simPickRender(){
+  const q=$('#spQ').value.trim().toLowerCase();
+  const list=rows.filter(r=>!q || [r.no, r.title, r.title_en, r.size].join(' ').toLowerCase().includes(q));
+  SIM.visible=list;
+  $('#spList').innerHTML=list.map(r=>{ const sz=simSize(r.size);
+    return `<label style="display:flex; gap:8px; align-items:center; padding:6px 10px; border-bottom:1px solid var(--line); cursor:pointer">
+      <input type="checkbox" class="sp-ck" data-id="${esc(r._id)}" style="width:auto"${SIM.sel.has(r._id)?' checked':''}>
+      <span style="flex:1; min-width:0"><b>${esc(r.title||'(제목 없음)')}</b> <span class="hint">${esc(r.no||'')}</span></span>
+      <span class="hint" style="white-space:nowrap">${sz?esc(r.size):'<span style="color:var(--sold)">크기 없음</span>'}${sz&&sz.d>4?' · 입체':''}</span></label>`; }).join('')||'<p class="hint" style="padding:10px">작품이 없어요.</p>';
+  $('#spList').querySelectorAll('.sp-ck').forEach(el=>el.onchange=()=>{ el.checked?SIM.sel.add(el.dataset.id):SIM.sel.delete(el.dataset.id); simPickCount(); });
+  simPickCount();
+}
+function simPickCount(){ $('#spCount').textContent=SIM.sel.size?SIM.sel.size+'점 고름':''; }
+$('#simPickBtn').onclick=()=>{ if(!rows.length){ toast('작품 목록을 불러오는 중이에요. 잠시 뒤 다시 눌러 주세요'); return; } simPickRender(); $('#dlgSimPick').showModal(); };
+$('#spQ').oninput=simPickRender;
+$('#spAll').onclick=()=>{ (SIM.visible||[]).forEach(r=>SIM.sel.add(r._id)); simPickRender(); };
+$('#spNone').onclick=()=>{ SIM.sel.clear(); simPickRender(); };
+$('#spClose').onclick=$('#spCancel').onclick=()=>$('#dlgSimPick').close();
+$('#spGo').onclick=async()=>{
+  const picked=rows.filter(r=>SIM.sel.has(r._id)); if(!picked.length){ toast('작품을 골라 주세요'); return; }
+  const btn=$('#spGo'); btn.disabled=true;
+  try{
+    const items=[];
+    for(let i=0;i<picked.length;i++){ btn.textContent='사진 준비 중… '+(i+1)+'/'+picked.length; const r=picked[i]; items.push({ r, sz:simSize(r.size), img:await simImageData(r) }); }
+    const data=simBuild(items, { hang:$('#spHang').checked, price:$('#spPrice').checked, title:$('#spTitle').value.trim() });
+    btn.textContent='시뮬레이터에 넣는 중…'; await simLoad(data);
+    $('#dlgSimPick').close(); SIM.sel.clear();
+    const miss=items.filter(it=>!it.img).length;
+    toast('✅ '+items.length+'점을 새 전시로 불러왔어요'+(miss?' · 사진을 못 가져온 '+miss+'점은 빈 캔버스':''));
+  }catch(e){ toast('불러오기 실패: '+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent='불러오기'; }
+};
+/* 예전 해달 시뮬레이터(simulator.html)에 남은 전시: IndexedDB 'hadal-exhibit' kv 'project' = {S,U}, images = {id: data URL} */
+async function simOldRead(){
+  if(indexedDB.databases){ try{ const dbs=await indexedDB.databases(); if(!dbs.some(d=>d.name==='hadal-exhibit')) return null; }catch(e){} }
+  const db=await new Promise((res,rej)=>{ const r=indexedDB.open('hadal-exhibit', 1);
+    r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('kv'); d.createObjectStore('images'); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  try{
+    const get=(store, fn)=>new Promise((res,rej)=>{ const t=db.transaction(store, 'readonly'), out=fn(t.objectStore(store)); t.oncomplete=()=>res(out); t.onerror=()=>rej(t.error); });
+    const kv=await get('kv', s=>s.get('project')); const p=kv.result; if(!p||!p.S||!(p.S.artworks||[]).length) return null;
+    const images={}; await get('images', s=>{ const c=s.openCursor(); c.onsuccess=()=>{ const cur=c.result; if(cur){ images[cur.key]=cur.value; cur.continue(); } }; return c; });
+    return { app:'exhibit-sim', version:1, state:p.S, images };
+  }finally{ db.close(); }
+}
+async function simCheckOld(){ try{ const d=await simOldRead(); SIM.old=d; $('#simOldBtn').hidden=!d; }catch(e){ $('#simOldBtn').hidden=true; } }
+$('#simOldBtn').onclick=async()=>{
+  const d=SIM.old||await simOldRead(); if(!d){ toast('옮길 예전 전시가 없어요'); return; }
+  if(!confirm('예전 해달 시뮬레이터에 저장된 전시「'+(d.state.title||'제목 없음')+'」(작품 '+d.state.artworks.length+'점)를 새 시뮬레이터에 새 전시로 열까요?\n(예전 자료는 지우지 않아요)')) return;
+  try{ await simLoad(d); toast('✅ 예전 전시를 새 시뮬레이터로 옮겼어요'); }catch(e){ toast('옮기기 실패: '+(e.message||e)); }
+};
 $('#homeCards').onclick=e=>{const c=e.target.closest('[data-go]'); if(c) goSection(c.dataset.go);};
 $('#homeAddWork').onclick=()=>{ goSection('works'); $('#btnAdd').click(); };
 $('#homeAddVideo').onclick=()=>{ goSection('homevideos'); $('#btnHvAdd').click(); };

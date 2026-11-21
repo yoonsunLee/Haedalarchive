@@ -11,7 +11,7 @@
   같은 출처 iframe 으로 띄운다. **사본은 고치지 않는다**(script 가 CSP sha256 해시에 묶여 한 글자만 바꿔도 멈춤). 원본(github.com/studio-meot/exhibition-simulator)이
   바뀌면 통째로 다시 복사하고 맨 위 주석의 커밋 번호만 바꾼다. 해달 쪽 기능은 admin.html 이 맡는다:
   「작품 불러오기」(작품 고르기 → 실제 cm·사진(data URL, 사본 CSP 가 data: 만 받음)으로 프로젝트 JSON → `iframe.contentWindow.loadProjectFile`. 기본은 「지금 만들던 전시에 더하기」 = simCapture 로 지금 상태를 받아 simAppend 로 맨 끝 벽 오른쪽에 이어 건 뒤 다시 불러옴(사본은 불러오면 새 전시 항목을 만들고 이전 것도 목록에 남김), 「새 전시로 열기」도 있음, 입체 작품은 목록에만),
-  「예전 전시 옮기기」(예전 `simulator.html` 의 IndexedDB 'hadal-exhibit' → 새 전시). 저장은 사본이 IndexedDB 'exhibit-sim' 에 알아서 한다.
+  벽 빈 곳 끌기 = 네모 안 작품 여러 점 고르기(simPatchMarquee, 마우스만, Shift 로 더하기), 「예전 전시 옮기기」(예전 `simulator.html` 의 IndexedDB 'hadal-exhibit' → 새 전시). 저장은 사본이 IndexedDB 'exhibit-sim' 에 알아서 한다.
   예전 `simulator.html`(해달판)은 메뉴에서 뺐고 파일만 남겨 둔다(옛 자료 보관용).
   전시별 배치 아카이브: 「전시 불러오기」(전시 고르기 → 저장된 배치가 있으면 그것, 없으면 출품작(exhibition_works 순서)을 벽 1에) ·
   「💾 이 전시 배치 저장」(사본의 saveProjectFile 을 빌려 상태를 받음 — download/toast 를 잠깐 바꿔 끼움) → Supabase exhibition_layouts

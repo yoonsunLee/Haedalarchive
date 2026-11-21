@@ -33,6 +33,8 @@ alter table room_backgrounds drop constraint if exists room_backgrounds_tier_che
 alter table room_backgrounds add  constraint room_backgrounds_tier_check check (tier in ('lux', 'apt'));
 
 alter table room_backgrounds enable row level security;
+-- 표 권한(2026-11-21): 이 프로젝트는 새 표에 로그인 사용자 권한이 저절로 붙지 않아 'permission denied for table' 이 났다
+grant select, insert, update, delete on room_backgrounds to authenticated;
 drop policy if exists "authenticated full access on room_backgrounds" on room_backgrounds;
 create policy "authenticated full access on room_backgrounds"
   on room_backgrounds for all to authenticated using (true) with check (true);

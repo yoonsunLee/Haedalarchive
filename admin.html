@@ -387,6 +387,7 @@ header h1 small{color:var(--sub); font-weight:400; font-size:.78rem; margin-left
 .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
 .btn:active{transform:translateY(1px)}
 main{padding:0 16px 60px; max-width:1280px; margin:0 auto}
+main.wide{max-width:none; padding-bottom:16px}   /* 전시 시뮬레이터: 화면이 넓으면 시뮬레이터도 넓게(2026-11-21) */
 .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:16px}
 .stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; box-shadow:var(--shadow); cursor:pointer; user-select:none}
 .stat.on{border-color:var(--accent); outline:2px solid var(--accent)}
@@ -5418,7 +5419,7 @@ function goSection(v){
   $('#vActivity').hidden=section!=='activity';
   $('#vStats').hidden=section!=='stats';
   $('#vSettings').hidden=section!=='settings';
-  $('#vSim').hidden=section!=='sim';
+  $('#vSim').hidden=section!=='sim'; { const mn=document.querySelector('main'); if(mn) mn.classList.toggle('wide', section==='sim'); }
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
   const TITLES={stats:'방문통계', home:'신해달 어드민', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',

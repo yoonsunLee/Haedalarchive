@@ -974,8 +974,11 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </div>
     <div id="spList" style="max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:8px"></div>
     <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:10px; font-size:.88rem">
-      <label>전시 제목 <input id="spTitle" placeholder="(선택)" style="width:200px"></label>
-      <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="spHang" checked style="width:auto"> 벽 1에 바로 걸기</label>
+      <span style="display:flex;gap:10px;align-items:center;flex-basis:100%">
+        <label style="display:flex;gap:4px;align-items:center"><input type="radio" name="spMode" id="spAdd" value="add" checked style="width:auto"> 지금 만들던 전시에 더하기</label>
+        <label style="display:flex;gap:4px;align-items:center"><input type="radio" name="spMode" value="new" style="width:auto"> 새 전시로 열기</label></span>
+      <label>전시 제목 <input id="spTitle" placeholder="(새 전시일 때, 선택)" style="width:200px"></label>
+      <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="spHang" checked style="width:auto"> 벽에 바로 걸기</label>
       <label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="spPrice" style="width:auto"> 가격 넣기</label>
     </div>
     <p class="hint" style="margin-top:6px">사진은 저장소 원본(없으면 홈페이지 사진)을 씁니다. 사진을 못 가져온 작품은 크기만 있는 빈 캔버스로, 입체 작품은 벽에 걸지 않고 목록에만 넣어요. 새 전시로 열리고, 지금 전시는 「내 전시」에 그대로 남아요.</p>
@@ -5522,11 +5525,13 @@ $('#spGo').onclick=async()=>{
   try{
     const items=[];
     for(let i=0;i<picked.length;i++){ btn.textContent='사진 준비 중… '+(i+1)+'/'+picked.length; const r=picked[i]; items.push({ r, sz:simSize(r.size), img:await simImageData(r) }); }
-    const data=simBuild(items, { hang:$('#spHang').checked, price:$('#spPrice').checked, title:$('#spTitle').value.trim() });
+    const addMode=$('#spAdd').checked, hang=$('#spHang').checked;
+    let data=simBuild(items, { hang, price:$('#spPrice').checked, title:$('#spTitle').value.trim() });
+    if(addMode) data=simAppend(await simCapture(), data, hang);
     btn.textContent='시뮬레이터에 넣는 중…'; await simLoad(data);
     $('#dlgSimPick').close(); SIM.sel.clear();
     const miss=items.filter(it=>!it.img).length;
-    toast('✅ '+items.length+'점을 새 전시로 불러왔어요'+(miss?' · 사진을 못 가져온 '+miss+'점은 빈 캔버스':''));
+    toast('✅ '+items.length+'점을 '+(addMode?'지금 전시에 더했어요'+(hang?'(맨 끝 벽 오른쪽)':'(왼쪽 목록 「미배치」)'):'새 전시로 불러왔어요')+(miss?' · 사진을 못 가져온 '+miss+'점은 빈 캔버스':''));
   }catch(e){ toast('불러오기 실패: '+(e.message||e)); }
   finally{ btn.disabled=false; btn.textContent='불러오기'; }
 };
@@ -5540,13 +5545,13 @@ async function simExInit(){
     sb.from('exhibition_layouts').select('exhibition_id, saved_at'),
     sb.from('exhibition_works').select('*')]);
   SIM.ex=(x.data||[]).sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
-  SIM.layoutsReady=!l.error; SIM.saved={}; (l.data||[]).forEach(r=>SIM.saved[r.exhibition_id]=r.saved_at);
+  SIM.layoutsReady=!l.error; SIM.layoutsErr=l.error?(l.error.message||l.error.code||String(l.error)):''; SIM.saved={}; (l.data||[]).forEach(r=>SIM.saved[r.exhibition_id]=r.saved_at);
   SIM.links=k.data||[];
   const cur=$('#simEx').value||(SIM.cur&&SIM.cur.id)||'';
   $('#simEx').innerHTML='<option value="">전시 고르기…</option>'+SIM.ex.map(e=>{ const n=SIM.links.filter(l=>l.exhibition_id===e.id).length;
     return `<option value="${esc(e.id)}">${esc(String(e.start_date||'').slice(0,7))} · ${esc(e.title_ko||e.exhibition_no||'')} (${n}점)${SIM.saved[e.id]?' · 저장됨':''}</option>`; }).join('');
   $('#simEx').value=cur;
-  if(!SIM.layoutsReady) $('#simExNote').innerHTML='전시별 배치 저장을 쓰려면 Supabase 에서 <b>supabase/schema/exhibition_layouts_2026-11.sql</b> 을 한 번 실행해 주세요. (불러오기는 지금도 돼요)';
+  if(!SIM.layoutsReady) $('#simExNote').innerHTML='전시별 배치 저장을 쓰려면 Supabase 에서 <b>supabase/schema/exhibition_layouts_2026-11.sql</b> 을 한 번 실행해 주세요. (불러오기는 지금도 돼요)'+(SIM.layoutsErr?' <span style="color:#b42318">· 오류: '+esc(SIM.layoutsErr)+'</span>':'');
 }
 async function simUrlData(src){
   const im=await new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=src; });
@@ -5586,17 +5591,34 @@ $('#simExLoad').onclick=async()=>{
   }catch(e){ toast('전시 불러오기 실패: '+(e.message||e)); }
   finally{ btn.disabled=false; btn.textContent='전시 불러오기'; }
 };
+/* 시뮬레이터 지금 상태를 프로젝트(JSON)로 받는다: 사본의 「파일로 저장」을 빌리되 파일로 내려받지 않게 download/toast 를 잠깐 바꿔 끼운다 */
+async function simCapture(){
+  const w=await simReady(); let blob=null; const od=w.download, ot=w.toast;
+  w.download=(n,b)=>{ blob=b; }; w.toast=()=>{};
+  try{ w.saveProjectFile(); }finally{ w.download=od; w.toast=ot; }
+  if(!blob) throw new Error('시뮬레이터 상태를 읽지 못했어요');
+  return JSON.parse(await blob.text());
+}
+/* 지금 전시에 작품 더하기: 새 작품은 맨 끝 벽의 기존 작품 오른쪽에 이어 건다(자리가 모자라면 벽을 넓힌다). 걸지 않으면 미배치 목록에 */
+function simAppend(proj, add, hang){
+  const st=proj.state||(proj.state={}); st.walls=st.walls&&st.walls.length?st.walls:[{ id:'w1', name:'벽 1', width:600, height:300, color:'#f6f4ef', turn:90, gap:0 }];
+  st.artworks=st.artworks||[]; proj.images=proj.images||{};
+  const wall=st.walls[st.walls.length-1], tag='h'+Date.now().toString(36), GAP=60;
+  let x=Math.max(80, ...st.artworks.filter(a=>a.wallId===wall.id).map(a=>(a.x||0)+(a.w||0)+GAP));
+  for(const a0 of add.state.artworks){ const a={...a0, id:tag+a0.id};
+    if(a0.imageId){ a.imageId=tag+a0.imageId; proj.images[a.imageId]=add.images[a0.imageId]; }
+    if(hang && a0.wallId){ a.wallId=wall.id; a.x=Math.round(x); x+=a.w+GAP; } else { a.wallId=null; a.x=0; }
+    st.artworks.push(a); }
+  if(hang) wall.width=Math.max(wall.width, Math.ceil((x-GAP+80)/50)*50);
+  return proj;
+}
 $('#simExSave').onclick=async()=>{
-  if(!SIM.layoutsReady){ alert('먼저 Supabase 에서 supabase/schema/exhibition_layouts_2026-11.sql 을 실행해 주세요.'); return; }
+  if(!SIM.layoutsReady){ alert('먼저 Supabase 에서 supabase/schema/exhibition_layouts_2026-11.sql 을 실행해 주세요.'+(SIM.layoutsErr?'\n\n(오류: '+SIM.layoutsErr+')':'')); return; }
   const ex=SIM.ex&&SIM.ex.find(e=>e.id===$('#simEx').value); if(!ex){ toast('저장할 전시를 위에서 고르세요'); return; }
   if(!confirm('시뮬레이터에 지금 열린 배치를\n「'+(ex.title_ko||'')+'」 전시 기록으로 저장할까요?'+(SIM.saved[ex.id]?'\n(이미 저장된 배치를 덮어써요)':''))) return;
   const btn=$('#simExSave'); btn.disabled=true; btn.textContent='저장 중…';
   try{
-    const w=await simReady(); let blob=null; const od=w.download, ot=w.toast;
-    w.download=(n,b)=>{ blob=b; }; w.toast=()=>{};   // 시뮬레이터의 「파일로 저장」을 빌려 지금 상태를 받는다(파일로 내려받지 않게 잠깐 바꿔 끼움)
-    try{ w.saveProjectFile(); }finally{ w.download=od; w.toast=ot; }
-    if(!blob) throw new Error('시뮬레이터 상태를 읽지 못했어요');
-    const proj=JSON.parse(await blob.text()), st=proj.state||{};
+    const proj=await simCapture(), st=proj.state||{};
     const prevQ=await sb.from('exhibition_layouts').select('images').eq('exhibition_id', ex.id).maybeSingle(), prev=(prevQ.data&&prevQ.data.images)||{};
     const artOf={}; (st.artworks||[]).forEach(a=>{ if(a.imageId) artOf[a.imageId]=a; });
     const map={};

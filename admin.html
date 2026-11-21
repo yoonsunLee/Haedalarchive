@@ -5540,13 +5540,13 @@ async function simExInit(){
     sb.from('exhibition_layouts').select('exhibition_id, saved_at'),
     sb.from('exhibition_works').select('*')]);
   SIM.ex=(x.data||[]).sort((a,b)=>String(b.start_date||'').localeCompare(String(a.start_date||'')));
-  SIM.layoutsReady=!l.error; SIM.saved={}; (l.data||[]).forEach(r=>SIM.saved[r.exhibition_id]=r.saved_at);
+  SIM.layoutsReady=!l.error; SIM.layoutsErr=l.error?(l.error.message||l.error.code||String(l.error)):''; SIM.saved={}; (l.data||[]).forEach(r=>SIM.saved[r.exhibition_id]=r.saved_at);
   SIM.links=k.data||[];
   const cur=$('#simEx').value||(SIM.cur&&SIM.cur.id)||'';
   $('#simEx').innerHTML='<option value="">전시 고르기…</option>'+SIM.ex.map(e=>{ const n=SIM.links.filter(l=>l.exhibition_id===e.id).length;
     return `<option value="${esc(e.id)}">${esc(String(e.start_date||'').slice(0,7))} · ${esc(e.title_ko||e.exhibition_no||'')} (${n}점)${SIM.saved[e.id]?' · 저장됨':''}</option>`; }).join('');
   $('#simEx').value=cur;
-  if(!SIM.layoutsReady) $('#simExNote').innerHTML='전시별 배치 저장을 쓰려면 Supabase 에서 <b>supabase/schema/exhibition_layouts_2026-11.sql</b> 을 한 번 실행해 주세요. (불러오기는 지금도 돼요)';
+  if(!SIM.layoutsReady) $('#simExNote').innerHTML='전시별 배치 저장을 쓰려면 Supabase 에서 <b>supabase/schema/exhibition_layouts_2026-11.sql</b> 을 한 번 실행해 주세요. (불러오기는 지금도 돼요)'+(SIM.layoutsErr?' <span style="color:#b42318">· 오류: '+esc(SIM.layoutsErr)+'</span>':'');
 }
 async function simUrlData(src){
   const im=await new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=src; });
@@ -5587,7 +5587,7 @@ $('#simExLoad').onclick=async()=>{
   finally{ btn.disabled=false; btn.textContent='전시 불러오기'; }
 };
 $('#simExSave').onclick=async()=>{
-  if(!SIM.layoutsReady){ alert('먼저 Supabase 에서 supabase/schema/exhibition_layouts_2026-11.sql 을 실행해 주세요.'); return; }
+  if(!SIM.layoutsReady){ alert('먼저 Supabase 에서 supabase/schema/exhibition_layouts_2026-11.sql 을 실행해 주세요.'+(SIM.layoutsErr?'\n\n(오류: '+SIM.layoutsErr+')':'')); return; }
   const ex=SIM.ex&&SIM.ex.find(e=>e.id===$('#simEx').value); if(!ex){ toast('저장할 전시를 위에서 고르세요'); return; }
   if(!confirm('시뮬레이터에 지금 열린 배치를\n「'+(ex.title_ko||'')+'」 전시 기록으로 저장할까요?'+(SIM.saved[ex.id]?'\n(이미 저장된 배치를 덮어써요)':''))) return;
   const btn=$('#simExSave'); btn.disabled=true; btn.textContent='저장 중…';

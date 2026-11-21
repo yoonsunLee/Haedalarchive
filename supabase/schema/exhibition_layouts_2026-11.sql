@@ -18,6 +18,8 @@ alter table exhibition_layouts add column if not exists saved_by  text;
 
 
 alter table exhibition_layouts enable row level security;
+-- 표 권한(2026-11-21): 이 프로젝트는 새 표에 로그인 사용자 권한이 저절로 붙지 않아 'permission denied for table' 이 났다
+grant select, insert, update, delete on exhibition_layouts to authenticated;
 drop policy if exists "authenticated full access on exhibition_layouts" on exhibition_layouts;
 create policy "authenticated full access on exhibition_layouts"
   on exhibition_layouts for all to authenticated using (true) with check (true);

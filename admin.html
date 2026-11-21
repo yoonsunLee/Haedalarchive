@@ -834,6 +834,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
       <button class="btn primary" id="simExSave" title="시뮬레이터에 지금 열린 배치를 고른 전시의 기록으로 저장해요">💾 이 전시 배치 저장</button>
       <span style="width:1px;height:22px;background:var(--line)"></span>
       <button class="btn" id="simPickBtn">＋ 작품 불러오기</button>
+      <label class="hint" style="display:flex;gap:4px;align-items:center" title="시뮬레이터 「내보내기」의 벽 이미지(PNG)에 작품마다 붙는 검은 동그라미 번호"><input type="checkbox" id="simNums" style="width:auto"> 내보내기 그림에 번호</label>
       <button class="btn" id="simOldBtn" hidden title="예전 해달 시뮬레이터(이 브라우저)에 저장된 전시를 새 시뮬레이터로 옮겨요">예전 전시 옮기기</button>
       <span class="hint" id="simExNote">전시를 고르고 「전시 불러오기」를 누르면 출품작이 실제 크기로 걸려요. 꾸민 뒤 「💾 이 전시 배치 저장」을 누르면 그 전시의 기록으로 남아요(다른 컴퓨터에서도 열림).</span>
     </div>
@@ -5450,11 +5451,24 @@ $('#brandHome').onclick=()=>goSection('home');
    사본의 CSP 는 그림을 data: 주소로만 받으므로 사진은 canvas 로 data URL(jpeg)로 바꿔 넘긴다.
    예전 해달 시뮬레이터(simulator.html, IndexedDB 'hadal-exhibit')에 남은 전시는 「예전 전시 옮기기」로 새 전시로 연다. */
 const SIM={loaded:false, sel:new Set()};
-function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simCheckOld(); simExInit(); }
+/* 내보내기 그림의 작품 번호(검은 동그라미) 넣기·빼기(2026-11-21). 사본은 고칠 수 없어 그 창의 캔버스 그리기를 살짝 감싼다:
+   번호 동그라미는 fillStyle '#2c2f33' 의 arc → fill, 이어서 흰 글자 fillText 하나로 그려진다. 끄면 그 셋만 건너뛴다 */
+const SIM_NUMS_KEY='hd-sim-nums';
+function simNumsOn(){ try{ return localStorage.getItem(SIM_NUMS_KEY)!=='0'; }catch(e){ return true; } }
+function simPatchNums(w){
+  if(!w || w.__hdNums) return; const P=w.CanvasRenderingContext2D&&w.CanvasRenderingContext2D.prototype; if(!P) return; w.__hdNums=true;
+  const arc=P.arc, fill=P.fill, fillText=P.fillText;
+  P.arc=function(...a){ if(!simNumsOn() && String(this.fillStyle).toLowerCase()==='#2c2f33'){ this.__hdSkip=2; return; } return arc.apply(this,a); };
+  P.fill=function(...a){ if(this.__hdSkip===2){ this.__hdSkip=1; return; } return fill.apply(this,a); };
+  P.fillText=function(...a){ if(this.__hdSkip===1){ this.__hdSkip=0; if(/^\d+$/.test(String(a[0]))) return; } return fillText.apply(this,a); };
+}
+$('#simNums').checked=simNumsOn();
+$('#simNums').onchange=e=>{ try{ localStorage.setItem(SIM_NUMS_KEY, e.target.checked?'1':'0'); }catch(_){} };
+function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simReady().catch(()=>{}); simCheckOld(); simExInit(); }
 function simReady(){
   return new Promise((res,rej)=>{ const f=$('#simFrame'); let n=0;
     const t=setInterval(()=>{ let w=null; try{ w=f.contentWindow; }catch(e){}
-      if(w && typeof w.loadProjectFile==='function' && w.document.readyState==='complete'){ clearInterval(t); setTimeout(()=>res(w), 600); }   // 자동 저장소(IndexedDB)가 열릴 틈
+      if(w && typeof w.loadProjectFile==='function' && w.document.readyState==='complete'){ clearInterval(t); simPatchNums(w); setTimeout(()=>res(w), 600); }   // 자동 저장소(IndexedDB)가 열릴 틈
       else if(++n>150){ clearInterval(t); rej(new Error('시뮬레이터가 열리지 않았어요')); } }, 100); });
 }
 async function simLoad(data){

@@ -5461,9 +5461,19 @@ function simPatchNums(w){
   P.arc=function(...a){ if(!simNumsOn() && String(this.fillStyle).toLowerCase()==='#2c2f33'){ this.__hdSkip=2; return; } return arc.apply(this,a); };
   P.fill=function(...a){ if(this.__hdSkip===2){ this.__hdSkip=1; return; } return fill.apply(this,a); };
   P.fillText=function(...a){ if(this.__hdSkip===1){ this.__hdSkip=0; if(/^\d+$/.test(String(a[0]))) return; } return fillText.apply(this,a); };
+  // 시뮬레이터 「내보내기」 메뉴 맨 위에도 같은 체크를 넣는다(벽 이미지 PNG·전체 벽 PNG·설치 도면 PDF 그림에 적용)
+  const menu=w.document.getElementById('exportMenu');
+  if(menu && !menu.querySelector('.hd-nums')){
+    const row=w.document.createElement('label'); row.className='hd-nums';
+    Object.assign(row.style,{display:'flex',gap:'6px',alignItems:'center',padding:'8px 10px',borderBottom:'1px solid #e6e1d8',marginBottom:'4px',fontSize:'13px',cursor:'pointer'});
+    const ck=w.document.createElement('input'); ck.type='checkbox'; ck.checked=simNumsOn(); Object.assign(ck.style,{width:'auto',margin:'0'});
+    const tx=w.document.createElement('span'); tx.textContent='그림에 작품 번호 넣기';
+    row.append(ck,tx); row.addEventListener('click',e=>e.stopPropagation());
+    ck.addEventListener('change',()=>{ try{ localStorage.setItem(SIM_NUMS_KEY, ck.checked?'1':'0'); }catch(_){} $('#simNums').checked=ck.checked; });
+    menu.prepend(row); w.__hdNumsCk=ck; }
 }
 $('#simNums').checked=simNumsOn();
-$('#simNums').onchange=e=>{ try{ localStorage.setItem(SIM_NUMS_KEY, e.target.checked?'1':'0'); }catch(_){} };
+$('#simNums').onchange=e=>{ try{ localStorage.setItem(SIM_NUMS_KEY, e.target.checked?'1':'0'); }catch(_){} try{ const w=$('#simFrame').contentWindow; if(w&&w.__hdNumsCk) w.__hdNumsCk.checked=e.target.checked; }catch(_){} };
 function simOpen(){ const f=$('#simFrame'); if(!SIM.loaded){ SIM.loaded=true; f.src='tools/exhibition-sim/index.html'; } simReady().catch(()=>{}); simCheckOld(); simExInit(); }
 function simReady(){
   return new Promise((res,rej)=>{ const f=$('#simFrame'); let n=0;

@@ -525,6 +525,23 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .imgupload{display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap}
 .imgpreview{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line)}
 .media-manager{display:flex; flex-direction:column; gap:8px; margin-bottom:8px}
+/* 작품 사진 칸(대표 + 상세 사진 한 칸, 2026-11-27) */
+.ph-box{border:1px dashed transparent; border-radius:12px; transition:border-color .15s, background .15s}
+.ph-box.ph-over{border-color:var(--accent2); background:rgba(46,109,164,.06)}
+.ph-main{display:flex; align-items:center; gap:10px; padding:8px; border:2px solid var(--accent2); border-radius:10px; background:var(--bg)}
+.ph-main-img{width:96px; height:96px}
+.ph-star{font-weight:700; color:var(--accent2); font-size:.9rem}
+.ph-sub{font-size:.78rem; color:var(--sub); margin-top:2px}
+.ph-empty{padding:14px; text-align:center; border:1px dashed var(--line); border-radius:10px}
+.ph-line{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
+@media(max-width:520px){ #photoManager .mm-fields-row{flex-direction:column} }
+.ph-acts{display:inline-flex; gap:4px; align-items:center}
+.ph-mv{width:30px; height:28px; border:1px solid var(--line); background:var(--card); border-radius:6px; cursor:pointer; color:var(--ink)} .ph-mv:disabled{opacity:.3; cursor:default}
+.ph-pick{border:1px solid var(--line); background:var(--card); color:var(--accent2); border-radius:20px; padding:3px 10px; font-size:.78rem; cursor:pointer}
+.ph-add{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:12px; border:1px dashed var(--accent2); color:var(--accent2); cursor:pointer; font-size:.92rem; min-height:48px}
+.ph-add small{color:var(--sub); font-size:.75rem}
+.ph-en{font-size:.78rem; color:var(--sub)} .ph-en summary{cursor:pointer; width:max-content} .ph-en input{margin-top:4px}
+.ph-url{margin-top:6px; font-size:.8rem; color:var(--sub)} .ph-url summary{cursor:pointer} .ph-url input{margin-top:6px}
 /* 공간 연출(작품 편집 칸 + 배경 관리 창) */
 .rv-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; margin:6px 0}
 .rv-card{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)} .rv-card.off .rv-scene{opacity:.55}
@@ -1040,7 +1057,7 @@ const KEYS=['no','image','title','caption','material','size','year','price','sol
 const LABELS={no:'Artwork No.',image:'이미지',title:'작품명',caption:'캡션',material:'재료',size:'크기 (cm)',year:'연도',price:'판매가격',sold:'판매여부',discount:'할인률',actual_price:'실거래가',payment:'결제방식',sale_date:'판매일자',delivery_date:'작품인도일',channel:'판매경로',owner:'소장자',exhibitions:'전시 이력 (자동)',note:'비고',qty:'수량',sold_qty:'판매개수'};
 
 let rows=[], lastList=[], view='gallery', section='home', current=null, isNew=false, statFilter='', revealRevenue=false, smallGrid=false;
-let PHOTO_ROWS=[], MEDIA_ROWS=[];
+let PHOTO_ROWS=[], MEDIA_ROWS=[], PH_MAIN={image_file:'',_preview:''};
 /* Works 구성(works_page_2026-09.sql). 열·표가 아직 없으면 관련 칸을 숨기고 안내만 한다. */
 let WORKS_HAS_ORDER=false;   // works.display_order·series_order 열이 있는지
 let ED_HAS_FEE=false;        // editions 수수료·정산 열(sales_commission_2026-11.sql)이 있는지
@@ -2106,13 +2123,14 @@ function openEdit(r,neu){
         loadCandidates.map((x,i)=>`<option value="${i}">${esc(x.no||'번호미부여')} · ${esc(String(x.title).split('\n')[0].slice(0,50))}</option>`).join('')}</select>`,
       '선택하면 아래 정보가 전부 채워집니다 (작품번호·사진은 제외)'):'')+
     F('작품번호',`<input name="no" value="${esc(r.no)}">`, neu?'연도·유형을 바꾸면 번호가 다시 매겨집니다. 등록 예정 작품에는 번호를 붙이지 않습니다.':'직접 고칠 수 있습니다. 다른 작품과 겹치면 저장되지 않습니다.')+
-    F(LABELS.image,
-      `<div class="imgupload">
-        ${curImg?`<img class="imgpreview" id="imgPrev" src="${esc(curImg)}" onerror="this.style.display='none'">`:`<img class="imgpreview" id="imgPrev" style="display:none">`}
-        <input type="file" id="fFile" accept="image/*" style="width:auto">
-      </div>
-      <input name="image" id="fImage" value="${esc(r.image)}" placeholder="사진을 고르면 자동으로 올라갑니다">`,
-      '사진을 고르면 보관함에 저장됩니다. 이미지 주소를 직접 붙여넣어도 됩니다.')+
+    F('사진',
+      `<div id="photoManager" class="media-manager ph-box"></div>
+       <label class="btn ph-add">＋ 사진 올리기 <small>여러 장 한 번에</small><input type="file" id="fPhotoFiles" accept="image/*" multiple hidden></label>
+       <details class="ph-url"><summary>이미지 주소로 넣기</summary>
+         <input name="image" id="fImage" value="${esc(r.image)}" placeholder="https://… 대표 이미지 주소"></details>`,
+      '<b>대표</b> 사진이 목록 썸네일이 되고, 홈페이지 작품 화면에 맨 처음 걸립니다. 나머지는 그 뒤 사진 줄에 이 순서대로 나옵니다.'+
+       MORE('고르는 법', '휴대폰에서는 사진 앱에서 여러 장을 함께 고를 수 있어요. PC에서는 사진 파일을 이 칸으로 끌어다 놓아도 됩니다.'+
+         '<p>다른 사진의 <b>대표로</b>를 누르면 서로 자리를 바꿉니다. 원래 대표 사진은 지워지지 않고 상세 사진으로 내려갑니다. <b>저장</b>을 눌러야 반영돼요.</p>'))+
     P2('작품명',`<input name="title_ko" value="${esc(tko)}">`,`<input name="title_en" value="${esc(ten)}">`)+
     P2(LABELS.caption,`<textarea name="caption">${esc(r.caption)}</textarea>`,
        `<textarea name="caption_en">${esc(r.caption_en||'')}</textarea>`,
@@ -2151,7 +2169,7 @@ function openEdit(r,neu){
     F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
     feeFieldsHTML(r)
     , hasSale)+
-    G('홈페이지 노출','전시 이력·시리즈·도슨트·상세 사진·영상',
+    G('홈페이지 노출','전시 이력·시리즈·도슨트·영상',
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
@@ -2177,11 +2195,6 @@ function openEdit(r,neu){
       '홈페이지의 도슨트 재생 단추는 오디오가 있어야 나타납니다.'+
        MORE('대본만 저장해도 되나요', '됩니다. 다만 오디오를 올리기 전까지는 홈페이지에 재생 단추가 안 보입니다.'+
          '<p>위 <b>노출</b> 체크가 꺼져 있으면 오디오·대본이 있어도 홈페이지에 나가지 않습니다.</p>'))+
-    F('상세 사진',
-      `<div id="photoManager" class="media-manager"></div>
-       <input type="file" id="fPhotoFiles" accept="image/*" multiple style="width:auto;margin-top:8px">`,
-      '작품 상세 화면의 작은 사진 줄에 나옵니다. 끌어서 순서를 바꾸고, 하나씩 노출을 끌 수 있습니다.'+
-       MORE('대표 이미지는요', '여기에 사진을 더해도 목록에 보이는 대표 이미지는 그대로입니다. 대표 이미지는 위 <b>이미지</b> 칸에서 바꿉니다.'))+
     F('공간 연출',
       `<div id="roomManager" class="media-manager"><div class="hint">불러오는 중…</div></div>`,
       '홈페이지 작품 팝업 사진 줄에 「공간 연출 — 실제 크기 비율로 합성한 이미지예요」 설명과 함께 나옵니다. 처음엔 크기에 맞는 배경 2장(고급 1 + 아파트 1)을 자동으로 골라요.'+
@@ -2274,7 +2287,10 @@ function openEdit(r,neu){
     toast('작품 정보를 불러왔습니다 — 작품번호와 사진은 새로 입력하세요');
   };
   // 이미지 업로드
-  $('#fFile').onchange=()=>uploadImage($('#fFile').files[0]);
+  PH_MAIN={ image_file:String(r.image||'').trim(), _preview:curImg||'' };
+  // 주소를 직접 고쳐 적을 때만(사람 입력) 대표를 그 주소로. phSetMain이 쏘는 input 은 공간 연출용이라 건너뛴다.
+  $('#fImage').addEventListener('input', e=>{ if(!e.isTrusted) return; PH_MAIN={ image_file:$('#fImage').value.trim(), _preview:'' }; renderPhotoManager(); });
+  phWireDrop($('#photoManager'));
   const workIdForMedia=neu?null:r._id;
   Promise.all([loadPhotoRows(workIdForMedia), loadMediaRows(workIdForMedia)]).then(()=>{
     renderPhotoManager();
@@ -2291,7 +2307,7 @@ function openEdit(r,neu){
   pushDialogHistory();
   document.querySelector('#dlgEdit .dlgbody').scrollTop=0;
 }
-/* ---------- 여러 장 업로드용 공용 압축·저장 헬퍼 (uploadImage 등과 같은 방식) ---------- */
+/* ---------- 여러 장 업로드용 공용 압축·저장 헬퍼 (사진 칸 여러 장 올리기 등) ---------- */
 async function compressToJpeg(file, max){
   const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
   const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataUrl});
@@ -2652,45 +2668,94 @@ async function loadPhotoRows(workId){
   PHOTO_ROWS=(res.data||[]).filter(r=>!r.room_bg).map(r=>({ id:r.id, image_file:r.image_file, sort_order:r.sort_order,
     caption_ko:r.caption_ko||'', caption_en:r.caption_en||'', alt_text:r.alt_text||'', is_public:r.is_public!==false, _preview:null }));
 }
+/* 작품 사진 칸: 대표(works.image_file) + 상세 사진(work_photos)을 한 칸에서 다룬다(2026-11-27). */
+function phSetMain(m){
+  PH_MAIN=m;
+  const el=$('#fImage'); if(!el) return;
+  el.value=m.image_file||'';
+  el.dispatchEvent(new Event('input'));   // 공간 연출 칸이 새 대표 사진으로 다시 그리게
+}
+function phMainSrc(){
+  if(PH_MAIN._preview) return PH_MAIN._preview;
+  return imgUrl({image:PH_MAIN.image_file}, true);
+}
 async function renderPhotoManager(){
   const box=$('#photoManager'); if(!box) return;
-  if(!PHOTO_ROWS.length){ box.innerHTML='<div class="hint">등록된 상세 사진이 없습니다</div>'; return; }
-  box.innerHTML=PHOTO_ROWS.map((p,i)=>`
+  const main=PH_MAIN.image_file
+    ? `<div class="ph-main">
+        <img class="mm-thumb ph-main-img" id="pmMain" src="${esc(phMainSrc())}" onerror="this.style.opacity=.2">
+        <div class="mm-fields"><span class="ph-star">대표</span>
+          <span class="hint">목록 썸네일 · 홈페이지에 맨 처음 걸리는 사진</span></div>
+        <button type="button" class="mm-del" id="pmMainDel">빼기</button>
+      </div>`
+    : '<div class="hint ph-empty">아직 사진이 없어요. 처음 올린 사진이 대표가 됩니다.</div>';
+  box.innerHTML=main+(PHOTO_ROWS.length?'<div class="ph-sub">상세 사진 '+PHOTO_ROWS.length+'장 · 끌거나 ↑↓로 순서 바꾸기</div>':'')+PHOTO_ROWS.map((p,i)=>`
     <div class="mm-row" draggable="true" data-idx="${i}">
       <span class="mm-drag" title="드래그해서 순서 변경">⠿</span>
       <img class="mm-thumb" id="pmThumb${i}" src="${esc(p._preview||'')}" onerror="this.style.opacity=.2">
       <div class="mm-fields">
-        <input class="mm-caption-ko" data-i="${i}" placeholder="설명 (한글, 선택)" value="${esc(p.caption_ko)}">
-        <div class="mm-fields-row">
-          <input class="mm-caption-en" data-i="${i}" placeholder="설명 (영문, 선택)" value="${esc(p.caption_en)}">
-          <input class="mm-alt" data-i="${i}" placeholder="대체 텍스트 (선택)" value="${esc(p.alt_text)}">
-        </div>
-        <label class="mm-public-line"><input type="checkbox" class="mm-public" data-i="${i}"${p.is_public?' checked':''}> 홈페이지 공개</label>
+        <input class="mm-caption-ko" data-i="${i}" placeholder="사진 설명 (선택)" value="${esc(p.caption_ko)}">
+        <details class="ph-en"${p.caption_en?' open':''}><summary>영문 설명</summary>
+          <input class="mm-caption-en" data-i="${i}" placeholder="Photo description (optional)" value="${esc(p.caption_en)}"></details>
+        <div class="ph-line"><label class="mm-public-line"><input type="checkbox" class="mm-public" data-i="${i}"${p.is_public?' checked':''}> 홈페이지 공개</label>
+          <span class="ph-acts"><button type="button" class="ph-mv" data-i="${i}" data-d="-1" title="앞으로"${i?'':' disabled'}>↑</button><button type="button" class="ph-mv" data-i="${i}" data-d="1" title="뒤로"${i<PHOTO_ROWS.length-1?'':' disabled'}>↓</button>
+          <button type="button" class="ph-pick" data-i="${i}">대표로</button></span></div>
       </div>
       <button type="button" class="mm-del" data-i="${i}">삭제</button>
     </div>`).join('');
-  PHOTO_ROWS.forEach((p,i)=>{ if(!p._preview) signedUrlFor(p.image_file).then(u=>{ if(u){ p._preview=u; const el=document.getElementById('pmThumb'+i); if(el)el.src=u; } }); });
+  if(PH_MAIN.image_file && !PH_MAIN._preview && PH_MAIN.image_file.indexOf('sb:')===0)
+    signedUrlFor(PH_MAIN.image_file).then(u=>{ if(u){ PH_MAIN._preview=u; const el=document.getElementById('pmMain'); if(el)el.src=u; } });
+  PHOTO_ROWS.forEach((p,i)=>{ if(!p._preview) (String(p.image_file).indexOf('sb:')===0?signedUrlFor(p.image_file):Promise.resolve(imgUrl({image:p.image_file},true))).then(u=>{ if(u){ p._preview=u; const el=document.getElementById('pmThumb'+i); if(el)el.src=u; } }); });
   box.querySelectorAll('.mm-caption-ko').forEach(el=>el.oninput=()=>PHOTO_ROWS[+el.dataset.i].caption_ko=el.value);
   box.querySelectorAll('.mm-caption-en').forEach(el=>el.oninput=()=>PHOTO_ROWS[+el.dataset.i].caption_en=el.value);
   box.querySelectorAll('.mm-alt').forEach(el=>el.oninput=()=>PHOTO_ROWS[+el.dataset.i].alt_text=el.value);
   box.querySelectorAll('.mm-public').forEach(el=>el.onchange=()=>PHOTO_ROWS[+el.dataset.i].is_public=el.checked);
-  box.querySelectorAll('.mm-del').forEach(el=>el.onclick=()=>{ PHOTO_ROWS.splice(+el.dataset.i,1); renderPhotoManager(); });
+  box.querySelectorAll('.mm-del[data-i]').forEach(el=>el.onclick=()=>{ PHOTO_ROWS.splice(+el.dataset.i,1); renderPhotoManager(); });
+  // 대표로: 고른 사진과 지금 대표가 자리를 바꾼다(원래 대표는 지우지 않고 상세 사진으로 내려간다)
+  box.querySelectorAll('.ph-pick').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.i, p=PHOTO_ROWS[i], old=PH_MAIN;
+    if(old.image_file) PHOTO_ROWS.splice(i,1,{ id:null, image_file:old.image_file, sort_order:i, caption_ko:'', caption_en:'', alt_text:'', is_public:true, _preview:phMainSrc() });
+    else PHOTO_ROWS.splice(i,1);
+    phSetMain({ image_file:p.image_file, _preview:p._preview||'' });
+    renderPhotoManager(); toast('대표 사진을 바꿨어요 — 저장을 눌러야 반영됩니다');
+  });
+  // 휴대폰은 끌기가 안 되므로 ↑↓ 로도 순서를 바꾼다
+  box.querySelectorAll('.ph-mv').forEach(el=>el.onclick=()=>{ const i=+el.dataset.i, j=i+(+el.dataset.d); if(j<0||j>=PHOTO_ROWS.length) return; const t=PHOTO_ROWS[i]; PHOTO_ROWS[i]=PHOTO_ROWS[j]; PHOTO_ROWS[j]=t; renderPhotoManager(); });
+  const md=$('#pmMainDel');
+  if(md) md.onclick=()=>{ const nx=PHOTO_ROWS.shift(); phSetMain(nx?{ image_file:nx.image_file, _preview:nx._preview||'' }:{ image_file:'', _preview:'' }); renderPhotoManager(); };
   wireDragReorder(box, PHOTO_ROWS, renderPhotoManager);
 }
+/* 여러 장 올리기: 대표가 없으면 첫 장이 대표, 나머지는 상세 사진 끝에 붙는다. 한 장씩 올리며 바로 목록에 보인다. */
 async function uploadPhotoFiles(files){
-  if(!files||!files.length) return;
+  files=Array.from(files||[]).filter(f=>/^image\//.test(f.type)||/\.(jpe?g|png|webp|heic|heif|gif)$/i.test(f.name));
+  if(!files.length) return;
   const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
-  toast('사진 업로드 중… (0/'+files.length+')');
-  try{
-    for(let i=0;i<files.length;i++){
+  let ok=0; const bad=[];
+  toast('사진 올리는 중… (0/'+files.length+')');
+  for(let i=0;i<files.length;i++){
+    try{
       const jpeg=await compressToJpeg(files[i], 1600);
-      const ref=await uploadJpegToStorage(jpeg, newMediaFilePath(no,'detail'));
-      PHOTO_ROWS.push({ id:null, image_file:ref, sort_order:PHOTO_ROWS.length, caption_ko:'', caption_en:'', alt_text:'', is_public:true, _preview:jpeg });
-      toast('사진 업로드 중… ('+(i+1)+'/'+files.length+')');
-    }
-    renderPhotoManager();
-    toast('✅ 업로드 완료 — 저장을 눌러야 최종 반영됩니다');
-  }catch(e){ toast('업로드 오류: '+e.message); }
+      if(!PH_MAIN.image_file){
+        const ref=await uploadJpegToStorage(jpeg, no+'/'+Date.now()+'.jpg');
+        phSetMain({ image_file:ref, _preview:jpeg });
+      }else{
+        const ref=await uploadJpegToStorage(jpeg, newMediaFilePath(no,'detail'));
+        PHOTO_ROWS.push({ id:null, image_file:ref, sort_order:PHOTO_ROWS.length, caption_ko:'', caption_en:'', alt_text:'', is_public:true, _preview:jpeg });
+      }
+      ok++; renderPhotoManager();
+    }catch(e){ console.warn('사진 업로드', files[i].name, e); bad.push(files[i].name); }
+    toast('사진 올리는 중… ('+(i+1)+'/'+files.length+')');
+  }
+  if(bad.length) alert(ok+'장 올렸고 '+bad.length+'장은 못 올렸어요:\n'+bad.join('\n'));
+  else toast('✅ '+ok+'장 올렸어요 — 저장을 눌러야 최종 반영됩니다');
+}
+/* PC: 사진 파일을 사진 칸에 끌어다 놓기(칸 안 순서 바꾸기 끌기와는 Files 여부로 구분) */
+function phWireDrop(box){
+  if(!box) return;
+  const isFiles=e=>e.dataTransfer&&Array.from(e.dataTransfer.types||[]).includes('Files');
+  box.addEventListener('dragover', e=>{ if(isFiles(e)){ e.preventDefault(); box.classList.add('ph-over'); } });
+  box.addEventListener('dragleave', e=>{ if(e.target===box) box.classList.remove('ph-over'); });
+  box.addEventListener('drop', e=>{ box.classList.remove('ph-over'); if(isFiles(e)){ e.preventDefault(); e.stopPropagation(); uploadPhotoFiles(e.dataTransfer.files); } }, true);
 }
 
 /* ---------- 영상·인스타그램 링크(여러 개) 관리 ---------- */
@@ -2773,31 +2838,6 @@ function wireDragReorder(box, list, rerender){
   });
 }
 
-async function uploadImage(file){
-  if(!file)return;
-  toast('이미지 압축 중…');
-  try{
-    const dataUrl=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)});
-    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=dataUrl});
-    const MAX=1600, sc=Math.min(1,MAX/Math.max(img.width,img.height));
-    const cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
-    cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-    const jpeg=cv.toDataURL('image/jpeg',0.87);
-    const b64=jpeg.split(',')[1];
-    toast('업로드 중…');
-    const no=document.querySelector('#eBody [name=no]').value.trim()||'artwork';
-    // 기존 18장은 Drive에 그대로 두고, 새로 올리는 사진만 Supabase Storage로 간다.
-    // image_file 값의 접두사로 어느 쪽인지 구분한다: 'drive:ID' 또는 'sb:경로'
-    const path = no + '/' + Date.now() + '.jpg';
-    const blob = await (await fetch(jpeg)).blob();
-    const up = await sb.storage.from('artwork-masters')
-      .upload(path, blob, { contentType:'image/jpeg', upsert:false });
-    if(up.error) throw up.error;
-    $('#fImage').value='sb:'+path;
-    const p=$('#imgPrev');p.src=jpeg;p.style.display='';
-    toast('✅ 업로드 완료');
-  }catch(e){toast('업로드 오류: '+e.message)}
-}
 async function uploadDocentAudio(file){
   if(!file)return;
   toast('업로드 중…');

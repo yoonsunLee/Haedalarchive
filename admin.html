@@ -214,6 +214,23 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .wp-cut td{background:#fff8e1; border-top:2px solid #e0b64a; border-bottom:2px solid #e0b64a; font-size:.8rem; padding:7px 10px; color:#7a5a12}
 .wp-cut b{font-weight:700}
 .wp-ord td{vertical-align:middle}
+/* All works 순서: 작품 관리 '작게보기'처럼 카드 격자(작가님 2026-11-26). 끌어 옮기면 왼쪽/오른쪽에 파란 선 */
+.wp-ordgrid .card{cursor:grab}
+.wp-ordgrid .card:hover{transform:none}
+.wp-ordgrid .card.dragging{opacity:.45}
+.wp-ordgrid .card.drop-before{box-shadow:-3px 0 0 0 var(--accent2)}
+.wp-ordgrid .card.drop-after{box-shadow:3px 0 0 0 var(--accent2)}
+.wp-ordgrid .imgbox img{pointer-events:none}
+.wp-oc-n{position:absolute; left:5px; top:5px; background:rgba(0,0,0,.62); color:#fff; font-size:.66rem; line-height:1.3; padding:1px 6px; border-radius:9px; font-variant-numeric:tabular-nums}
+.wp-oc-ctl{display:flex; align-items:center; gap:3px; margin-top:3px}
+.wp-oc-ctl .mv{border:1px solid var(--line); background:var(--card); border-radius:5px; width:20px; height:22px; font-size:.62rem; line-height:1; padding:0; cursor:pointer; flex:none}
+.wp-oc-ctl .mv:disabled{opacity:.35; cursor:default}
+.wp-oc input{width:100%; min-width:0; padding:3px 5px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:.74rem; text-align:right; font-variant-numeric:tabular-nums}
+.wp-oc input.changed{border-color:var(--accent2); background:#eef4fa}
+.wp-oc-ser{display:flex; align-items:center; gap:4px; margin-top:3px; font-size:.62rem; color:var(--sub)}
+.wp-oc-ser span{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.wp-oc-ser input{width:3.2em; flex:none}
+.wp-cut-g{grid-column:1/-1; background:#fff8e1; border:2px solid #e0b64a; border-radius:8px; font-size:.8rem; padding:6px 10px; color:#7a5a12}
 /* 칸 배치만 보는 작은 미리보기 — PC 3열은 한 칸 약 110px, 2열은 같은 칸 크기로 */
 .wp-pv{display:grid; grid-template-columns:minmax(0,360px) minmax(0,240px); justify-content:start; gap:28px; margin-top:14px}
 .wp-pv h4{font-size:.82rem; margin:0 0 6px; color:var(--sub); font-weight:600}
@@ -6114,18 +6131,14 @@ function drawWorksPage(){
   const ordRows=ordered.map((r,i)=>{
     const u=imgUrl(r,true), k=String(r.series||'').trim();
     const ch=f=>WP_ORDER_DRAFT[r._id]&&WP_ORDER_DRAFT[r._id][f]!==undefined&&String(WP_ORDER_DRAFT[r._id][f])!==String(r[f]||'')?' changed':'';
-    const cut=!HOME_RECENT_WORKS.length&&i===HOME_RECENT_COUNT-1&&ordered.length>HOME_RECENT_COUNT
-      ? `<tr class="wp-cut"><td colspan="7">⬆ 여기까지 ${HOME_RECENT_COUNT}점이 <b>홈 첫 화면 Recent works</b>에 나갑니다 — 순서를 바꾸면 홈도 함께 바뀝니다</td></tr>`
-      : '';
-    return `<tr draggable="true" data-row="${esc(r._id)}">
-      <td class="wp-grip"><span class="g" title="끌어서 순서 바꾸기">⠿</span><button type="button" class="mv" data-ord-up="${i}" title="위로"${i===0?' disabled':''}>▲</button><button type="button" class="mv" data-ord-down="${i}" title="아래로"${i===ordered.length-1?' disabled':''}>▼</button></td>
-      <td><input inputmode="numeric" class="${ch('display_order')}" data-ord="${esc(r._id)}" data-f="display_order" value="${esc(dv(r,'display_order'))}" placeholder="—"></td>
-      <td>${u?`<img src="${esc(u)}" alt="">`:'<img alt="">'}</td>
-      <td style="white-space:nowrap">${esc(r.no||'')}</td>
-      <td class="wrap">${esc(r.title||'')}</td>
-      <td>${k?esc(k):'<span class="hint">—</span>'}</td>
-      <td>${k?`<input inputmode="numeric" class="${ch('series_order')}" data-ord="${esc(r._id)}" data-f="series_order" value="${esc(dv(r,'series_order'))}" placeholder="—">`:''}</td>
-    </tr>${cut}`;
+    const cut='';   // Recent works는 홈 운영에서 따로 고른다(작가님 2026-11-26) — 순서 화면에 경계 띠를 두지 않는다
+    return `<div class="card wp-oc" draggable="true" data-row="${esc(r._id)}" title="끌어서 순서 바꾸기">
+      <div class="imgbox">${u?`<img src="${esc(u)}" alt="" loading="lazy">`:'<span class="noimg">🖼</span>'}<span class="wp-oc-n">${i+1}</span></div>
+      <div class="meta"><div class="no">${esc(r.no||'')}</div><div class="title">${esc(r.title||'')}</div>
+        <div class="wp-oc-ctl"><button type="button" class="mv" data-ord-up="${i}" title="앞으로"${i===0?' disabled':''}>◀</button><input inputmode="numeric" class="${ch('display_order')}" data-ord="${esc(r._id)}" data-f="display_order" value="${esc(dv(r,'display_order'))}" placeholder="—" title="목록 순서"><button type="button" class="mv" data-ord-down="${i}" title="뒤로"${i===ordered.length-1?' disabled':''}>▶</button></div>
+        ${k?`<div class="wp-oc-ser"><span title="연작 ${esc(k)}">${esc(k)}</span><input inputmode="numeric" class="${ch('series_order')}" data-ord="${esc(r._id)}" data-f="series_order" value="${esc(dv(r,'series_order'))}" placeholder="—" title="연작 안 순서"></div>`:''}
+      </div>
+    </div>${cut}`;
   }).join('');
   const ordDirty=Object.keys(WP_ORDER_DRAFT).some(id=>{
     const r=byId[id], d=WP_ORDER_DRAFT[id];
@@ -6141,8 +6154,7 @@ function drawWorksPage(){
     <div class="sec">ALL WORKS</div>${wpGridHtml(al,cols)}</div>`;
   const ordHtml=`<div class="wp-box">
     <div class="wp-head"><h3>All works 순서</h3><span class="hint">공개 작품 ${pub.length}점 · 지금 홈페이지에 보일 순서대로</span></div>
-    <p class="hint"><b>줄을 끌어</b> 순서를 바꾸세요. ▲▼ 단추도 같은 일을 합니다. 옮기면 번호가 10, 20, 30…으로 다시 매겨집니다.
-      ${HOME_RECENT_WORKS.length?'홈 첫 화면 <b>Recent works</b>는 홈 운영에서 고른 작품이 나갑니다.':'맨 위 '+HOME_RECENT_COUNT+'점은 홈 첫 화면의 <b>Recent works</b>로도 나갑니다.'}
+    <p class="hint"><b>카드를 끌어</b> 순서를 바꾸세요. ◀▶ 단추도 같은 일을 합니다. 카드 아래 칸은 목록 순서, 연작이 있으면 그 아래 칸은 연작 안 순서입니다. 옮기면 번호가 10, 20, 30…으로 다시 매겨집니다. 홈 첫 화면 <b>Recent works</b>는 홈 운영에서 따로 고릅니다.
       <details class="more"><summary>번호를 직접 적을 때</summary><div>
         <p>작은 수부터 앞에 나옵니다. 비워 둔 작품은 그 뒤에 최신순으로 이어집니다. 새로 올린 작품도 비워 두면 최신순 자리입니다.</p>
         <p>10, 20, 30처럼 띄워 두면 나중에 사이에 끼워 넣기 쉽습니다.</p>
@@ -6152,8 +6164,7 @@ function drawWorksPage(){
       <details class="more"><summary>홈 첫 화면에 안 보일 때</summary><div>
         <p>전시를 예고하거나 전시 중일 때는 그 자리를 전시 카드가 대신합니다. <b>홈 운영</b> 화면의 일정 표에서 언제 바뀌는지 볼 수 있습니다.</p>
       </div></details></p>
-    <div class="tablewrap"><table class="wp-ord"><thead><tr><th></th><th>목록 순서</th><th></th><th>No.</th><th>작품명</th><th>연작</th><th>연작 안 순서</th></tr></thead>
-      <tbody>${ordRows||'<tr><td colspan="7" class="hint">공개 작품이 없습니다</td></tr>'}</tbody></table></div>
+    <div class="grid small wp-ordgrid">${ordRows||'<p class="hint">공개 작품이 없습니다</p>'}</div>
     <div class="wp-actions"><button class="btn primary" id="wpOrdSave" ${ordDirty?'':'disabled'}>순서 저장</button>
       <button class="btn" id="wpOrdClear">순서 모두 비우기(최신순으로)</button>
       <span class="hint">${ordDirty?'저장하지 않은 변경이 있습니다':''}</span></div>
@@ -6236,20 +6247,20 @@ function bindWorksPage(){
   box.querySelectorAll('[data-ord-up]').forEach(b=>b.onclick=()=>ordMove(+b.dataset.ordUp, +b.dataset.ordUp-1));
   box.querySelectorAll('[data-ord-down]').forEach(b=>b.onclick=()=>ordMove(+b.dataset.ordDown, +b.dataset.ordDown+1));
   let dragId=null;
-  box.querySelectorAll('.wp-ord tbody tr[data-row]').forEach(tr=>{
+  box.querySelectorAll('.wp-ordgrid [data-row]').forEach(tr=>{
     tr.addEventListener('dragstart',e=>{ dragId=tr.dataset.row; tr.classList.add('dragging'); if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain', dragId); }catch(err){} } });
     tr.addEventListener('dragend',()=>{ dragId=null; box.querySelectorAll('.dragging,.drop-before,.drop-after').forEach(x=>x.classList.remove('dragging','drop-before','drop-after')); });
     tr.addEventListener('dragover',e=>{
       if(!dragId||tr.dataset.row===dragId) return;
       e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='move';
-      const r=tr.getBoundingClientRect(), after=e.clientY>r.top+r.height/2;
+      const r=tr.getBoundingClientRect(), after=e.clientX>r.left+r.width/2;   // 격자: 카드 오른쪽 반이면 뒤에
       tr.classList.toggle('drop-after',after); tr.classList.toggle('drop-before',!after);
     });
     tr.addEventListener('dragleave',()=>tr.classList.remove('drop-before','drop-after'));
     tr.addEventListener('drop',e=>{
       e.preventDefault();
       if(!dragId||tr.dataset.row===dragId) return;
-      const r=tr.getBoundingClientRect(), after=e.clientY>r.top+r.height/2;
+      const r=tr.getBoundingClientRect(), after=e.clientX>r.left+r.width/2;
       const from=WP_ORD_IDS.indexOf(dragId);
       let to=WP_ORD_IDS.indexOf(tr.dataset.row);
       if(after&&to<from) to++; else if(!after&&to>from) to--;

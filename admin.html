@@ -333,6 +333,7 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .ho-foot .ho-msg{margin:0}
 .ho-foot .btn{margin-left:auto; padding:6px 14px}
 .ho-foot .btn:disabled{opacity:.4; cursor:default}
+#btnPubGo:disabled{opacity:.4; cursor:not-allowed}  /* 사진 없는 공개 작품이 있으면 반영 버튼을 막는다 */
 .ho-empty{font-size:.85rem; color:var(--sub); border:1px dashed var(--line); border-radius:10px; padding:12px 14px}
 .st-sum b{display:block; font-size:1.3rem; font-variant-numeric:tabular-nums}
 .st-sum small{color:var(--sub); font-size:.76rem}
@@ -945,7 +946,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 <dialog id="dlgPublish">
   <div class="dlghead"><h2>홈페이지에 반영할까요?</h2><button class="btn" id="btnClosePublish">✕</button></div>
   <div class="dlgbody">
-    <p class="hint" style="margin:0 0 12px">전체 사이트가 다시 만들어지며 1~2분 정도 걸립니다. 아래는 지금 홈페이지와 비교해 <b>반영하면 바뀌는 것</b>입니다(저장한 내용 기준).</p>
+    <p class="hint" style="margin:0 0 12px">전체 사이트가 다시 만들어지며 3~4분 정도 걸립니다. 한 번만 눌러 주세요. 아래는 지금 홈페이지와 비교해 <b>반영하면 바뀌는 것</b>입니다(저장한 내용 기준).</p>
+    <div id="pubBlock" hidden style="margin:0 0 12px;padding:10px 12px;border:1px solid #d9a3a3;background:#fbeeee;border-radius:8px"></div>
     <div class="pubchg" id="pubChg"><span class="hint">바뀔 내용을 확인하는 중…</span></div>
   </div>
   <div class="formfoot">
@@ -1340,6 +1342,10 @@ async function saveExhibitionToDb(row, neu, cur){
     payload.home_mode = ['auto','pin','hide'].indexOf(row.home_mode) >= 0 ? row.home_mode : 'auto';
     payload.home_lead_days = numOrNull(row.home_lead_days);
   }
+  if(EX_HAS_GAL){   // 3D 갤러리 홍보 포스터(exhibitions_gallery_promo_2026-11.sql)
+    payload.gallery_promo = ['auto','pin','hide'].indexOf(row.gallery_promo) >= 0 ? row.gallery_promo : 'auto';
+    payload.gallery_rank = numOrNull(row.gallery_rank);
+  }
   if(EX_HAS_AFFIL) payload.affiliation = textOrNull(row.affiliation);   // 비공개 메모 — 발행 스크립트는 필드를 하나씩 뽑으므로 홈페이지로 나가지 않는다
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -1616,6 +1622,7 @@ async function load(){
     if((xq.data || []).length){
       EX_HAS_AFFIL = Object.prototype.hasOwnProperty.call(xq.data[0], 'affiliation');
       EX_HAS_HOME  = Object.prototype.hasOwnProperty.call(xq.data[0], 'home_mode');
+      EX_HAS_GAL   = Object.prototype.hasOwnProperty.call(xq.data[0], 'gallery_promo');
     }
     exRows = (xq.data || []).map(function(e){
       var members = (worksOfEx[e.id] || []).filter(Boolean).map(function(w){ return w.work_no; });
@@ -1630,6 +1637,8 @@ async function load(){
         affiliation: e.affiliation || '',
         home_mode: e.home_mode || 'auto',
         home_lead_days: (e.home_lead_days == null ? '' : String(e.home_lead_days)),
+        gallery_promo: e.gallery_promo || 'auto',
+        gallery_rank: (e.gallery_rank == null ? '' : String(e.gallery_rank)),
         about_selected: !!e.about_selected,
         publish_web: e.publish_web !== false,
         work_nos: members.join(','),
@@ -2759,6 +2768,7 @@ $('#editForm').onsubmit=async e=>{
 let exRows=[];
 let exLoaded=false;
 let EX_HAS_HOME=false;    // exhibitions.home_mode·home_lead_days 열이 있는지(exhibitions_home_2026-09.sql)
+let EX_HAS_GAL=false;     // exhibitions.gallery_promo·gallery_rank 열이 있는지(exhibitions_gallery_promo_2026-11.sql) — 3D 갤러리 홍보 포스터
 let EX_HAS_AFFIL=false;   // exhibitions.affiliation 열이 있는지(supabase/schema/exhibitions_affiliation_2026-09.sql 실행 여부). 없으면 칸을 잠근다
 async function loadEx(){
   // 전시는 load()에서 작품과 함께 읽는다(관계를 같이 풀어야 하므로).
@@ -3096,6 +3106,23 @@ function exFormHtml(r,isNew){
           '<p>「겹치면 이 전시를 앞세움」으로 두면 유형과 상관없이 먼저 나옵니다.</p>'+
           '<p>「홈에 안 내보냄」은 첫 화면에서만 빼는 것입니다. 전시 이력과 About에는 그대로 남습니다.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_home_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
+  ${F('갤러리 홍보',`<div class="pair">
+      <div class="fld"><span class="sub">3D 갤러리 포스터</span>
+        <select name="gallery_promo"${EX_HAS_GAL?'':' disabled'}>
+          <option value="auto"${(r.gallery_promo||'auto')==='auto'?' selected':''}>규칙대로 (개인전만, 기본)</option>
+          <option value="pin"${r.gallery_promo==='pin'?' selected':''}>이 전시도 홍보</option>
+          <option value="hide"${r.gallery_promo==='hide'?' selected':''}>갤러리에 안 붙임</option>
+        </select></div>
+      <div class="fld"><span class="sub">홍보 순서</span>
+        <input name="gallery_rank" type="number" min="1" max="99" placeholder="비우면 개막 순"
+               value="${esc(r.gallery_rank||'')}"${EX_HAS_GAL?'':' disabled'}></div>
+    </div>`,
+    EX_HAS_GAL
+      ? '3D 갤러리 곳곳(로비, 바깥 현수막, 작품관, IP관, 라운지)에 이 전시 포스터를 붙일지 정합니다. 전시가 끝나면 저절로 내려갑니다. 포스터 사진이 있어야 붙습니다.'+
+        MORE('여러 전시를 홍보하면', '<p>차례는 <b>「이 전시도 홍보」 → 홍보 순서(작은 숫자가 먼저) → 개인전 → 개막이 이른 것</b>입니다.</p>'+
+          '<p>큰 자리(로비, 현수막, 작품관 벽, 스포츠센터 유리)에는 1번이, 작은 자리(말풍선, 전단지, 미로 게시판, 작업실 문, 라운지 게시판)에는 1~3번이 나뉘어 붙습니다.</p>'+
+          '<p>걸 전시가 없으면 큰 자리 몇 곳에 대표작이 걸리고 작은 자리는 비워 둡니다.</p>')
+      : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_gallery_promo_2026-11.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
   ${F('소속 · 계약',`<input name="affiliation" list="exAffilDL" autocomplete="off" value="${esc(r.affiliation||'')}"${EX_HAS_AFFIL?'':' disabled'} placeholder="예: 갤러리 비브 소속 참가 · 부스비 분담"><datalist id="exAffilDL"></datalist><div class="exchips" id="exAffilChips"></div>`,
     EX_HAS_AFFIL
       ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 어느 갤러리 소속인지, 개인 참가인지 적어 두세요.'+
@@ -3290,6 +3317,8 @@ function renderExForm(r,isNew){
     row.affiliation = (($('#exBody [name=affiliation]')||{}).value||'').trim();
     row.home_mode = (($('#exBody [name=home_mode]')||{}).value||'auto');
     row.home_lead_days = (($('#exBody [name=home_lead_days]')||{}).value||'').trim();
+    row.gallery_promo = (($('#exBody [name=gallery_promo]')||{}).value||'auto');
+    row.gallery_rank = (($('#exBody [name=gallery_rank]')||{}).value||'').trim();
     const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
     try{
       await saveExhibitionToDb(row, isNew, r);
@@ -4388,14 +4417,48 @@ $('#btnPublish').onclick=()=>openPublishConfirm();
 async function doPublish(){
   const st=$('#publishStatus');
   st.textContent='반영 요청 중…';
+  const t0=Date.now();
   try{
     // GitHub 토큰은 브라우저에 둘 수 없어 Edge Function이 대신 호출한다.
     const {data, error} = await sb.functions.invoke('publish', { body:{} });
     if(error) throw error;
     if(data && data.ok === false) throw new Error(data.error||'실패');
-    st.textContent='✅ 반영 요청 완료! 1~2분 후 홈페이지를 새로고침해서 확인하세요.';
+    st.textContent='⏳ 반영 요청함 — 진행 상황을 확인하는 중…';
+    watchPublish(t0);
   }catch(e){
     st.textContent='❌ 오류: '+(e.message||e);
+  }
+}
+/* 반영 진행 상황(2026-11-26): 요청 뒤 GitHub Actions 'archive-publish' 실행을 공개 API로 지켜보고 끝나면 결과·멈춘 단계를 알린다.
+   공개 저장소라 토큰이 필요 없다(시간당 60번 한도 — 15초마다, 최대 15분). */
+const PUB_API='https://api.github.com/repos/yoonsunLee/shinhaedal/actions';
+const PUB_STEP={'Fetch, filter & build derivatives':'자료·사진 만들기','Sanity check before commit':'발행 전 검사','Generate work pages, prerendered lists, sitemap':'페이지 만들기',
+  'Commit if changed':'홈페이지에 저장','Install dependencies':'준비','Ensure ffmpeg':'준비','Run actions/checkout@v7':'준비'};
+let pubWatch=0;
+async function watchPublish(t0){
+  const st=$('#publishStatus'), me=++pubWatch, end=Date.now()+15*60e3;
+  let run=null;
+  while(me===pubWatch&&Date.now()<end){
+    await new Promise(r=>setTimeout(r,15000));
+    if(me!==pubWatch) return;
+    try{
+      if(!run||run.status!=='completed'){
+        const j=await (await fetch(PUB_API+'/runs?event=repository_dispatch&per_page=10',{cache:'no-store'})).json();
+        const mine=(j.workflow_runs||[]).filter(r=>Date.parse(r.created_at)>=t0-20e3).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at));
+        run=mine[0]?(mine.find(r=>r.id===(run&&run.id))||mine[0]):null;
+      }
+      if(!run){ st.textContent='⏳ 반영 대기 중…'; continue; }
+      if(run.status!=='completed'){ st.textContent=run.status==='in_progress'?'⏳ 반영 중… (보통 3~4분)':'⏳ 앞의 반영이 끝나길 기다리는 중…'; continue; }
+      if(run.conclusion==='success'){ st.textContent='✅ 반영 끝! 1분쯤 뒤 홈페이지를 새로고침해 보세요.'; return; }
+      if(run.conclusion==='cancelled'){ st.textContent='↩ 이 반영은 뒤에 누른 반영으로 바뀌었어요(한 번만 누르면 돼요).'; return; }
+      let where='';
+      try{ const jb=await (await fetch(PUB_API+'/runs/'+run.id+'/jobs',{cache:'no-store'})).json();
+        const s=((jb.jobs||[])[0]?.steps||[]).find(x=>x.conclusion==='failure'); if(s) where=PUB_STEP[s.name]||s.name; }catch(e){}
+      st.innerHTML='❌ 반영이 멈췄어요'+(where?' — <b>'+esc(where)+'</b> 단계':'')
+        +(where==='발행 전 검사'?'. 공개인데 사진 없는 작품, 작품·전시가 0건, 작품 수 급감, 영상 없는 공개 홈 영상 중 하나예요.':'.')
+        +' <a href="'+esc(run.html_url)+'" target="_blank" rel="noopener">자세히</a>';
+      return;
+    }catch(e){ st.textContent='⏳ 반영 요청함 — 진행 상황을 못 읽었어요(잠시 뒤 홈페이지에서 확인).'; }
   }
 }
 
@@ -4627,7 +4690,9 @@ async function pvBuildFiles(){
     poster_url:pvS(e.poster_url)?(same?'assets/exhibitions/'+id+'/poster.webp':pvOrig(e.poster_url,signed,true)):'',
     map_url:pvS(e.map_url), featured_work_nos:pvS(e.featured_work_nos), about_selected:!!e.about_selected,
     // 홈 첫 화면 노출(발행 scripts/publish_sb.py 와 같게). 빠져 있으면 미리보기 홈이 예고 기간을 전부 30일로 계산했다(2026-10-11)
-    home_mode:pvS(e.home_mode)||'auto', home_lead_days:(e.home_lead_days==null||e.home_lead_days==='')?null:Number(e.home_lead_days)
+    home_mode:pvS(e.home_mode)||'auto', home_lead_days:(e.home_lead_days==null||e.home_lead_days==='')?null:Number(e.home_lead_days),
+    // 3D 갤러리 홍보 포스터(gallery/src/g2-core.js promoFor). 발행 스크립트에도 같은 두 칸을 넣어야 한다(2026-11-13)
+    gallery_promo:pvS(e.gallery_promo)||'auto', gallery_rank:(e.gallery_rank==null||e.gallery_rank==='')?null:Number(e.gallery_rank)
   }));
 
   files['press.json']=press.slice().sort((a,b)=>cmpStr(pvS(a.press_no),pvS(b.press_no))).map(p=>{
@@ -4732,7 +4797,7 @@ async function pvDiff(built){
 
   const EF={title:'전시명', venue:'장소', start_date:'시작일', end_date:'종료일', work_nos:'출품작', type:'구분', note_public:'공개 메모',
     title_en:'영문 전시명', venue_en:'영문 장소', map_url:'찾아오는 길', featured_work_nos:'대표 작품', about_selected:'About 고정',
-    home_mode:'홈 노출', home_lead_days:'홈 예고 기간'};
+    home_mode:'홈 노출', home_lead_days:'홈 예고 기간', gallery_promo:'갤러리 홍보', gallery_rank:'갤러리 홍보 순서'};
   const lExById={}; (lEx||[]).forEach(e=>{ lExById[e.id]=e; });
   f['exhibitions.json'].forEach(e=>{
     const l=lExById[e.id];
@@ -4902,7 +4967,13 @@ function pvChangesHtml(c){
 async function openPublishConfirm(){
   const dlg=$('#dlgPublish');
   $('#pubChg').innerHTML='<span class="hint">바뀔 내용을 확인하는 중…</span>';
-  $('#btnPubGo').disabled=false;
+  // 발행 전 검사(publish.yml 'Sanity check')에서 멈출 작품을 미리 알린다: 공개인데 사진이 없는 작품(2026-11-26)
+  const noImg=rows.filter(r=>r.publish_web&&!r.deleted_at&&!String(r.image||'').trim());
+  const blk=$('#pubBlock');
+  blk.hidden=!noImg.length;
+  blk.innerHTML=noImg.length?'<b>이대로는 반영이 멈춥니다.</b> 홈페이지 공개인데 사진이 없는 작품이 있어요. 사진을 넣거나 \'홈페이지 공개\'를 끈 뒤 반영해 주세요.<ul style="margin:6px 0 0 18px">'
+    +noImg.map(r=>'<li>'+esc(r.no||'(번호 없음)')+' · '+esc(String(r.title||'').split('\n')[0]||'(제목 없음)')+'</li>').join('')+'</ul>':'';
+  $('#btnPubGo').disabled=!!noImg.length;
   dlg.showModal();
   try{
     await pvEnsure(true);

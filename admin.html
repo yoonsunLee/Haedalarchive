@@ -1792,18 +1792,21 @@ function render(){
 function renderStats(){
   const sold=rows.filter(r=>soldState(r)==='sold');
   const avail=rows.filter(r=>soldState(r)==='avail');
-  // 누적판매액: 일반 작품은 판매완료 시 실거래가(없으면 판매가), 아트토이(수량 있는 작품)는 개당 가격 × 판매개수
+  // 누적판매액: 수수료를 뗀 작가 몫(작가님 2026-11-26). 일반 작품은 판매완료 시 실거래가(없으면 판매가)에서 수수료(금액, 없으면 수수료율)를 빼고,
+  // 아트토이(수량 있는 작품)는 개당 가격 × 판매개수에서 수수료율만큼 뺀다. 수수료를 안 적은 작품은 그대로 더한다.
   const revenue=rows.reduce((a,r)=>{
-    const unit=Number(r.actual_price)||Number(r.price)||0;
-    if((r.qty??'')!=='')return a+unit*(Number(r.sold_qty)||0);
-    return soldState(r)==='sold'?a+unit:a;
+    const unit=Number(r.actual_price)||Number(r.price)||0, rate=Number(r.fee_rate)||0;
+    if((r.qty??'')!=='')return a+Math.round(unit*(Number(r.sold_qty)||0)*(1-rate));
+    if(soldState(r)!=='sold')return a;
+    const fee=(r.fee_krw??'')!==''?Number(r.fee_krw)||0:Math.round(unit*rate);
+    return a+unit-fee;
   },0);
   const fs=$('#fSold').value;
   $('#stats').innerHTML=`
     <div class="stat${fs===''?' on':''}" data-act="all"><span>전체 작품</span><b>${rows.length}점</b></div>
     <div class="stat${fs==='avail'?' on':''}" data-act="avail"><span>판매 가능</span><b>${avail.length}점</b></div>
     <div class="stat${fs==='sold'?' on':''}" data-act="sold"><span>판매 완료</span><b>${sold.length}점</b></div>
-    <div class="stat" data-act="revenue" title="클릭하면 금액이 표시/숨김됩니다"><span>누적 판매액 ${revealRevenue?'🙉':'🙈'}</span><b>${revealRevenue?revenue.toLocaleString('ko-KR')+'원':'••••••'}</b></div>`;
+    <div class="stat" data-act="revenue" title="클릭하면 금액이 표시/숨김됩니다"><span>누적 판매액(수수료 뺀) ${revealRevenue?'🙉':'🙈'}</span><b>${revealRevenue?revenue.toLocaleString('ko-KR')+'원':'••••••'}</b></div>`;
 }
 /* ---------- Needs Attention: 누락·오류 자동 탐지 (읽기 전용, 클릭하면 해당 작품/전시로 이동) ---------- */
 /* 빠진 정보 점검. sev: 'impact'(홈페이지에 바로 영향) / 'rec'(보완 권장). area로 메뉴를 묶는다.

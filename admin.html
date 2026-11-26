@@ -4787,8 +4787,9 @@ async function pvBuildFiles(){
     map_url:pvS(e.map_url), featured_work_nos:pvS(e.featured_work_nos), about_selected:!!e.about_selected,
     // 홈 첫 화면 노출(발행 scripts/publish_sb.py 와 같게). 빠져 있으면 미리보기 홈이 예고 기간을 전부 30일로 계산했다(2026-10-11)
     home_mode:pvS(e.home_mode)||'auto', home_lead_days:(e.home_lead_days==null||e.home_lead_days==='')?null:Number(e.home_lead_days),
-    // 3D 갤러리 홍보 포스터(gallery/src/g2-core.js promoFor). 발행 스크립트에도 같은 두 칸을 넣어야 한다(2026-11-13)
-    gallery_promo:pvS(e.gallery_promo)||'auto', gallery_rank:(e.gallery_rank==null||e.gallery_rank==='')?null:Number(e.gallery_rank)
+    // 3D 갤러리 홍보 포스터 두 칸은 발행 스크립트(publish_sb.py)가 아직 내보내지 않는다. 비교에 넣으면 모든 전시가
+    // '갤러리 홍보 수정'으로 떠서(2026-11-26) 칸을 다시 쓸 때(GAL_PROMO_UI)만 넣는다. 그때 발행 스크립트에도 같은 두 칸을 넣을 것
+    ...(GAL_PROMO_UI?{gallery_promo:pvS(e.gallery_promo)||'auto', gallery_rank:(e.gallery_rank==null||e.gallery_rank==='')?null:Number(e.gallery_rank)}:{})
   }));
 
   files['press.json']=press.slice().sort((a,b)=>cmpStr(pvS(a.press_no),pvS(b.press_no))).map(p=>{

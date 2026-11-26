@@ -570,6 +570,9 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 .rb-steps{display:grid; gap:4px; margin-top:8px; font-size:.82rem} .rb-steps input[type=number]{width:72px} .rb-steps b{margin-right:4px}
 .mm-row{display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--bg)}
 .mm-row.dragging{opacity:.4}
+.mm-row.touch-drag{opacity:1; background:var(--card); position:relative; z-index:5; box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.mm-row.drop-tgt{border-color:var(--accent2); background:rgba(46,109,164,.08)}
+@media (pointer:coarse){ .mm-drag{padding:10px 8px; font-size:1.25rem; margin:-4px 0 0 -4px} }
 .mm-drag{cursor:grab; color:var(--sub); font-size:1rem; padding:6px 2px; user-select:none; touch-action:none}
 .mm-thumb-wrap{position:relative; flex:0 0 64px}
 .mm-thumb{width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--line); background:#eee; display:block}
@@ -2834,6 +2837,43 @@ function wireDragReorder(box, list, rerender){
       list.splice(dropIdx,0,moved);
       dragIdx=null;
       rerender();
+    });
+  });
+  // 휴대폰·태블릿: HTML5 끌기는 손가락으로 안 되므로 ⠿ 손잡이를 손가락으로 끌어 옮긴다(2026-11-27)
+  box.querySelectorAll('.mm-row .mm-drag').forEach(h=>{
+    h.addEventListener('pointerdown', e=>{
+      if(e.pointerType==='mouse') return;
+      e.preventDefault();
+      const row=h.closest('.mm-row'), from=+row.dataset.idx, y0=e.clientY;
+      const sc=row.closest('.dlgbody'), s0=sc?sc.scrollTop:0;
+      let to=from, tgt=null, timer=null, lastY=y0;
+      try{ h.setPointerCapture(e.pointerId); }catch(_){}
+      row.classList.add('dragging','touch-drag');
+      const pick=()=>{
+        row.style.transform='translateY('+(lastY-y0+(sc?sc.scrollTop-s0:0))+'px)';
+        row.style.pointerEvents='none';
+        const el=document.elementFromPoint(e.clientX, lastY); row.style.pointerEvents='';
+        const r=el&&el.closest('.mm-row');
+        if(tgt&&tgt!==r) tgt.classList.remove('drop-tgt');
+        if(r&&r!==row&&box.contains(r)){ tgt=r; to=+r.dataset.idx; r.classList.add('drop-tgt'); }
+        else if(!r){ tgt=null; }
+        else if(r===row){ tgt=null; to=from; }
+      };
+      const edge=()=>{   // 화면 끝에 닿으면 저절로 굴러간다
+        if(!sc) return; const b=sc.getBoundingClientRect();
+        const d=lastY<b.top+60?-10:lastY>b.bottom-60?10:0;
+        if(d){ sc.scrollTop+=d; pick(); }
+      };
+      const mv=ev=>{ lastY=ev.clientY; pick(); };
+      const up=()=>{
+        clearInterval(timer);
+        h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+        row.classList.remove('dragging','touch-drag'); row.style.transform='';
+        if(tgt) tgt.classList.remove('drop-tgt');
+        if(to!==from){ const [m]=list.splice(from,1); list.splice(to,0,m); rerender(); }
+      };
+      timer=setInterval(edge, 30);
+      h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
     });
   });
 }

@@ -1863,6 +1863,7 @@ function computeIssues(){
       return;
     }
     const toStart=dayDiff(ex.start_date,todayStr), toEnd=dayDiff(ex.end_date,todayStr);
+    if(toEnd<0)return;   // 이미 끝난 전시는 빠진 정보를 알리지 않는다(작가님 2026-11-26)
     const pubCount=String(ex.work_nos||'').split(',').map(x=>x.trim()).filter(x=>pubNos.has(x)).length;
     // 홈 전시 카드는 예고 기간(기본 30일, 전시마다 홈 운영에서 바꿈)부터 출품작과 상관없이 뜬다(index.html homeCandidates).
     // 다만 출품작이 0점이면 카드의 '출품작 보기'(PC)·카드 누르기(폰)가 빈 목록으로 간다.
@@ -2045,9 +2046,12 @@ function pickHTML(key,vals){ // "기존 값에서 선택" 드롭다운
     vals.map((v,i)=>`<option value="${i}">${esc(v.split('\n')[0].slice(0,60))}${v.includes('\n')?' …':''}</option>`).join('')}</select>`;
 }
 const PICK_VALS={};
+// 크기 고르기는 숫자 오름차순(작가님 2026-11-26). 'A1 (59.4 × 84.1)'처럼 괄호가 있으면 괄호 안 숫자로 견준다
+function sizeNums(v){ const m=String(v).match(/\(([^)]*)\)/); return ((m?m[1]:String(v)).match(/\d+(?:\.\d+)?/g)||[]).map(Number); }
+function sizeCmp(a,b){ const x=sizeNums(a),y=sizeNums(b); for(let i=0;i<Math.max(x.length,y.length);i++){ const d=(x[i]??-1)-(y[i]??-1); if(d)return d; } return a.localeCompare(b); }
 function openEdit(r,neu){
   isNew=neu;
-  PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size'); PICK_VALS.payment=uniqueVals('payment');
+  PICK_VALS.material=uniqueVals('material'); PICK_VALS.size=uniqueVals('size').sort(sizeCmp); PICK_VALS.series=uniqueVals('series').sort((a,b)=>a.localeCompare(b,'ko')); PICK_VALS.payment=uniqueVals('payment');
   // 영문 제목은 이제 title_en 전용 컬럼에 저장한다. 다만 예전에 등록된 작품은
   // title 한 칸에 "한글\n영문"으로 합쳐져 있어서, 그런 행은 아래처럼 분리해 읽는다.
   const tparts=String(r.title||'').split('\n');
@@ -2134,7 +2138,7 @@ function openEdit(r,neu){
     F(LABELS.exhibitions,
       `<div id="exAutoWork"><div class="hint">불러오는 중…</div></div>
        <div class="hint">전시 연결(추가·해제)은 <b>전시</b> 화면의 전시 등록/수정 화면에서 작품을 선택해 관리합니다.</div>`)+
-    F('시리즈 키',`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 적은 작품끼리 한 묶음이 됩니다. 비워 두면 묶이지 않습니다.'+
+    F('시리즈 키',pickHTML('series',PICK_VALS.series)+`<input name="series" value="${esc(r.series||'')}" placeholder="예: 우주조약">`,'같은 값을 적은 작품끼리 한 묶음이 됩니다. 비워 두면 묶이지 않습니다.'+
       MORE('묶이면 어떻게 보이나요', '작품 상세 아래에 <b>시리즈 작품</b>으로 함께 나옵니다.'+
         '<p>두 폭 연작이라면 <b>Works 운영</b> 화면에서 \'두 폭 붙이기\'를 켜세요. Selected works에서 두 칸으로 붙어 나옵니다.</p>'))+
     (WORKS_HAS_ORDER

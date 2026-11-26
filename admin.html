@@ -1026,6 +1026,8 @@ let rows=[], lastList=[], view='gallery', section='home', current=null, isNew=fa
 let PHOTO_ROWS=[], MEDIA_ROWS=[];
 /* Works 구성(works_page_2026-09.sql). 열·표가 아직 없으면 관련 칸을 숨기고 안내만 한다. */
 let WORKS_HAS_ORDER=false;   // works.display_order·series_order 열이 있는지
+let ED_HAS_FEE=false;        // editions 수수료·정산 열(sales_commission_2026-11.sql)이 있는지
+let EX_HAS_FEE=false;        // exhibitions.commission_rate 열이 있는지(같은 SQL)
 let WP_READY=null;           // series·site_settings 표: true 있음 / false SQL 실행 전 / null 못 읽음
 let WP_ORD_IDS=[];           // All works 순서 표에 지금 보이는 차례(끌어 옮기기용)
 var HOME_RECENT_COUNT=6;     // 홈 첫 화면 Recent works 점수(site_settings 'home_recent_count', 2~6, 기본 6) — 홈 운영·Works 운영이 같이 씀
@@ -1154,10 +1156,70 @@ function recToWork(rec){
   if(typeof rec.publish_web === 'boolean') out.publish_web = rec.publish_web;
   return out;
 }
+/* ---------- 판매 수수료·정산(작가님 2026-11-26) ----------
+   갤러리·아트페어가 판매 대금을 받아 계약 비율만큼 떼고 작가에게 나눠 주는 경우를 적는다.
+   판매 전시를 고르면 그 전시에 적어 둔 수수료율이 들어온다(진행 중·예정 전시만. 지난 전시는 칸만 있다).
+   수수료 = 실거래가(없으면 판매가) × 수수료율. 직접 고쳐 적을 수 있고, 작가 정산액 = 실거래가 − 수수료. */
+function feePct(v){ if(v===''||v==null||v==='-') return v==null?'':v; var n=Number(v); return isNaN(n)?v:Math.round(n*1000)/10+'%'; }
+function feeComma(v){ var n=String(v==null?'':v).replace(/,/g,''); return /^\d+$/.test(n)?Number(n).toLocaleString('ko-KR'):(v==null?'':v); }
+function exIsLive(e){
+  var t = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
+  return (e.end_date || e.start_date || '') >= t;
+}
+function feeFieldsHTML(r){
+  var F2 = function(label, inner, hint){ return '<div class="row"><label>'+label+'</label><div>'+inner+(hint?'<div class="hint">'+hint+'</div>':'')+'</div></div>'; };
+  var dis = ED_HAS_FEE ? '' : ' disabled';
+  var exs = (typeof exRows !== 'undefined' ? exRows : []).slice().sort(function(a,b){ return String(b.start_date||'').localeCompare(String(a.start_date||'')); });
+  var live = exs.filter(exIsLive), cur = exs.find(function(e){ return e.id === r.sale_ex; });
+  var opt = function(e){ var rt = e.commission_rate !== '' && e.commission_rate != null ? ' · 수수료 '+feePct(e.commission_rate) : '';
+    return '<option value="'+esc(e.id)+'"'+(e.id===r.sale_ex?' selected':'')+'>'+esc(e.title)+(e.venue?' ('+esc(e.venue)+')':'')+rt+'</option>'; };
+  var sel = '<select name="sale_ex" id="fSaleEx"'+dis+'><option value="">— 전시 없이 판매 (직접 판매 등) —</option>'+
+    (live.length ? '<optgroup label="진행 중·예정 전시">'+live.map(opt).join('')+'</optgroup>' : '')+
+    (cur && !exIsLive(cur) ? '<optgroup label="지난 전시">'+opt(cur)+'</optgroup>' : '')+'</select>';
+  var lock = ED_HAS_FEE ? '' : '<div class="hint">이 칸들을 쓰려면 Supabase SQL Editor에서 <code>sales_commission_2026-11.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)</div>';
+  return F2('판매 전시', sel, '전시에서 팔렸으면 고르세요. 그 전시에 적어 둔 수수료율이 아래에 들어옵니다.')+
+    F2('입금처', '<input name="payee" value="'+esc(r.payee||'')+'" placeholder="예: 갤러리비브 (갤러리가 받아 정산)"'+dis+'>', '대금을 누가 받았는지. 비우면 작가가 직접 받은 것으로 봅니다.')+
+    '<div class="row"><label>수수료</label><div><div class="pair">'+
+      '<div class="fld"><span class="sub">수수료율</span><input name="fee_rate" id="fFeeRate" value="'+esc(feePct(r.fee_rate))+'" placeholder="예: 40%"'+dis+'></div>'+
+      '<div class="fld"><span class="sub">수수료 (원)</span><input name="fee_krw" id="fFeeKrw" class="comma" inputmode="numeric" value="'+esc(feeComma(r.fee_krw))+'"'+dis+'></div></div>'+
+      '<div class="hint" id="fNetLine"></div>'+lock+'</div></div>'+
+    F2('정산일', '<input name="settled_on" type="date" value="'+esc(toISO(r.settled_on))+'" style="max-width:220px"'+dis+'>', '갤러리에서 작가 몫을 받은 날. 비워 두면 <b>정산 전</b>입니다.');
+}
+function wireFeeFields(){
+  var q = function(n){ return document.querySelector('#eBody [name="'+n+'"]'); };
+  var exSel = q('sale_ex'), rateEl = q('fee_rate'), feeEl = q('fee_krw'), payEl = q('payee'), line = document.getElementById('fNetLine');
+  if(!exSel || !rateEl || !feeEl || !line) return;
+  var num = function(el){ var v = String((el && el.value) || '').replace(/,/g,'').trim(); return /^\d+$/.test(v) ? Number(v) : null; };
+  var base = function(){ var a = num(q('actual_price')); return a != null ? a : num(q('price')); };
+  var feeTouched = false;
+  var show = function(){
+    var b = base(), f = num(feeEl);
+    line.innerHTML = (b != null && f != null) ? '작가 정산액: <b>'+(b - f).toLocaleString('ko-KR')+'원</b> (실거래가 '+b.toLocaleString('ko-KR')+' − 수수료 '+f.toLocaleString('ko-KR')+')'
+      : '실거래가(또는 판매가)와 수수료율을 넣으면 수수료와 작가 정산액이 계산됩니다.';
+  };
+  var recalc = function(){
+    if(feeTouched) return show();
+    var b = base(), r = rateOrNull(rateEl.value);
+    if(b != null && r != null) feeEl.value = Math.round(b * r).toLocaleString('ko-KR');
+    show();
+  };
+  exSel.onchange = function(){
+    var e = exRows.find(function(x){ return x.id === exSel.value; });
+    if(!e) return;
+    if(exIsLive(e) && e.commission_rate !== '' && e.commission_rate != null){ rateEl.value = feePct(e.commission_rate); feeTouched = false; }
+    if(payEl && !payEl.value.trim() && e.venue) payEl.value = e.venue;
+    recalc();
+  };
+  rateEl.addEventListener('input', function(){ feeTouched = false; recalc(); });
+  feeEl.addEventListener('input', function(){ feeTouched = true; show(); });
+  ['actual_price','price'].forEach(function(n){ var el = q(n); if(el) el.addEventListener('input', recalc); });
+  feeTouched = num(feeEl) != null;   // 이미 적힌 수수료는 그대로 두고 정산액만 보여 준다
+  show();
+}
 /* 납작한 폼 값 → editions 컬럼 (유일작일 때만 이 폼으로 편집한다) */
 function recToEdition(rec){
   var mark = String(rec.sold||'').trim();
-  return {
+  var out = {
     status: SOLD_TO_STATUS[mark] || 'available',
     actual_price_krw: numOrNull(rec.actual_price),
     discount_rate: rateOrNull(rec.discount),
@@ -1167,6 +1229,18 @@ function recToEdition(rec){
     sale_date: dateOrNull(rec.sale_date),
     delivery_date: dateOrNull(rec.delivery_date)
   };
+  if(ED_HAS_FEE){   // 수수료·정산(sales_commission_2026-11.sql). 홈페이지로는 나가지 않는다(발행 스크립트는 editions를 읽지 않음)
+    var base = numOrNull(rec.actual_price); if(base == null) base = numOrNull(rec.price);
+    var rate = rateOrNull(rec.fee_rate), fee = numOrNull(rec.fee_krw);
+    if(fee == null && base != null && rate != null) fee = Math.round(base * rate);
+    out.sale_exhibition_no = textOrNull(rec.sale_ex);
+    out.payee = textOrNull(rec.payee);
+    out.commission_rate = rate;
+    out.commission_krw = fee;
+    out.net_krw = (base != null && fee != null) ? base - fee : null;
+    out.settled_on = dateOrNull(rec.settled_on);
+  }
+  return out;
 }
 
 /* 저장 중 다른 곳에서 같은 행이 바뀌었으면 덮어쓰지 않고 멈춘다.
@@ -1346,6 +1420,7 @@ async function saveExhibitionToDb(row, neu, cur){
     payload.gallery_promo = ['auto','pin','hide'].indexOf(row.gallery_promo) >= 0 ? row.gallery_promo : 'auto';
     payload.gallery_rank = numOrNull(row.gallery_rank);
   }
+  if(EX_HAS_FEE) payload.commission_rate = rateOrNull(row.commission_rate);   // 비공개: 판매 수수료율(0~1)
   if(EX_HAS_AFFIL) payload.affiliation = textOrNull(row.affiliation);   // 비공개 메모 — 발행 스크립트는 필드를 하나씩 뽑으므로 홈페이지로 나가지 않는다
   if(!payload.title_ko) throw new Error('전시명을 입력하세요');
 
@@ -1490,6 +1565,12 @@ function flattenWork(w, exText, statusRow, photoCount){
     sale_date: lead.sale_date || '',
     delivery_date: lead.delivery_date || '',
     channel: lead.sales_channel || '',
+    sale_ex: lead.sale_exhibition_no || '',
+    payee: lead.payee || '',
+    fee_rate: lead.commission_rate == null ? '' : String(lead.commission_rate),
+    fee_krw: lead.commission_krw == null ? '' : String(lead.commission_krw),
+    net_krw: lead.net_krw == null ? '' : String(lead.net_krw),
+    settled_on: lead.settled_on || '',
     owner: eds.filter(function(e){ return e.collector_name; })
               .map(function(e){ return e.collector_name; }).join(', '),
     exhibitions: exText || '',
@@ -1623,6 +1704,7 @@ async function load(){
       EX_HAS_AFFIL = Object.prototype.hasOwnProperty.call(xq.data[0], 'affiliation');
       EX_HAS_HOME  = Object.prototype.hasOwnProperty.call(xq.data[0], 'home_mode');
       EX_HAS_GAL   = Object.prototype.hasOwnProperty.call(xq.data[0], 'gallery_promo');
+      EX_HAS_FEE   = Object.prototype.hasOwnProperty.call(xq.data[0], 'commission_rate');
     }
     exRows = (xq.data || []).map(function(e){
       var members = (worksOfEx[e.id] || []).filter(Boolean).map(function(w){ return w.work_no; });
@@ -1639,6 +1721,7 @@ async function load(){
         home_lead_days: (e.home_lead_days == null ? '' : String(e.home_lead_days)),
         gallery_promo: e.gallery_promo || 'auto',
         gallery_rank: (e.gallery_rank == null ? '' : String(e.gallery_rank)),
+        commission_rate: (e.commission_rate == null ? '' : String(e.commission_rate)),
         about_selected: !!e.about_selected,
         publish_web: e.publish_web !== false,
         work_nos: members.join(','),
@@ -1649,6 +1732,8 @@ async function load(){
 
     if((wq.data || []).length)
       WORKS_HAS_ORDER = Object.prototype.hasOwnProperty.call(wq.data[0], 'display_order');
+    { var ed0 = null; (wq.data || []).some(function(w){ ed0 = (w.editions || [])[0]; return !!ed0; });
+      ED_HAS_FEE = !!ed0 && Object.prototype.hasOwnProperty.call(ed0, 'commission_rate'); }
     await loadWorksPageData();
     rows = (wq.data || []).map(function(w){
       var list = (exOfWork[w.id] || []).filter(Boolean).sort(function(a,b){
@@ -2039,7 +2124,8 @@ function openEdit(r,neu){
        `<input name="delivery_date" type="date" value="${toISO(r.delivery_date)}">`,
        '','판매일자','작품인도일')+
     F(LABELS.channel,`<input name="channel" value="${esc(r.channel)}">`)+
-    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)
+    F(LABELS.owner,`<input name="owner" value="${esc(r.owner)}">`)+
+    feeFieldsHTML(r)
     , hasSale)+
     G('홈페이지 노출','전시 이력·시리즈·도슨트·상세 사진·영상',
     F(LABELS.exhibitions,
@@ -2111,6 +2197,7 @@ function openEdit(r,neu){
     const raw=el.value.replace(/,/g,'');
     if(/^\d+$/.test(raw))el.value=Number(raw).toLocaleString('ko-KR');
   }));
+  wireFeeFields();
   // 판매여부 변경: 등록 예정 ↔ 번호 부여 규칙
   const soldSel=document.querySelector('#eBody [name=sold]');
   const noEl=document.querySelector('#eBody [name=no]');
@@ -2735,6 +2822,8 @@ $('#editForm').onsubmit=async e=>{
   rec.caption_en=g('caption_en');
   rec.material_en=g('material_en');
   rec.series=g('series');
+  ['sale_ex','payee','fee_rate','fee_krw','settled_on'].forEach(k=>rec[k]=g(k));
+  rec.fee_krw=String(rec.fee_krw||'').replace(/,/g,'');
   if(WORKS_HAS_ORDER){ rec.display_order=g('display_order'); rec.series_order=g('series_order'); }
   rec.audio_master=g('audio_master');
   rec.transcript_ko=g('transcript_ko');
@@ -3130,6 +3219,11 @@ function exFormHtml(r,isNew){
         MORE('계약서는요', '파일은 올리지 않는 편이 낫습니다. 상대방 이름·연락처·계좌가 든 개인정보이고, 이 보관함이 국내에 있다고 확인된 적이 없습니다.'+
           '<p>원본은 따로 두고 참가 형태와 핵심 조건만 한 줄로 적으세요.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_affiliation_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
+  ${F('판매 수수료율',`<input name="commission_rate" value="${esc(feePct(r.commission_rate))}" placeholder="예: 40%" style="max-width:160px"${EX_HAS_FEE?'':' disabled'}>`,
+    EX_HAS_FEE
+      ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 이 전시에서 작품이 팔리면 갤러리·아트페어가 떼는 비율(계약 비율)을 적어 두세요. 작품 판매 정보에서 이 전시를 고르면 이 비율이 들어갑니다.'+
+        MORE('지난 전시는요', '진행 중이거나 예정된 전시에서만 판매 정보에 끌어 씁니다. 지난 전시는 칸만 있고 비워 둬도 됩니다.')
+      : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>sales_commission_2026-11.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
   ${F('공개 메모',`<input name="note_public" value="${esc(r.note_public||'')}">`,'홈페이지에 노출될 수 있는 한 줄 메모 (선택)')}
   <div class="formfoot" style="padding:12px 0 0">
     ${isNew?'':`<button type="button" class="btn" id="btnExDelete" style="color:var(--sold);margin-right:auto">🗑 삭제</button>`}
@@ -3320,6 +3414,7 @@ function renderExForm(r,isNew){
     row.home_lead_days = (($('#exBody [name=home_lead_days]')||{}).value||'').trim();
     row.gallery_promo = (($('#exBody [name=gallery_promo]')||{}).value||'auto');
     row.gallery_rank = (($('#exBody [name=gallery_rank]')||{}).value||'').trim();
+    row.commission_rate = (($('#exBody [name=commission_rate]')||{}).value||'').trim();
     const saveBtn=$('#btnExSave'); saveBtn.disabled=true;
     try{
       await saveExhibitionToDb(row, isNew, r);
@@ -6446,6 +6541,7 @@ const FIELD_KO={
   status:'판매 상태', actual_price_krw:'실제 판매가', discount_rate:'할인율',
   payment_method:'결제 수단', sales_channel:'판매 경로', collector_name:'소장자',
   sale_date:'판매일', delivery_date:'인도일', edition_number:'에디션 번호',
+  sale_exhibition_no:'판매 전시', payee:'입금처', commission_rate:'수수료율', commission_krw:'수수료', net_krw:'작가 정산액', settled_on:'정산일',
   // 전시
   exhibition_no:'전시번호', venue_ko:'장소', venue_en:'장소(영문)',
   start_date:'시작일', end_date:'종료일', type:'구분', note_public_ko:'공개 메모',

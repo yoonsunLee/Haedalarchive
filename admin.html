@@ -1342,7 +1342,7 @@ async function saveExhibitionToDb(row, neu, cur){
     payload.home_mode = ['auto','pin','hide'].indexOf(row.home_mode) >= 0 ? row.home_mode : 'auto';
     payload.home_lead_days = numOrNull(row.home_lead_days);
   }
-  if(EX_HAS_GAL){   // 3D 갤러리 홍보 포스터(exhibitions_gallery_promo_2026-11.sql)
+  if(EX_HAS_GAL&&GAL_PROMO_UI){   // 3D 갤러리 홍보 포스터(exhibitions_gallery_promo_2026-11.sql)
     payload.gallery_promo = ['auto','pin','hide'].indexOf(row.gallery_promo) >= 0 ? row.gallery_promo : 'auto';
     payload.gallery_rank = numOrNull(row.gallery_rank);
   }
@@ -2768,6 +2768,7 @@ $('#editForm').onsubmit=async e=>{
 let exRows=[];
 let exLoaded=false;
 let EX_HAS_HOME=false;    // exhibitions.home_mode·home_lead_days 열이 있는지(exhibitions_home_2026-09.sql)
+const GAL_PROMO_UI=false; // 3D 갤러리 홍보 칸: 갤러리가 아직 이 값을 읽지 않아 숨김(작가님 2026-11-26). 갤러리가 쓰게 되면 true
 let EX_HAS_GAL=false;     // exhibitions.gallery_promo·gallery_rank 열이 있는지(exhibitions_gallery_promo_2026-11.sql) — 3D 갤러리 홍보 포스터
 let EX_HAS_AFFIL=false;   // exhibitions.affiliation 열이 있는지(supabase/schema/exhibitions_affiliation_2026-09.sql 실행 여부). 없으면 칸을 잠근다
 async function loadEx(){
@@ -3106,7 +3107,7 @@ function exFormHtml(r,isNew){
           '<p>「겹치면 이 전시를 앞세움」으로 두면 유형과 상관없이 먼저 나옵니다.</p>'+
           '<p>「홈에 안 내보냄」은 첫 화면에서만 빼는 것입니다. 전시 이력과 About에는 그대로 남습니다.</p>')
       : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_home_2026-09.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
-  ${F('갤러리 홍보',`<div class="pair">
+  ${GAL_PROMO_UI?F('갤러리 홍보',`<div class="pair">
       <div class="fld"><span class="sub">3D 갤러리 포스터</span>
         <select name="gallery_promo"${EX_HAS_GAL?'':' disabled'}>
           <option value="auto"${(r.gallery_promo||'auto')==='auto'?' selected':''}>규칙대로 (개인전만, 기본)</option>
@@ -3122,7 +3123,7 @@ function exFormHtml(r,isNew){
         MORE('여러 전시를 홍보하면', '<p>차례는 <b>「이 전시도 홍보」 → 홍보 순서(작은 숫자가 먼저) → 개인전 → 개막이 이른 것</b>입니다.</p>'+
           '<p>큰 자리(로비, 현수막, 작품관 벽, 스포츠센터 유리)에는 1번이, 작은 자리(말풍선, 전단지, 미로 게시판, 작업실 문, 라운지 게시판)에는 1~3번이 나뉘어 붙습니다.</p>'+
           '<p>걸 전시가 없으면 큰 자리 몇 곳에 대표작이 걸리고 작은 자리는 비워 둡니다.</p>')
-      : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_gallery_promo_2026-11.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)')}
+      : '이 칸을 쓰려면 Supabase SQL Editor에서 <code>exhibitions_gallery_promo_2026-11.sql</code>을 한 번 실행하세요(지금은 잠겨 있어요)'):''}
   ${F('소속 · 계약',`<input name="affiliation" list="exAffilDL" autocomplete="off" value="${esc(r.affiliation||'')}"${EX_HAS_AFFIL?'':' disabled'} placeholder="예: 갤러리 비브 소속 참가 · 부스비 분담"><datalist id="exAffilDL"></datalist><div class="exchips" id="exAffilChips"></div>`,
     EX_HAS_AFFIL
       ? '<b>홈페이지에 나가지 않는 비공개 칸</b>입니다. 어느 갤러리 소속인지, 개인 참가인지 적어 두세요.'+

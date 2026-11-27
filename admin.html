@@ -261,6 +261,15 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .st-list li b{font-variant-numeric:tabular-nums; font-weight:600}
 .st-list img{width:34px; height:34px; object-fit:cover; border-radius:5px; background:#eee; flex:none}
 .st-spark{width:100%; height:44px; display:block}
+.gbl-top{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 12px}
+.gbl-top input[type=search]{flex:1 1 200px; min-width:0; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:.92rem}
+.gbl-item{border-top:1px solid var(--line); padding:12px 0}
+.gbl-item:first-child{border-top:0}
+.gbl-meta{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.8rem; color:var(--sub); margin:0 0 6px}
+.gbl-meta b{color:var(--ink,#222); font-weight:600}
+.gbl-meta .btn{margin-left:auto; padding:3px 10px; font-size:.76rem}
+.gbl-beta{font-size:.72rem; border:1px solid #d9a3a3; color:#a14848; border-radius:999px; padding:1px 7px}
+.gbl-body{white-space:pre-wrap; word-break:break-word; font-size:.92rem; line-height:1.65; margin:0}
 .st-note{font-size:.84rem; color:var(--sub); background:var(--card); border:1px dashed var(--line); border-radius:12px; padding:12px 14px; margin:0 0 16px}
 .st-bar{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin:0 0 14px}
 .st-seg{display:flex; flex-wrap:wrap; gap:2px; background:#ece8df; padding:3px; border-radius:9px}
@@ -654,6 +663,7 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
   <button data-v="sim" title="등록된 작품을 실제 크기로 벽에 걸어 보고 3D로 보기">전시 시뮬레이터</button>
   <button data-v="press">기사 등록</button>
   <button data-v="stats">방문통계</button>
+  <button data-v="guestbook">방명록</button>
   <button data-v="feecalc">수수료계산</button>
   <button data-v="activity">작업기록</button>
   <button data-v="settings">운영메모</button>
@@ -836,6 +846,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
   <section id="vStats" hidden>
     <div id="stBody"><p class="hint">불러오는 중…</p></div>
+  </section>
+
+  <section id="vGuestbook" hidden>
+    <div id="gbBody"><p class="hint">불러오는 중…</p></div>
   </section>
 
   <section id="vActivity" hidden>
@@ -5189,6 +5203,74 @@ $('#btnPubCancel').onclick=()=>$('#dlgPublish').close();
 $('#btnClosePublish').onclick=()=>$('#dlgPublish').close();
 $('#btnPubPreview').onclick=()=>{ $('#dlgPublish').close(); openPreview(pvPageForSection()); };
 
+/* ---------- 방명록(3D 갤러리 온라인 개인전) ----------
+   카페24 guestbook/admin.php에서 글을 받아 보여 준다. 글은 작가와 쓴 사람만 본다(갤러리 안내문과 같음).
+   한 줄: [번호, 아이디, 글, 시각(한국), 시험글 1/0] */
+const GB_ADMIN_API='https://shinhaedalapi.mycafe24.com/guestbook/admin.php';
+var GBL={d:null, err:null, q:'', beta:false};
+async function gbAdminFetch(body){
+  const ss=await sb.auth.getSession();
+  const tok=ss.data&&ss.data.session?ss.data.session.access_token:'';
+  if(!tok) throw new Error('로그인이 필요합니다');
+  let res;
+  try{ res=await fetch(GB_ADMIN_API, body?{method:'POST', headers:{Authorization:'Bearer '+tok, 'X-SH-Auth':'Bearer '+tok, 'Content-Type':'application/json'}, body:JSON.stringify(body)}
+                                       :{headers:{Authorization:'Bearer '+tok, 'X-SH-Auth':'Bearer '+tok}}); }
+  catch(e){ const er=new Error('방명록 서버에 연결하지 못했습니다'); er.notReady=true; throw er; }
+  if(res.status===404){ const er=new Error('방명록 서버 파일이 아직 없습니다'); er.notReady=true; throw er; }
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok||!j.ok){
+    throw new Error({auth:'로그인 확인 실패 — 다시 로그인해 주세요', aal2:'2단계 인증을 마친 로그인이 필요합니다',
+      forbidden:'방명록을 볼 수 있는 계정이 아닙니다(카페24 config.php의 STATS_ADMIN_EMAILS)', db:'방명록 DB에 연결하지 못했습니다'+(j.message?' — '+j.message:'')}[j.code]||('방명록 서버 오류('+res.status+')'));
+  }
+  return j;
+}
+async function openGuestbook(){
+  $('#gbBody').innerHTML='<p class="hint">불러오는 중…</p>';
+  try{ GBL.d=await gbAdminFetch(); GBL.err=null; }catch(e){ GBL.d=null; GBL.err=e; }
+  drawGuestbook();
+}
+function gbState(d){
+  const now=kstDay(0)+' '+new Date(Date.now()+9*3600e3).toISOString().slice(11,19);
+  const md=s=>Number(s.slice(5,7))+'월 '+Number(s.slice(8,10))+'일';
+  if(now<d.open) return '열기 전 — '+md(d.open)+'부터 남길 수 있어요. 지금 글은 시험 주소로 남긴 것뿐입니다.';
+  if(now>d.close) return '끝남 — '+md(d.close)+'에 남기기를 닫았어요. 글은 그대로 볼 수 있어요.';
+  return '여는 중 — '+md(d.close)+'까지 남길 수 있어요.';
+}
+function drawGuestbook(){
+  const box=$('#gbBody');
+  if(!GBL.d){
+    const e=GBL.err||{};
+    box.innerHTML='<div class="st-sec"><h3>방명록을 불러오지 못했습니다 <button class="btn" id="gblReload">↻</button></h3><p>'+esc(e.message||'')+'</p>'+
+      (e.notReady?'<p class="hint">카페24에 <code>guestbook/</code> 폴더를 올리면 여기에 글이 보입니다(방문 통계와 같은 config.php를 씁니다).</p>':'')+'</div>';
+    $('#gblReload').onclick=openGuestbook; return;
+  }
+  const d=GBL.d, all=d.entries||[], real=all.filter(r=>!r[4]), beta=all.filter(r=>r[4]);
+  const q=GBL.q.trim().toLowerCase();
+  const list=(GBL.beta?beta:real).filter(r=>!q||String(r[1]).toLowerCase().includes(q)||String(r[2]).toLowerCase().includes(q));
+  box.innerHTML='<div class="st-sec"><h3>방명록 <span class="hint">'+esc(gbState(d))+'</span></h3>'+
+    '<div class="st-sum"><div><small>남긴 글</small><b>'+stN(real.length)+'</b></div><div><small>시험 글</small><b>'+stN(beta.length)+'</b></div></div>'+
+    '<p class="hint" style="margin:10px 0 0">글은 작가님과 쓴 사람만 봅니다. 아이디는 갤러리가 만든 이름이라 누구인지는 알 수 없습니다.</p></div>'+
+    '<div class="st-sec"><div class="gbl-top"><div class="st-seg"><button data-gb="0" class="'+(GBL.beta?'':'on')+'">남긴 글 '+real.length+'</button><button data-gb="1" class="'+(GBL.beta?'on':'')+'">시험 글 '+beta.length+'</button></div>'+
+      '<input type="search" id="gblQ" placeholder="아이디·글 찾기" value="'+esc(GBL.q)+'">'+
+      (list.length?'<button class="btn" id="gblCsv">CSV</button>':'')+
+      (GBL.beta&&beta.length?'<button class="btn" id="gblDelBeta">시험 글 모두 지우기</button>':'')+
+      '<button class="btn" id="gblReload">↻</button></div>'+
+    (list.length?list.map(r=>'<div class="gbl-item"><div class="gbl-meta"><b>'+esc(r[1])+'</b><span>'+esc(r[3])+'</span>'+(r[4]?'<span class="gbl-beta">시험</span>':'')+
+      '<button class="btn" data-gbdel="'+r[0]+'">지우기</button></div><p class="gbl-body">'+esc(r[2])+'</p></div>').join('')
+      :'<p class="hint">'+(q?'찾는 글이 없습니다.':(GBL.beta?'시험 글이 없습니다.':'아직 남긴 글이 없습니다.'))+'</p>')+'</div>';
+  box.querySelectorAll('[data-gb]').forEach(b=>b.onclick=()=>{ GBL.beta=b.dataset.gb==='1'; drawGuestbook(); });
+  const qi=$('#gblQ'); qi.oninput=()=>{ GBL.q=qi.value; const at=qi.selectionStart; drawGuestbook(); const n=$('#gblQ'); n.focus(); n.setSelectionRange(at,at); };
+  $('#gblReload').onclick=openGuestbook;
+  const cs=$('#gblCsv'); if(cs) cs.onclick=()=>{ const f=ST.from, t=ST.to; ST.from=ST.to=kstDay(0); stCsv(GBL.beta?'guestbook-beta':'guestbook',['번호','아이디','글','시각'], list.map(r=>[r[0],r[1],r[2],r[3]])); ST.from=f; ST.to=t; };
+  const db=$('#gblDelBeta'); if(db) db.onclick=async()=>{
+    if(!confirm('시험 글 '+beta.length+'개를 모두 지울까요?\n되살릴 수 없습니다.')) return;
+    try{ await gbAdminFetch({a:'delbeta'}); openGuestbook(); }catch(e){ alert(e.message||'지우지 못했습니다'); } };
+  box.querySelectorAll('[data-gbdel]').forEach(b=>b.onclick=async()=>{
+    const r=all.find(x=>String(x[0])===b.dataset.gbdel); if(!r) return;
+    if(!confirm('「'+String(r[2]).slice(0,40)+(String(r[2]).length>40?'…':'')+'」\n'+r[1]+'의 이 글을 지울까요? 되살릴 수 없습니다.')) return;
+    try{ await gbAdminFetch({a:'del', id:r[0]}); openGuestbook(); }catch(e){ alert(e.message||'지우지 못했습니다'); } });
+}
+
 /* ---------- 방문 통계 ----------
    카페24 서버(hosting/stats/)의 report.php에서 '날짜 × 항목별 합계'를 받아 여기서 표로 만든다.
    로그인 토큰(2단계 인증까지 마친 것)을 그대로 보내 서버가 Supabase에 확인한다.
@@ -5218,7 +5300,7 @@ function stSrc(s){
 function stPage(k){
   const m=String(k||'').match(/^\/works\/w\/([^/]+)\/$/);
   if(m) return '작품 페이지 '+m[1];
-  return {'/':'홈', '/works/':'Works', '/about/':'About', '/cv/':'CV', '/ip/':'IP', '/gallery/':'갤러리', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/copyright/':'저작권 안내', '/privacy/history/':'처리방침 지난 판', '/404/':'없는 페이지(404)', '/other/':'기타'}[k]||k;
+  return {'/':'홈', '/works/':'Works', '/about/':'About', '/cv/':'CV', '/ip/':'IP', '/gallery/':'갤러리', '/press/':'Press', '/contact/':'Contact', '/privacy/':'처리방침', '/copyright/':'저작권 안내', '/privacy/history/':'처리방침 지난 판', '/gallery/':'3D 갤러리', '/404/':'없는 페이지(404)', '/other/':'기타'}[k]||k;
 }
 function stWork(no){ return rows.find(r=>String(r.no)===String(no)); }
 function stN(v){ return (v||0).toLocaleString('ko-KR'); }
@@ -5336,10 +5418,52 @@ function drawHomeStats(){
   box.querySelectorAll('[data-go-stats]').forEach(a=>a.onclick=()=>goSection('stats'));
 }
 
+/* ── 3D 갤러리(온라인 개인전 2026-11-30 ~ 12-06) ──
+   갤러리(gallery/src/gstats.js · guestbook.js)가 보내는 신호: 클릭 이름 g_zone · g_stamp · g_card · g_link · g_map · g_sound · gb_*,
+   작품 창은 shStatWork(번호, 'gallery') → wview · wdwell 의 첫 칸이 'gallery'. 방문자를 알아볼 값은 없다. */
+const ST_SOLO3D=['2026-11-30','2026-12-06'];
+const ST_GZONE={lobby:'로비', artist:'작가소개', works:'작품관', 'works:law':'작품관 1관', 'works:hall2':'작품관 2관', court:'중정', ip:'IP관', obong:'일월오봉단관', lounge:'라운지', outside:'바깥 마당'};
+function stGzone(k){ if(ST_GZONE[k]) return ST_GZONE[k]; const i=k.indexOf(':'); return i>0?(ST_GZONE[k.slice(0,i)]||k.slice(0,i))+' · '+k.slice(i+1):k; }
+function stGallery(agg){
+  const G='/gallery/', pv=stTotal(agg,'pv',r=>r[1]===G), land=stTotal(agg,'visit',r=>r[1]===G),
+        dw=stTotal(agg,'dwell',r=>r[1]===G), dwStay=stTotal(agg,'dwell',r=>r[1]===G&&r[2]!=='0-10');
+  const clk=stSum(agg,'click',r=>r[1]+'|'+r[2]), clv=stSum(agg,'clickv',r=>r[1]+'|'+r[2]);
+  const of=name=>[...clk.entries()].filter(([k])=>k.indexOf(name+'|')===0).sort((a,b)=>b[1].n-a[1].n).map(([k,o])=>[k.slice(name.length+1),o.n,(clv.get(k)||{n:0}).n]);
+  const one=(name,t)=>{ const k=name+'|'+(t||''); return [(clk.get(k)||{n:0}).n,(clv.get(k)||{n:0}).n]; };
+  let h='<div class="st-sec"><h3>3D 갤러리 <span class="hint">온라인 개인전 '+ST_SOLO3D[0].slice(5).replace('-','.')+' ~ '+ST_SOLO3D[1].slice(5).replace('-','.')+'</span></h3>'+
+    '<div class="st-sum"><div><small>페이지뷰</small><b>'+stN(pv.n)+'</b></div><div><small>여기서 시작한 방문</small><b>'+stN(land.n)+'</b></div>'+
+    '<div><small>평균 머문 시간</small><b>'+stSec(dw.t,dw.n)+'</b></div><div><small>10초 이상 머묾</small><b>'+stN(dwStay.n)+'</b><small>페이지뷰의 '+stPct(dwStay.n,pv.n)+'</small></div></div>'+
+    '<p class="hint" style="margin:10px 0 0">위 기간 단추의 「온라인 개인전」을 누르면 전시 기간만 봅니다. 아래 표의 「방문 수」는 한 방문에서 여러 번이어도 1입니다.</p></div>';
+  // 구역 · 관
+  h+=stTable('gzone','갤러리 구역 · 관','들어간 수는 그 구역에 들어설 때마다 1. 작품관은 1관 · 2관으로 나눠 셉니다',
+    ['구역','들어간 수','방문 수'], of('g_zone').map(([t,n,v])=>[stGzone(t),n,v]));
+  // 작품(갤러리 안에서 연 작품 창)
+  const wv=stSum(agg,'wview',r=>r[1]==='gallery'?r[2]:'\u0000'), wd=stSum(agg,'wdwell',r=>r[1]==='gallery'?r[2]:'\u0000'); wv.delete('\u0000');
+  h+=stTable('gworks','갤러리에서 본 작품','작품을 눌러 창을 연 수. 머문 시간은 창이 떠 있던 시간',
+    ['','작품','열람','평균 머문 시간'], stTop(wv,200).map(([no,o])=>{ const w=stWork(no), t=wd.get(no)||{n:0,t:0}; return [no, w?w.title:no, o.n, stSec(t.t,t.n)]; }),
+    {0:(no)=>{ const w=stWork(no), u=w?imgUrl(w,true):''; return u?'<img src="'+esc(u)+'" alt="">':''; }});
+  // 방명록 · 도장 · 그 밖의 누름
+  const rows=[];
+  const add=(label,[n,v])=>{ if(n) rows.push([label,n,v]); };
+  add('방명록 창 열기', [of('gb_open').reduce((a,r)=>a+r[1],0), of('gb_open').reduce((a,r)=>a+r[2],0)]);
+  add('방명록 남김', one('gb_post'));
+  add('도장 뒤 방명록 권유 뜸', one('gb_ask','stamp'));
+  add('권유 다시 안 보기', one('gb_never'));
+  of('g_stamp').forEach(([t,n,v])=>rows.push(['조개 도장 · '+stGzone(t),n,v]));
+  of('g_card').forEach(([t,n,v])=>rows.push([({intro:'서문 판 열기',bio:'작가소개 판 열기'})[t]||('판 · '+t),n,v]));
+  of('g_link').forEach(([t,n,v])=>rows.push(['창 안 링크 · '+stPage(t),n,v]));
+  add('안내도 열기', one('g_map'));
+  add('소리 켬', one('g_sound','on'));
+  add('소리 끔', one('g_sound','off'));
+  h+=stTable('getc','방명록 · 도장 · 그 밖의 누름','방명록 글 자체는 왼쪽 메뉴 「방명록」에서 봅니다',['항목','누른 수','방문 수'], rows);
+  return h;
+}
+
 /* ── 통계 화면 ── */
 function stRange(){
   const p=ST.preset;
   if(p==='today') return [kstDay(0), kstDay(0)];
+  if(p==='solo3d') return [ST_SOLO3D[0], ST_SOLO3D[1]];
   if(p==='yesterday') return [kstDay(-1), kstDay(-1)];
   if(p==='7') return [kstDay(-6), kstDay(0)];
   if(p==='30') return [kstDay(-29), kstDay(0)];
@@ -5478,7 +5602,7 @@ async function stInsFill(){
 }
 function drawStats(){
   const box=$('#stBody');
-  const presetBtns=[['today','오늘'],['yesterday','어제'],['7','7일'],['30','30일'],['custom','직접']];
+  const presetBtns=[['today','오늘'],['yesterday','어제'],['7','7일'],['30','30일'],['solo3d','온라인 개인전'],['custom','직접']];
   const solo=(exRows||[]).filter(e=>e.type==='개인전'&&e.start_date&&e.end_date);
   const [from,to]=stRange();
   let bar='<div class="st-bar"><div class="st-seg" id="stPreset">'+presetBtns.map(b=>'<button data-p="'+b[0]+'" class="'+(ST.preset===b[0]?'on':'')+'">'+b[1]+'</button>').join('')+'</div>'+
@@ -5524,6 +5648,7 @@ function drawStats(){
     '(스크롤·누름·10초 머무름)가 있을 때만 셉니다 — 열자마자 떠나는 자동 접속이 빠지므로 그 전 숫자보다 낮게 나오고, '+
     '그날 앞뒤를 바로 견주면 안 됩니다. 페이지뷰는 예전처럼 다 세므로 머문 시간·스크롤 칸으로 자동 접속이 얼마나 오는지 계속 볼 수 있습니다.</p></div>';
   if(dl.days.length>1) html+='<div class="st-sec"><h3>추이</h3>'+stChart(dl.days,[{name:'방문자',c:'#2e6da4',v:dl.v.visitor},{name:'방문',c:'#2f7a52',v:dl.v.visit},{name:'페이지뷰',c:'#b07a2a',v:dl.v.pv}])+'</div>';
+  html+=stGallery(agg);
 
   // 페이지별
   const pv=stSum(agg,'pv',r=>r[1]), land=stSum(agg,'visit',r=>r[1]), sc=stSum(agg,'scroll',r=>r[1]+'|'+r[2]), dw=stSum(agg,'dwell',r=>r[1]), dwb=stSum(agg,'dwell',r=>r[1]+'|'+r[2]);
@@ -5547,7 +5672,7 @@ function drawStats(){
 
   // 버튼별
   const clv=stSum(agg,'clickv',r=>r[1]+'|'+r[2]);
-  const btns=stTop(clk,500).map(([k,o])=>{ const [n,t]=k.split('|'); const w=stWork(t);
+  const btns=stTop(clk,500).filter(([k])=>!/^(g|gb)_/.test(k)).map(([k,o])=>{ const [n,t]=k.split('|'); const w=stWork(t);
     const OUT={brand_shop:'Brand Shop(아이디어스)', instagram:'인스타그램', threads:'스레드', youtube:'유튜브', other:'기타 사이트'};
     let tgt=t; if(n==='menu') tgt=OUT[t]||stPage(t); else if(n==='out') tgt=OUT[t]||t; else if(n==='lang') tgt=t==='en'?'영문으로':'국문으로'; else if(n==='filter') tgt=t==='all'?'전체 작품':(((exRows||[]).find(x=>x.id===t)||{}).title||t); else if(n==='contact_type') tgt=t; else if(n==='gallery_enter') tgt={lobby:'로비로',works:'작품관으로',ip:'IP관으로'}[t]||t; else if(w) tgt=w.title+' ('+t+')'; else if(/^(recent|all|selected):/.test(t)){ const [where,no]=t.split(':'); const ww=stWork(no); tgt={recent:'홈 Recent',all:'All works',selected:'Selected'}[where]+' · '+(ww?ww.title:no); }
     return [ST_BTN[n]||n, tgt||'—', o.n, (clv.get(k)||{n:0}).n]; });
@@ -5694,11 +5819,12 @@ function goSection(v){
   $('#vFeeCalc').hidden=section!=='feecalc';
   $('#vActivity').hidden=section!=='activity';
   $('#vStats').hidden=section!=='stats';
+  $('#vGuestbook').hidden=section!=='guestbook';
   $('#vSettings').hidden=section!=='settings';
   $('#vSim').hidden=section!=='sim'; { const mn=document.querySelector('main'); if(mn) mn.classList.toggle('wide', section==='sim'); }
   $('#worksToolbar').style.display=section==='works'?'flex':'none';
   if(section!=='works'){ $('#filterBar').classList.remove('open'); $('#btnFilters').classList.remove('toggled'); }
-  const TITLES={stats:'방문통계', home:'신해달 어드민', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
+  const TITLES={stats:'방문통계', guestbook:'방명록', home:'신해달 어드민', homevideos:'홈 운영', works:'작품 관리', workspage:'Works 운영', exhibitions:'전시 관리',
                 press:'기사 등록', feecalc:'수수료계산', activity:'작업기록', settings:'운영메모', sim:'전시 시뮬레이터'};
   $('#pageTitle').firstChild.textContent=TITLES[section]||'신해달 어드민';
   $('#cnt').hidden=section!=='works';
@@ -5711,6 +5837,7 @@ function goSection(v){
   if(section==='home')renderHome();
   if(section==='activity'){ loadTrash(); loadActivityLog(); }
   if(section==='stats') openStats();
+  if(section==='guestbook') openGuestbook();
   if(section==='sim') simOpen();
   window.scrollTo(0, 0);
 }

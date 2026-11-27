@@ -243,6 +243,27 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .wp-grid .gap{aspect-ratio:1; border:1.5px dashed #d9a79f; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:.66rem; color:var(--sold)}
 @media (max-width:720px){ .wp-pv{grid-template-columns:minmax(0,1fr) minmax(0,.66fr); gap:14px} .wp-box{padding:14px} }
 
+/* 수수료계산 — 전시별 보기 */
+.fc-mode{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.fc-mode button{border:0; background:var(--card); color:var(--sub); padding:7px 14px; font:inherit; font-size:.88rem; cursor:pointer}
+.fc-mode button.on{background:var(--accent); color:#fff}
+.fc-ex{background:var(--card); border:1px solid var(--line); border-radius:12px; margin:0 0 16px; overflow:hidden}
+.fc-ex-head{display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; padding:12px 16px; border-bottom:1px solid var(--line)}
+.fc-ex-head h3{margin:0; font-size:1rem; flex:1 1 260px; min-width:0}
+.fc-ex-head h3 small{display:block; font-weight:400; font-size:.8rem; color:var(--sub); margin-top:2px}
+.fc-rate{display:flex; align-items:baseline; gap:6px; font-size:.86rem}
+.fc-rate b{font-size:1rem}
+.fc-ex table{box-shadow:none; border-radius:0}
+.fc-ex td.num, .fc-ex th.num{text-align:right; white-space:nowrap}
+.fc-ex tr.unsold td{color:var(--sub)}
+.fc-ex tfoot td{font-weight:700; background:var(--bg); border-top:2px solid var(--line)}
+.fc-ex-sum{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:12px 16px; background:var(--bg); border-top:1px solid var(--line)}
+.fc-ex-sum div{display:flex; flex-direction:column; gap:2px}
+.fc-ex-sum span{font-size:.8rem; color:var(--sub)}
+.fc-ex-sum b{font-size:1.1rem}
+.fc-ex-note{padding:0 16px 12px; background:var(--bg); font-size:.78rem; color:var(--sub)}
+@media (max-width:640px){ .fc-ex-sum{grid-template-columns:1fr} }
+
 /* 방문 통계 */
 .st-cards{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 16px}
 @media (max-width:1100px){ .st-cards{grid-template-columns:repeat(2,minmax(0,1fr))} }
@@ -819,7 +840,14 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
 
   <section id="vFeeCalc" hidden>
     <div class="toolbar" id="feeToolbar" style="padding:0 0 12px; flex-wrap:wrap; gap:14px">
-      <input type="search" id="fcq" placeholder="작품명·번호 검색…" style="flex:1 1 220px">
+      <div class="fc-mode" id="fcMode">
+        <button type="button" data-m="works" class="on">작품별</button>
+        <button type="button" data-m="ex">전시별</button>
+      </div>
+      <input type="search" id="fcq" placeholder="작품명·번호 검색…" style="flex:1 1 160px">
+      <label id="fcUnsoldWrap" style="display:none;align-items:center;gap:6px;font-size:.88rem">
+        <input type="checkbox" id="fcUnsold"> 판매 안 된 작품도 보기
+      </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:.88rem">
         <input type="checkbox" id="fcCard"> 카드수수료 적용
         <input type="number" id="fcCardPct" value="3.5" step="0.1" min="0" max="100" style="width:60px">%
@@ -832,7 +860,10 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </div>
     <p class="hint" style="margin:0 0 12px">계산 순서: 판매가에서 카드수수료(체크 시) → 남은 금액을 수수료율로 갤러리·작가가 분배
       → 작가 몫에서 원천징수(체크 시) 순으로 뗀 최종 실수령액입니다. 판매가는 작품 화면의 "판매가격"을 그대로 씁니다.</p>
-    <div class="tablewrap"><table>
+    <p class="hint" id="fcExHint" hidden style="margin:-6px 0 12px">전시별 보기: 전시 화면에서 연결한 작품을 전시마다 묶습니다. 합계는 <b>판매된 작품만</b> 더합니다
+      (아트토이처럼 수량이 있는 작품은 판매가 × 판매개수). 수수료율은 <b>전시 관리의 '판매 수수료율'</b>에 적은 값을 쓰고, 적지 않은 전시는 0%로 계산합니다.</p>
+    <div id="fcExView" hidden></div>
+    <div class="tablewrap" id="fcWorksView"><table>
       <thead><tr><th>작품No.</th><th>작품명</th><th>판매가</th>
         <th>수수료 10%<br><small style="font-weight:400">작가 실수령</small></th>
         <th>수수료 20%<br><small style="font-weight:400">작가 실수령</small></th>
@@ -1801,6 +1832,7 @@ async function load(){
   render();
   if(typeof renderHome === 'function') renderHome();
   if(section === 'homevideos'){ renderHomeRecent(); renderHomeOrder(); }   // 홈 운영을 먼저 열어 둔 채 불러오기가 끝난 경우
+  if(section === 'feecalc' && typeof renderFeeCalc === 'function') renderFeeCalc();   // 전시별 보기는 전시·작품 자료를 쓴다
 }
 
 /* ---------- 필터·정렬·렌더 ---------- */
@@ -4570,7 +4602,103 @@ function computeNet(price, tierPct){
   }
   return v;
 }
+/* 전시별 보기 (2026-11-28 작가 결정: 수수료율은 전시 관리의 '판매 수수료율' 칸 값을 쓰고, 비어 있으면 0%.
+   합계는 판매된 작품만) */
+var fcMode='works';
+function fcExRate(e){   // exhibitions.commission_rate는 0~1(0.4 = 40%)로 저장된다(sales_commission_2026-11.sql)
+  var v=Number(e.commission_rate);
+  return (e.commission_rate===''||e.commission_rate==null||isNaN(v)) ? 0 : Math.round(v*1000)/10;
+}
+/* 한 줄의 금액을 단계마다 원 단위로 반올림해 나눈다. 그래야 표에 보이는 숫자를 더한 값과 합계가 같다. */
+function fcSplit(gross, rate){
+  var card=$('#fcCard').checked ? Math.round(gross*(parseFloat($('#fcCardPct').value)||0)/100) : 0;
+  var rest=gross-card;
+  var fee=Math.round(rest*rate/100);
+  var artist=rest-fee;
+  var tax=$('#fcTax').checked ? Math.round(artist*(parseFloat($('#fcTaxPct').value)||0)/100) : 0;
+  return { gross:gross, card:card, fee:fee, tax:tax, net:artist-tax };
+}
+function fcSoldCount(r){
+  if((r.qty??'')!=='') return Number(r.sold_qty)||0;   // 수량 있는 작품(아트토이)
+  return soldState(r)==='sold' ? 1 : 0;
+}
+function renderFeeCalcEx(){
+  var box=$('#fcExView');
+  if(!exLoaded){ box.innerHTML='<p class="hint">불러오는 중…</p>'; return; }
+  var q=($('#fcq').value||'').trim().toLowerCase();
+  var showUnsold=$('#fcUnsold').checked;
+  var byNo={}; rows.forEach(function(r){ byNo[r.no]=r; });
+  var exs=exRows.slice().sort(function(a,b){
+    return String(b.start_date||'').localeCompare(String(a.start_date||'')) || String(b.id||'').localeCompare(String(a.id||''));
+  });
+  var html=exs.map(function(e){
+    var works=String(e.work_nos||'').split(',').map(function(s){return s.trim()}).filter(Boolean)
+      .map(function(no){ return byNo[no]; }).filter(Boolean)
+      .sort(function(a,b){ return String(a.no).localeCompare(String(b.no)); });
+    if(q){
+      var exHit=[e.id,e.title,e.venue].join(' ').toLowerCase().includes(q);
+      if(!exHit){
+        works=works.filter(function(r){ return [r.no,r.title].join(' ').toLowerCase().includes(q); });
+        if(!works.length) return '';
+      }
+    }
+    var rate=fcExRate(e);
+    var tot={gross:0,card:0,fee:0,tax:0,net:0}, soldN=0, noPrice=[];
+    var trs=works.map(function(r){
+      var n=fcSoldCount(r);
+      var unit=Number(r.price); var hasPrice=r.price!==''&&!isNaN(unit);
+      var qtyTxt=(r.qty??'')!=='' ? n+'/'+r.qty : (n?'판매':'—');
+      if(n && !hasPrice) noPrice.push(r.no);
+      if(!n && !showUnsold) return '';
+      var cells;
+      if(n && hasPrice){
+        var s=fcSplit(unit*n, rate);
+        ['gross','card','fee','tax','net'].forEach(function(k){ tot[k]+=s[k]; });
+        soldN+=n;
+        cells='<td class="num">'+krw(s.gross)+'</td><td class="num">'+krw(s.fee)+'</td><td class="num">'+krw(s.net)+'</td>';
+      }else{
+        cells='<td class="num">—</td><td class="num">—</td><td class="num">—</td>';
+      }
+      return '<tr'+(n?'':' class="unsold"')+'><td>'+esc(r.no)+'</td><td>'+esc(r.title)+'</td>'+
+        '<td class="num">'+(hasPrice?krw(unit):'—')+'</td><td class="num">'+esc(qtyTxt)+'</td>'+cells+'</tr>';
+    }).join('');
+    if(!trs) trs='<tr><td colspan="7" class="empty">'+(works.length?'판매된 작품이 없습니다':'연결된 작품이 없습니다')+'</td></tr>';
+    var period=[e.start_date,e.end_date].filter(Boolean).join(' ~ ');
+    var notes=[];
+    if(tot.card) notes.push('카드수수료 '+krw(tot.card));
+    if(tot.tax) notes.push('원천징수 '+krw(tot.tax));
+    if(noPrice.length) notes.push('판매가가 없어 합계에서 빠진 작품: '+noPrice.map(esc).join(', '));
+    return '<div class="fc-ex">'+
+      '<div class="fc-ex-head"><h3>'+esc(e.title||'(제목 없음)')+
+        '<small>'+esc([e.id,period,e.venue].filter(Boolean).join(' · '))+'</small></h3>'+
+        '<div class="fc-rate">수수료율 <b>'+rate+'%</b></div></div>'+
+      '<div class="tablewrap"><table><thead><tr><th>작품No.</th><th>작품명</th><th class="num">판매가</th><th class="num">판매</th>'+
+        '<th class="num">매출</th><th class="num">수수료 '+rate+'%</th><th class="num">작가 실수령</th></tr></thead>'+
+        '<tbody>'+trs+'</tbody></table></div>'+
+      '<div class="fc-ex-sum">'+
+        '<div><span>총 매출액 (판매 '+soldN+'점)</span><b>'+krw(tot.gross)+'</b></div>'+
+        '<div><span>총 수수료 ('+rate+'%)</span><b>'+krw(tot.fee)+'</b></div>'+
+        '<div><span>총 작가 실수령</span><b>'+krw(tot.net)+'</b></div></div>'+
+      (notes.length?'<div class="fc-ex-note">'+notes.join(' · ')+'</div>':'')+
+    '</div>';
+  }).join('');
+  box.innerHTML=html||'<p class="hint">'+(q?'검색에 맞는 전시가 없습니다':'등록된 전시가 없습니다')+'</p>';
+}
+$('#fcMode').onclick=function(ev){
+  var b=ev.target.closest('button[data-m]'); if(!b) return;
+  fcMode=b.dataset.m;
+  document.querySelectorAll('#fcMode button').forEach(function(x){ x.classList.toggle('on', x===b); });
+  renderFeeCalc();
+};
+$('#fcUnsold').onchange=renderFeeCalc;
+
 function renderFeeCalc(){
+  var ex=fcMode==='ex';
+  $('#fcExView').hidden=!ex; $('#fcExHint').hidden=!ex;
+  $('#fcWorksView').hidden=ex;
+  $('#fcUnsoldWrap').style.display=ex?'flex':'none';
+  $('#fcq').placeholder=ex?'전시명·작품명·번호 검색…':'작품명·번호 검색…';
+  if(ex){ renderFeeCalcEx(); return; }
   var q=($('#fcq').value||'').trim().toLowerCase();
   var list=feeRows.filter(function(r){
     if(!q)return true;
@@ -4586,7 +4714,7 @@ $('#fcCard').onchange=renderFeeCalc;
 $('#fcCardPct').oninput=renderFeeCalc;
 $('#fcTax').onchange=renderFeeCalc;
 $('#fcTaxPct').oninput=renderFeeCalc;
-$('#btnFeeReload').onclick=()=>{loadFeeCalc();toast('새로고침')};
+$('#btnFeeReload').onclick=()=>{ if(fcMode==='ex'){ exLoaded=false; load(); } else loadFeeCalc(); toast('새로고침'); };
 
 /* ---------- 엑셀 다운로드 ---------- */
 $('#btnXlsx').onclick=()=>{

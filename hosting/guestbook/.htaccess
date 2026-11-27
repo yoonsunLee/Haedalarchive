@@ -1,0 +1,10 @@
+# 공통 코드·표 정의는 웹으로 열 수 없게
+<FilesMatch "^(gblib\.php|schema\.sql)$">
+  Require all denied
+</FilesMatch>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(gblib\.php|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>

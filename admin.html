@@ -261,6 +261,11 @@ body{background:var(--bg); color:var(--ink); font-family:'Apple SD Gothic Neo','
 .fc-ex-sum div{display:flex; flex-direction:column; gap:2px}
 .fc-ex-sum span{font-size:.8rem; color:var(--sub)}
 .fc-ex-sum b{font-size:1.1rem}
+.fc-sec{margin:22px 0 10px; font-size:.95rem; color:var(--ink); display:flex; align-items:baseline; gap:8px}
+.fc-sec:first-child{margin-top:4px}
+.fc-sec small{font-weight:400; color:var(--sub); font-size:.8rem}
+.fc-ex.personal{border-color:var(--nfs)}
+.fc-ex.personal .fc-ex-head{background:#fbf6ec}
 .fc-ex-note{padding:0 16px 12px; background:var(--bg); font-size:.78rem; color:var(--sub)}
 @media (max-width:640px){ .fc-ex-sum{grid-template-columns:1fr} }
 
@@ -860,8 +865,8 @@ form select.pick{margin-bottom:4px; color:var(--sub)}
     </div>
     <p class="hint" style="margin:0 0 12px">계산 순서: 판매가에서 카드수수료(체크 시) → 남은 금액을 수수료율로 갤러리·작가가 분배
       → 작가 몫에서 원천징수(체크 시) 순으로 뗀 최종 실수령액입니다. 판매가는 작품 화면의 "판매가격"을 그대로 씁니다.</p>
-    <p class="hint" id="fcExHint" hidden style="margin:-6px 0 12px">전시별 보기: 전시 화면에서 연결한 작품을 전시마다 묶습니다. 합계는 <b>판매된 작품만</b> 더합니다
-      (아트토이처럼 수량이 있는 작품은 판매가 × 판매개수). 수수료율은 <b>전시 관리의 '판매 수수료율'</b>에 적은 값을 쓰고, 적지 않은 전시는 0%로 계산합니다.</p>
+    <p class="hint" id="fcExHint" hidden style="margin:-6px 0 12px">전시별 보기: 작품 관리 → 판매 정보의 <b>'판매 전시'</b>로 그 전시를 고른 판매만 전시마다 더합니다
+      (아트토이처럼 여러 개인 작품은 하나씩 따로 셉니다). 팔린 작품이 있는 전시만 나옵니다. '판매 전시'가 빈 판매는 맨 아래 <b>개인 판매</b>로 따로 모입니다. 수수료율은 <b>전시 관리의 '판매 수수료율'</b>에 적은 값을 쓰고, 적지 않은 전시는 0%로 계산합니다.</p>
     <div id="fcExView" hidden></div>
     <div class="tablewrap" id="fcWorksView"><table>
       <thead><tr><th>작품No.</th><th>작품명</th><th>판매가</th>
@@ -4602,8 +4607,12 @@ function computeNet(price, tierPct){
   }
   return v;
 }
-/* 전시별 보기 (2026-11-28 작가 결정: 수수료율은 전시 관리의 '판매 수수료율' 칸 값을 쓰고, 비어 있으면 0%.
-   합계는 판매된 작품만) */
+/* 전시별 보기 (2026-11-28 작가 결정)
+   - 어느 전시의 판매인지는 작품 판매 정보(editions)의 '판매 전시'(sale_exhibition_no)로만 정한다.
+     처음엔 '출품작이면서 어디서든 팔린 작품'을 셌다가, 다른 곳에서 팔린 아트토이가 개인전 매출로 잡혔다.
+   - 수수료율은 전시 관리의 '판매 수수료율'. 비어 있으면 0%.
+   - 팔린 작품이 있는 전시만 보인다(작가 결정 2026-11-28).
+   - '판매 전시'가 비었거나 없는 전시를 가리키는 판매는 맨 아래 '개인 판매'로 따로 모은다. */
 var fcMode='works';
 function fcExRate(e){   // exhibitions.commission_rate는 0~1(0.4 = 40%)로 저장된다(sales_commission_2026-11.sql)
   var v=Number(e.commission_rate);
@@ -4618,9 +4627,57 @@ function fcSplit(gross, rate){
   var tax=$('#fcTax').checked ? Math.round(artist*(parseFloat($('#fcTaxPct').value)||0)/100) : 0;
   return { gross:gross, card:card, fee:fee, tax:tax, net:artist-tax };
 }
-function fcSoldCount(r){
-  if((r.qty??'')!=='') return Number(r.sold_qty)||0;   // 수량 있는 작품(아트토이)
-  return soldState(r)==='sold' ? 1 : 0;
+/* 판매된 에디션을 '판매 전시'별로 센다: { 전시ID: { 작품번호: 개수 } }. 빈 칸·모르는 전시는 '' 아래로. */
+function fcSalesByEx(exIds){
+  var out={'':{}}, unknown=[];
+  rows.forEach(function(r){
+    (r._editions||[]).forEach(function(ed){
+      if(ed.status!=='sold') return;
+      var k=String(ed.sale_exhibition_no||'').trim();
+      if(k && !exIds[k]){ if(unknown.indexOf(k)<0) unknown.push(k); k=''; }
+      var m=out[k]=out[k]||{};
+      m[r.no]=(m[r.no]||0)+1;
+    });
+  });
+  return { map:out, unknown:unknown };
+}
+function fcExCard(o){   // o: {title, sub, rate, items:[{r,n}], emptyText, extraNotes}
+  var tot={gross:0,card:0,fee:0,tax:0,net:0}, soldN=0, noPrice=[];
+  var trs=o.items.map(function(it){
+    var r=it.r, n=it.n;
+    var unit=Number(r.price); var hasPrice=r.price!==''&&!isNaN(unit);
+    var qtyTxt=(r.qty??'')!=='' ? n+'/'+r.qty : (n?'판매':'—');
+    if(n && !hasPrice) noPrice.push(r.no);
+    var cells;
+    if(n && hasPrice){
+      var s=fcSplit(unit*n, o.rate);
+      ['gross','card','fee','tax','net'].forEach(function(k){ tot[k]+=s[k]; });
+      soldN+=n;
+      cells='<td class="num">'+krw(s.gross)+'</td><td class="num">'+krw(s.fee)+'</td><td class="num">'+krw(s.net)+'</td>';
+    }else{
+      cells='<td class="num">—</td><td class="num">—</td><td class="num">—</td>';
+    }
+    return '<tr'+(n?'':' class="unsold"')+'><td>'+esc(r.no)+'</td><td>'+esc(r.title)+'</td>'+
+      '<td class="num">'+(hasPrice?krw(unit):'—')+'</td><td class="num">'+esc(qtyTxt)+'</td>'+cells+'</tr>';
+  }).join('');
+  if(!trs) trs='<tr><td colspan="7" class="empty">'+esc(o.emptyText)+'</td></tr>';
+  var notes=[];
+  if(tot.card) notes.push('카드수수료 '+krw(tot.card));
+  if(tot.tax) notes.push('원천징수 '+krw(tot.tax));
+  if(noPrice.length) notes.push('판매가가 없어 합계에서 빠진 작품: '+noPrice.map(esc).join(', '));
+  (o.extraNotes||[]).forEach(function(t){ notes.push(t); });
+  return '<div class="fc-ex'+(o.personal?' personal':'')+'">'+
+    '<div class="fc-ex-head"><h3>'+esc(o.title)+'<small>'+esc(o.sub)+'</small></h3>'+
+      '<div class="fc-rate">수수료율 <b>'+o.rate+'%</b></div></div>'+
+    '<div class="tablewrap"><table><thead><tr><th>작품No.</th><th>작품명</th><th class="num">판매가</th><th class="num">판매</th>'+
+      '<th class="num">매출</th><th class="num">수수료 '+o.rate+'%</th><th class="num">작가 실수령</th></tr></thead>'+
+      '<tbody>'+trs+'</tbody></table></div>'+
+    '<div class="fc-ex-sum">'+
+      '<div><span>총 매출액 (판매 '+soldN+'점)</span><b>'+krw(tot.gross)+'</b></div>'+
+      '<div><span>총 수수료 ('+o.rate+'%)</span><b>'+krw(tot.fee)+'</b></div>'+
+      '<div><span>총 작가 실수령</span><b>'+krw(tot.net)+'</b></div></div>'+
+    (notes.length?'<div class="fc-ex-note">'+notes.join(' · ')+'</div>':'')+
+  '</div>';
 }
 function renderFeeCalcEx(){
   var box=$('#fcExView');
@@ -4628,61 +4685,48 @@ function renderFeeCalcEx(){
   var q=($('#fcq').value||'').trim().toLowerCase();
   var showUnsold=$('#fcUnsold').checked;
   var byNo={}; rows.forEach(function(r){ byNo[r.no]=r; });
+  var exIds={}; exRows.forEach(function(e){ if(e.id) exIds[e.id]=true; });
+  var sales=fcSalesByEx(exIds);
+  var hitWork=function(r){ return !q || [r.no,r.title].join(' ').toLowerCase().includes(q); };
+  var byWorkNo=function(a,b){ return String(a.r.no).localeCompare(String(b.r.no)); };
   var exs=exRows.slice().sort(function(a,b){
     return String(b.start_date||'').localeCompare(String(a.start_date||'')) || String(b.id||'').localeCompare(String(a.id||''));
   });
   var html=exs.map(function(e){
-    var works=String(e.work_nos||'').split(',').map(function(s){return s.trim()}).filter(Boolean)
-      .map(function(no){ return byNo[no]; }).filter(Boolean)
-      .sort(function(a,b){ return String(a.no).localeCompare(String(b.no)); });
-    if(q){
-      var exHit=[e.id,e.title,e.venue].join(' ').toLowerCase().includes(q);
-      if(!exHit){
-        works=works.filter(function(r){ return [r.no,r.title].join(' ').toLowerCase().includes(q); });
-        if(!works.length) return '';
-      }
+    var sold=sales.map[e.id]||{};
+    if(!Object.keys(sold).some(function(no){ return byNo[no]; })) return '';   // 팔린 작품이 없는 전시는 보이지 않는다
+    var items=Object.keys(sold).map(function(no){ return {r:byNo[no], n:sold[no]}; }).filter(function(it){ return it.r; });
+    if(showUnsold){   // 출품작 가운데 이 전시에서 팔리지 않은 것도 흐리게
+      String(e.work_nos||'').split(',').map(function(x){return x.trim()}).filter(Boolean).forEach(function(no){
+        if(!sold[no] && byNo[no]) items.push({r:byNo[no], n:0});
+      });
     }
-    var rate=fcExRate(e);
-    var tot={gross:0,card:0,fee:0,tax:0,net:0}, soldN=0, noPrice=[];
-    var trs=works.map(function(r){
-      var n=fcSoldCount(r);
-      var unit=Number(r.price); var hasPrice=r.price!==''&&!isNaN(unit);
-      var qtyTxt=(r.qty??'')!=='' ? n+'/'+r.qty : (n?'판매':'—');
-      if(n && !hasPrice) noPrice.push(r.no);
-      if(!n && !showUnsold) return '';
-      var cells;
-      if(n && hasPrice){
-        var s=fcSplit(unit*n, rate);
-        ['gross','card','fee','tax','net'].forEach(function(k){ tot[k]+=s[k]; });
-        soldN+=n;
-        cells='<td class="num">'+krw(s.gross)+'</td><td class="num">'+krw(s.fee)+'</td><td class="num">'+krw(s.net)+'</td>';
-      }else{
-        cells='<td class="num">—</td><td class="num">—</td><td class="num">—</td>';
-      }
-      return '<tr'+(n?'':' class="unsold"')+'><td>'+esc(r.no)+'</td><td>'+esc(r.title)+'</td>'+
-        '<td class="num">'+(hasPrice?krw(unit):'—')+'</td><td class="num">'+esc(qtyTxt)+'</td>'+cells+'</tr>';
-    }).join('');
-    if(!trs) trs='<tr><td colspan="7" class="empty">'+(works.length?'판매된 작품이 없습니다':'연결된 작품이 없습니다')+'</td></tr>';
-    var period=[e.start_date,e.end_date].filter(Boolean).join(' ~ ');
-    var notes=[];
-    if(tot.card) notes.push('카드수수료 '+krw(tot.card));
-    if(tot.tax) notes.push('원천징수 '+krw(tot.tax));
-    if(noPrice.length) notes.push('판매가가 없어 합계에서 빠진 작품: '+noPrice.map(esc).join(', '));
-    return '<div class="fc-ex">'+
-      '<div class="fc-ex-head"><h3>'+esc(e.title||'(제목 없음)')+
-        '<small>'+esc([e.id,period,e.venue].filter(Boolean).join(' · '))+'</small></h3>'+
-        '<div class="fc-rate">수수료율 <b>'+rate+'%</b></div></div>'+
-      '<div class="tablewrap"><table><thead><tr><th>작품No.</th><th>작품명</th><th class="num">판매가</th><th class="num">판매</th>'+
-        '<th class="num">매출</th><th class="num">수수료 '+rate+'%</th><th class="num">작가 실수령</th></tr></thead>'+
-        '<tbody>'+trs+'</tbody></table></div>'+
-      '<div class="fc-ex-sum">'+
-        '<div><span>총 매출액 (판매 '+soldN+'점)</span><b>'+krw(tot.gross)+'</b></div>'+
-        '<div><span>총 수수료 ('+rate+'%)</span><b>'+krw(tot.fee)+'</b></div>'+
-        '<div><span>총 작가 실수령</span><b>'+krw(tot.net)+'</b></div></div>'+
-      (notes.length?'<div class="fc-ex-note">'+notes.join(' · ')+'</div>':'')+
-    '</div>';
+    var exHit=!q || [e.id,e.title,e.venue].join(' ').toLowerCase().includes(q);
+    if(!exHit){
+      items=items.filter(function(it){ return hitWork(it.r); });
+      if(!items.length) return '';
+    }
+    items.sort(byWorkNo);
+    return fcExCard({
+      title:e.title||'(제목 없음)',
+      sub:[e.id,[e.start_date,e.end_date].filter(Boolean).join(' ~ '),e.venue].filter(Boolean).join(' · '),
+      rate:fcExRate(e), items:items,
+      emptyText:'이 전시를 판매 전시로 고른 판매가 없습니다'
+    });
   }).join('');
-  box.innerHTML=html||'<p class="hint">'+(q?'검색에 맞는 전시가 없습니다':'등록된 전시가 없습니다')+'</p>';
+  var none=sales.map['']||{};
+  var noneItems=Object.keys(none).map(function(no){ return {r:byNo[no], n:none[no]}; })
+    .filter(function(it){ return it.r && hitWork(it.r); }).sort(byWorkNo);
+  if(html) html='<h3 class="fc-sec">전시 판매</h3>'+html;
+  if(noneItems.length){
+    html+='<h3 class="fc-sec">개인 판매 <small>전시 밖에서 판매</small></h3>';
+    html+=fcExCard({
+      title:'개인 판매', sub:"판매 정보의 '판매 전시'가 비어 있는 판매입니다. 전시에서 팔렸다면 작품 관리에서 판매 전시를 골라 주세요.",
+      rate:0, items:noneItems, emptyText:'', personal:true,
+      extraNotes: sales.unknown.length ? ['없는 전시 ID가 적힌 판매도 여기 넣었습니다: '+sales.unknown.map(esc).join(', ')] : []
+    });
+  }
+  box.innerHTML=html||'<p class="hint">'+(q?'검색에 맞는 판매가 없습니다':'판매 기록이 없습니다')+'</p>';
 }
 $('#fcMode').onclick=function(ev){
   var b=ev.target.closest('button[data-m]'); if(!b) return;
